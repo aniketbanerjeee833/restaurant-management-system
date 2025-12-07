@@ -1,0 +1,14 @@
+CREATE TABLE orders_takeaway_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    Takeaway_Order_Item_Id VARCHAR(255) NOT NULL UNIQUE,
+
+    Takeaway_Order_Id VARCHAR(255) NOT NULL,  -- FK to order_takeaway table
+
+    Item_Id VARCHAR(255) NOT NULL,
+    Quantity INT NOT NULL DEFAULT 1,
+    Price DECIMAL(10,2) NOT NULL,
+    Amount DECIMAL(10,2) NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

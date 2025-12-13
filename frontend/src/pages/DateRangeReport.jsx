@@ -140,7 +140,7 @@ console.log(salesNewSalesPurchasesEachDay?.sales?.totalSalesAmount );
                    {isPrintLoading ? "Printing..." : "Print"}
                   </button>
                   </div> */}
-                                        <div className="flex items-center justify-between w-full">
+<div className="flex items-center justify-between w-full">
   
   {/* LEFT spacer to center title */}
   <div className="flex-1"></div>

@@ -40,11 +40,6 @@ Item_Image: z
     .transform((v) => parseFloat(v))
     .refine((n) => n >= 0, "Price must be positive"),
 
-  Item_Quantity: z
-    .string()
-    .refine((v) => /^[0-9]+$/.test(v), "Enter  quantity in numbers")
-    .transform((v) => parseInt(v))
-    .refine((n) => n >= 1, "Minimum quantity is 1"),
 
       Tax_Type: z.string().optional().default("None"),
 

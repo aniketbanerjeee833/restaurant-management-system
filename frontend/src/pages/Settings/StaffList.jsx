@@ -6,12 +6,15 @@ import { setPage } from "../../redux/reducer/userReducer";
 
 import { useGetAllStaffsQuery } from "../../redux/api/staffApi";
 import { Eye, SquarePen } from "lucide-react";
+import { useState } from "react";
+import EditStaffModal from "../../components/Modal/EditStaffModal";
+
 
 
 
 export default function StaffList() {
   const { userId: adminId } = useSelector((state) => state.user);
-
+const[editStaffModalOpen,setEditStaffModalOpen]=useState(false)
   console.log(adminId);
   //const [usersLoading, setUsersLoading] = useState(false);
  // const[staffs,setUsers]=useState([])
@@ -26,6 +29,7 @@ export default function StaffList() {
 
 const{data:staffs,isLoading:usersLoading}=useGetAllStaffsQuery({adminId,page})
 console.log(staffs,"staffs");
+const[selectedStaff,setSelectedStaff]=useState(null)
    const handlePageChange = (newPage) => {
       dispatch(setPage(newPage));
     }
@@ -62,20 +66,7 @@ console.log(staffs,"staffs");
  
      
       <>
-        <div className="sb2-2-2">
-          <ul >
-            <li>
-              <NavLink
-                to="/home"
-
-              >
-                <i className="fa fa-home mr-2" aria-hidden="true"></i>
-                Home
-              </NavLink>
-            </li>
-
-          </ul>
-        </div>
+      
         {/* Main Content */}
         <div className="sb2-2-3">
           <div className="row">
@@ -129,6 +120,9 @@ console.log(staffs,"staffs");
                               </td>
                               <td>
                                     <SquarePen
+                                    onClick={()=>{
+                                      setSelectedStaff(user)
+                                      setEditStaffModalOpen(true)}}
                                                                     style={{
                                                                       cursor: "pointer",
                                                                       backgroundColor: "transparent",
@@ -154,37 +148,15 @@ console.log(staffs,"staffs");
                       <p className="text-center mt-4">No staffs found.</p>
                     )}
                   </div>
-                  {/* <div className="flex justify-center align-center space-x-2 p-4">
-                  <button type="button"
-                    onClick={() => handlePreviousPage()}
-                    disabled={page === 1}
-                    className={`px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded
-                ${page === 1 ? 'opacity-50 ' : ''}
-                `}
-                  >
-                    ← Previous
-                  </button>
-                  {[...Array(staffs?.totalPages).keys()].map((index) => (
-                    <button
-                      key={index}
-                      onClick={() => handlePageChange(index + 1)}
-                      className={`px-3 py-1 rounded ${page === index + 1 ? 'bg-green-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
-                        }`}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
-
-                  <button type="button"
-                    onClick={() => handleNextPage()}
-                    disabled={page === staffs?.totalPages}
-                    className={`px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded
-                ${page === staffs?.totalPages ? 'opacity-50 ' : ''}
-                `}
-                  >
-                    Next →
-                  </button>
-                </div> */}
+                     {editStaffModalOpen && (
+          <EditStaffModal
+            // editStaffModalOpen={editStaffModalOpen}
+            setEditStaffModalOpen={setEditStaffModalOpen}
+            selectedStaff={selectedStaff}
+            onClose={() => setEditStaffModalOpen(false)}
+          />
+        )}
+                  
                    <div className="flex justify-center align-center space-x-2 p-4">
                                 <button type="button"
                                     onClick={() => handlePreviousPage()}
@@ -226,7 +198,9 @@ console.log(staffs,"staffs");
               </div>
             </div>
           </div>
+        
         </div>
+       
       </>
   
   )

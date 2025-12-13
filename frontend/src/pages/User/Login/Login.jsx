@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 import "./Login.css"
 import { useState } from "react";
@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {loginSchema} from "../../../schema/userFormSchema"
 import {setUser, setUserId} from "../../../redux/reducer/userReducer";
+
 
 export default function Login() {
 const dispatch = useDispatch();
@@ -67,18 +68,43 @@ const onSubmit = async (data) => {
      
     //   toast.error(response.message || "Login failed");
     // }
-  if (response.success) {
+//   if (response.success) {
 
-  toast.success("Login successful");
-  dispatch(setUser(response?.user));
+//   toast.success("Login successful");
+//   dispatch(setUser(response?.user));
     
-  dispatch(setUserId(response?.user?.User_Id));  // ✅ FIXED
-  if(response?.user?.role === "staff"){
+//   dispatch(setUserId(response?.user?.User_Id));  // ✅ FIXED
+//   if(response?.user?.role === "staff"){
+//     window.location.href = "/staff/orders/all-orders";
+//   } else {
+//     window.location.href = "/home";
+//   }
+//   if(response?.user?.role === "kitchen-staff"){
+//     window.location.href = "/kitchen-staff/orders/all-orders";
+//   }else{
+//     window.location.href = "/home";
+//   }
+// }
+if (response.success) {
+  toast.success("Login successful");
+
+  dispatch(setUser(response?.user));
+  dispatch(setUserId(response?.user?.User_Id)); 
+
+  const role = response?.user?.role;
+
+  if (role === "staff") {
     window.location.href = "/staff/orders/all-orders";
-  } else {
+  } 
+  else if (role === "kitchen-staff") {
+    window.location.href = "/kitchen-staff/orders/all-orders";
+  } 
+  else {
+    // default route for admin or others
     window.location.href = "/home";
   }
 }
+
   } catch (err) {
     console.error("Login error:", err);
 

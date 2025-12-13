@@ -1,6 +1,6 @@
 
 import  { useState } from 'react';
-import { LayoutDashboard, FileText, Calendar, DollarSign, ShoppingCart, Users, Table2, ChevronDown } from 'lucide-react';
+import {  FileText, Calendar, DollarSign, ShoppingCart, Users, Table2, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useGetAllInvoicesAndOrdersEachDayQuery } from '../../redux/api/Staff/orderApi';
 
@@ -35,27 +35,46 @@ const [page, setPage] = useState(1);
     const handlePreviousPage = () => {
         setPage(page - 1);
     }
-  const{data:allInvoicesAndOrderEachDay,
-    isLoading:isLoadingInvoicesAndOrdersEachDay,isError:isErrorInvoicesAndOrdersEachDay
-  }=useGetAllInvoicesAndOrdersEachDayQuery({  page,
+  const{data:allInvoicesAndOrderEachDay}=useGetAllInvoicesAndOrdersEachDayQuery({  page,
         search: searchTerm,date});
+        console.log(searchTerm)
   // Filter invoices
-   const invoiceData=allInvoicesAndOrderEachDay?.data??[]
-  console.log(allInvoicesAndOrderEachDay,invoiceData);
+   //const invoiceData=allInvoicesAndOrderEachDay?.data??[]
+   const invoiceData = allInvoicesAndOrderEachDay?.data ?? [];
 
-  const filteredInvoices = invoiceData.filter(data =>
-    data.invoice.Invoice_Id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    data.invoice.Order_Id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    data.items?.some(item => item.Item_Name?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+const dineInvoices = invoiceData.filter(
+  inv => inv.invoice.orderType === "dine"
+);
 
-  const dineInvoices=filteredInvoices.filter(invoice=>invoice.invoice.orderType==="dine")
-  const takeAwayInvoices=filteredInvoices.filter(invoice=>invoice.invoice.orderType==="takeaway")
-  console.log(dineInvoices,takeAwayInvoices,"dineInvoices","takeAwayInvoices");
+const takeAwayInvoices = invoiceData.filter(
+  inv => inv.invoice.orderType === "takeaway"
+);
+
+  console.log(invoiceData);
+
+  // const filteredInvoices = invoiceData.filter(data =>
+  //   data.invoice.Invoice_Id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   data.invoice.Order_Id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   data.items?.some(item => item.Item_Name?.toLowerCase().includes(searchTerm.toLowerCase()))
+  // );
+
+  // const dineInvoices=filteredInvoices.filter(invoice=>invoice.invoice.orderType==="dine")
+  // const takeAwayInvoices=filteredInvoices.filter(invoice=>invoice.invoice.orderType==="takeaway")
+   console.log(dineInvoices,takeAwayInvoices,"dineInvoices","takeAwayInvoices");
+
+ 
   // Toggle expand/collapse
   const toggleExpand = (invoiceId) => {
-    setExpandedInvoice(expandedInvoice === invoiceId ? null : invoiceId);
-  };
+  setExpandedInvoice(prev => prev === invoiceId ? null : invoiceId);
+};
+  // const toggleExpand = (invoiceId) => {
+  //   console.log(invoiceId);
+    
+  //   setExpandedInvoice(expandedInvoice === invoiceId ? null : invoiceId);
+  // };
+  const isExpanded = expandedInvoice === invoiceData?.invoice?.Invoice_Id
+// const isExpanded = expandedInvoice === invoiceData?.invoice?.Invoice_Id;
+console.log(isExpanded,"isExpanded");
 
   // Status color
   const getStatusColor = (status) => {
@@ -67,10 +86,10 @@ const [page, setPage] = useState(1);
     }
   };
 
-  console.log(filteredInvoices)
+  // console.log(filteredInvoices)
   return (
     <>
-      <div className="sb2-2-2">
+      {/* <div className="sb2-2-2">
         <ul>
           <li>
             <a style={{ display: "flex", flexDirection: "row" }} href="/home">
@@ -79,7 +98,7 @@ const [page, setPage] = useState(1);
             </a>
           </li>
         </ul>
-      </div>
+      </div> */}
 
       <div className="sb2-2-3">
         <div className="row" style={{ margin: "0px" }}>
@@ -90,7 +109,7 @@ const [page, setPage] = useState(1);
 
 <div className="inn-title w-full">
   <div className="
-      flex flex-col mt-4
+      flex flex-col
       lg:flex-row 
       lg:items-center 
       lg:justify-between 
@@ -104,7 +123,7 @@ const [page, setPage] = useState(1);
         text-center 
         gap-2 
         flex-1
-        ml-56
+        sm:ml-56
       "
     >
       {/* Title */}
@@ -112,7 +131,7 @@ const [page, setPage] = useState(1);
 
       {/* Total invoices */}
       <h4 className="text-uppercase mt-2 text-gray-700">
-        Total Invoices: {filteredInvoices.length}
+        Total Invoices: {invoiceData?.length}
       </h4>
     </div>
 
@@ -157,9 +176,10 @@ const [page, setPage] = useState(1);
                      <div className=" flex justify-center items-center">
             <h4 className='text-2xl font-bold text-uppercase'>Table Invoices</h4>
          </div>
-                  {dineInvoices?.map((data) => (
-                    <div
-                      key={data.invoice.Invoice_Id}
+                  {dineInvoices?.map((data) => {
+                     const isExpanded = expandedInvoice === data.invoice.Invoice_Id;
+                    return(<div
+                      key={data?.invoice?.Invoice_Id}
                       style={{
                         backgroundColor: '#fff',
                         borderRadius: '8px',
@@ -227,6 +247,16 @@ const [page, setPage] = useState(1);
                           </div>
 
                           {/* Tables */}
+
+                            <div className="" style={{ marginBottom: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <User size={18} style={{ color: '#666' }} />
+                              <div style={{ fontSize: '13px', color: '#666' }}>
+                                <span>{data?.invoice?.Customer_Name}</span>
+                                <span> - {data?.invoice?.Customer_Phone}</span>
+                              </div>
+                            </div>
+                          </div>
                           <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <Table2 size={18} style={{ color: '#666' }} />
@@ -237,7 +267,7 @@ const [page, setPage] = useState(1);
                           </div>
 
                           {/* Amount */}
-                          <div className="" style={{ marginBottom: '10px' }}>
+                          <div className="flex justify-end gap-2" style={{ marginBottom: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CA1AF' }}>
                                 ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
@@ -246,20 +276,19 @@ const [page, setPage] = useState(1);
                                 {data.items?.length || 0} items
                               </div>
                             </div>
+   
+  <div style={{ textAlign: 'right' }}>
+      {isExpanded ? (
+        <ChevronUp onClick={() => toggleExpand(data?.invoice?.Invoice_Id)} />
+      ) : (
+        <ChevronDown onClick={() => toggleExpand(data?.invoice?.Invoice_Id)} />
+      )}
+  </div>
+
                           </div>
                           {/* Icon */}
-                           <div className="justify-items-end" style={{ marginBottom: '10px' }}>
-                            <div style={{ textAlign: 'right' }}>
+    
 
-                              <ChevronDown onClick={() => toggleExpand(data?.invoice?.Invoice_Id)}/>
-                              {/* <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CA1AF' }}>
-                                ₹{parseFloat(data.invoice.Amount).toFixed(2)}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#666' }}>
-                                {data.items?.length || 0} items
-                              </div> */}
-                            </div>
-                          </div>
                         </div>
                       </div>
 
@@ -384,7 +413,7 @@ const [page, setPage] = useState(1);
                               }}>
                                 <span>Total:</span>
                                 <span style={{ color: '#4CA1AF' }}>
-                                  ₹{parseFloat(data.invoice.Amount).toFixed(2)}
+                                  ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
                                 </span>
                               </div>
                             </div>
@@ -429,7 +458,7 @@ const [page, setPage] = useState(1);
                         </div>
                       )}
                     </div>
-                  ))}
+                  )})}
 
                   {/* No Results */}
                   {dineInvoices.length === 0 && (
@@ -444,12 +473,15 @@ const [page, setPage] = useState(1);
                     </div>
                   )}
                 </div>}
+                
                <div className="border-b border-black-300 mt-2 mb-2"></div>
                  {takeAwayInvoices?.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div className=" flex justify-center items-center">
             <h4 className="text-2xl font-bold text-uppercase">Takeaway Invoices</h4>
          </div>
-                  {takeAwayInvoices?.map((data) => (
+                  {takeAwayInvoices?.map((data) => {
+                      const isExpanded = expandedInvoice === data.invoice.Invoice_Id;
+                    return(
                     <div
                       key={data?.invoice?.Invoice_Id}
                       style={{
@@ -519,6 +551,15 @@ const [page, setPage] = useState(1);
                           </div>
 
                           {/* Tables */}
+                            <div className="" style={{ marginBottom: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <User size={18} style={{ color: '#666' }} />
+                              <div style={{ fontSize: '13px', color: '#666' }}>
+                                <span>{data?.invoice?.Customer_Name}</span>
+                                <span> - {data?.invoice?.Customer_Phone}</span>
+                              </div>
+                            </div>
+                          </div>
                           <div className="" style={{ marginBottom: '10px' }}>
                             {/* <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <Table2 size={18} style={{ color: '#666' }} />
@@ -529,7 +570,7 @@ const [page, setPage] = useState(1);
                           </div>
 
                           {/* Amount */}
-                          <div className="" style={{ marginBottom: '10px' }}>
+                          <div className="flex justify-end gap-2"  style={{ marginBottom: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CA1AF' }}>
                                 ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
@@ -538,20 +579,28 @@ const [page, setPage] = useState(1);
                                 {data.items?.length || 0} items
                               </div>
                             </div>
-                          </div>
-                           {/* Icon */}
-                           <div className="justify-items-end" style={{ marginBottom: '10px' }}>
-                            <div style={{ textAlign: 'right' }}>
+                           
+                               <div style={{ textAlign: 'right' }}>
+                                  
 
-                              <ChevronDown  onClick={() => toggleExpand(data?.invoice?.Invoice_Id)}/>
+      {isExpanded ? (
+        <ChevronUp onClick={() => toggleExpand(data?.invoice?.Invoice_Id)} />
+      ) : (
+        <ChevronDown onClick={() => toggleExpand(data?.invoice?.Invoice_Id)} />
+      )}
+
+                              {/* <ChevronDown  onClick={() => toggleExpand(data?.invoice?.Invoice_Id)}/> */}
                               {/* <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CA1AF' }}>
                                 ₹{parseFloat(data.invoice.Amount).toFixed(2)}
                               </div>
                               <div style={{ fontSize: '12px', color: '#666' }}>
                                 {data.items?.length || 0} items
                               </div> */}
-                            </div>
+                              </div>
+                            
                           </div>
+                           {/* Icon */}
+                        
                         </div>
                       </div>
 
@@ -694,7 +743,7 @@ const [page, setPage] = useState(1);
                         </div>
                       )}
                     </div>
-                  ))}
+                  )})}
 
                   {/* No Results */}
                   {takeAwayInvoices?.length === 0 && (

@@ -1,7 +1,9 @@
 import  { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
-import {LayoutDashboard,Users, Package, ShoppingCart, DollarSign, ClipboardMinus, CalendarDays, Settings, CookingPot, Armchair, Handbag, ListOrdered, Calendar, Utensils } from 'lucide-react'
+import {LayoutDashboard,Users, Package, ShoppingCart, DollarSign,
+   ClipboardMinus, CalendarDays, 
+   Settings, CookingPot, Armchair, Handbag, ListOrdered, Calendar, Utensils } from 'lucide-react'
 import { useGetUserQuery } from "../../redux/api/userApi";
 
 
@@ -11,7 +13,7 @@ const SideMenu = () => {
   // const { userId } = useSelector((state) => state.user);
   const [openMenu, setOpenMenu] = useState(null);
 // const {user,userRole} = useSelector((state) => state.user);
-  const { data: userMe, isLoading, isError } = useGetUserQuery();
+  const { data: userMe } = useGetUserQuery();
 console.log(userMe);
   const toggleMenu = (menuKey) => {
     setOpenMenu((prev) => (prev === menuKey ? null : menuKey));
@@ -249,7 +251,7 @@ if (
       
            {userMe?.user?.role === "admin" && renderMenu("Material", <Handbag   size={20} />, [
            
-            { to: "/material/add", text: "Add Material" },
+            // { to: "/material/add", text: "Add Material" },
             { to: "/material/all-materials", text: "Material List" },
             { to: "/material/materials-release", text: "Material Release" },
           
@@ -298,6 +300,7 @@ if (
            
             { to: "/staff/add", text: "Add Staff" },
             { to: "/staff/all-staffs", text: "Staff List" },
+             { to: "/financial-year/add", text: "Financial Year" },
           
           ])}
 
@@ -343,6 +346,7 @@ if (
                 Add Order
                  </span>
             </NavLink>}
+
             {userMe?.user?.role==="staff" && <NavLink
               to="/staff/orders-takeaway/add"
               className={({ isActive }) => (isActive ? "menu-active" : "")}
@@ -351,11 +355,27 @@ if (
                   onClick={() => setOpenMenu(null)} // ✅ Close all submenus
             >
               
-              {/* <i className="fa fa-bar-chart" aria-hidden="true"></i> Dashboard */}
+             
                  <span className="flex items-center gap-2">  <Utensils  size={20}/> 
                 Add Takeaway
                  </span>
             </NavLink>}
+
+
+             {userMe?.user?.role==="staff" && <NavLink
+              to="/order/all-orders"
+              className={({ isActive }) => (isActive ? "menu-active" : "")}
+              style={{ display: 'block', padding: '10px 16px',
+                color: "#666", textDecoration: 'none' }}
+                  onClick={() => setOpenMenu(null)} // ✅ Close all submenus
+            >
+              
+             
+                 <span className="flex items-center gap-2">  <Calendar  size={20}/> 
+                All Orders
+                 </span>
+            </NavLink>}
+
            {userMe?.user?.role === "admin" && <NavLink
               to="/reports"
               className={({ isActive }) => (isActive ? "menu-active" : "")}
@@ -369,6 +389,8 @@ if (
                  Reports
                  </span>
             </NavLink>}
+
+
         </ul>
       </div>
     </>

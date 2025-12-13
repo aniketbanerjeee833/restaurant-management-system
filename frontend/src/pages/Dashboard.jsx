@@ -1,15 +1,16 @@
 import  { useState } from 'react';
 import { BarChart, Bar,  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, AlertCircle, FileText, LayoutDashboard } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, AlertCircle, FileText, LayoutDashboard, Armchair, Handbag } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { useGetAllSalesAndPurchasesYearWiseQuery, useGetCategoriesWiseItemCountQuery, useGetPartyWiseSalesAndPurchasesQuery, useGetTotalSalesPurchasesReceivablesPayablesProfitQuery } from '../redux/api/dashboardApi';
+import { useGetAllSalesAndPurchasesYearWiseQuery, 
+    useGetTotalSalesPurchasesReceivablesPayablesProfitQuery } from '../redux/api/dashboardApi';
 
 
 
 export default function Dashboard() {
   // const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
   // 🎨 Generate consistent color for each partyId
-const partyColorMap = new Map();
+//const partyColorMap = new Map();
 
 
 // 🎨 Base color palette to start cycling from
@@ -27,37 +28,37 @@ const BASE_COLORS = [
 ];
 
 // 🌈 Generate a new color if we run out of base colors
-const generateDynamicColor = (index) => {
-  const hue = (index * 137.5) % 360; // golden angle → well-distributed hues
-  return `hsl(${hue}, 70%, 55%)`;
-};
+// const generateDynamicColor = (index) => {
+//   const hue = (index * 137.5) % 360; // golden angle → well-distributed hues
+//   return `hsl(${hue}, 70%, 55%)`;
+// };
 
- const generateColor = (partyId, index = 0) => {
-  if (partyColorMap.has(partyId)) {
-    return partyColorMap.get(partyId);
-  }
+//  const generateColor = (partyId, index = 0) => {
+//   if (partyColorMap.has(partyId)) {
+//     return partyColorMap.get(partyId);
+//   }
 
-  // Pick from base palette first, then generate dynamically
-  const color =
-    BASE_COLORS[index % BASE_COLORS.length] ||
-    generateDynamicColor(index);
+//   // Pick from base palette first, then generate dynamically
+//   const color =
+//     BASE_COLORS[index % BASE_COLORS.length] ||
+//     generateDynamicColor(index);
 
-  partyColorMap.set(partyId, color);
-  return color;
-};
-const generateCategoryColor = (str) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash % 360); // ensures it's within 0–360
-  return `hsl(${hue}, 70%, 55%)`; // vivid, medium-light colors
-};
+//   partyColorMap.set(partyId, color);
+//   return color;
+// };
+// const generateCategoryColor = (str) => {
+//   let hash = 0;
+//   for (let i = 0; i < str.length; i++) {
+//     hash = str.charCodeAt(i) + ((hash << 5) - hash);
+//   }
+//   const hue = Math.abs(hash % 360); // ensures it's within 0–360
+//   return `hsl(${hue}, 70%, 55%)`; // vivid, medium-light colors
+// };
   const[selectedYear, setSelectedYear] = useState("2025");
-  const[selectedMonth, setSelectedMonth] = useState("October");
-  const[selectedYearForCategory, setSelectedYearForCategory] = useState("2025");
-  const[selectedYearForPartyPurchases, setSelectedYearForPartyPurchases] = useState("2025");
-  const[selectedMonthForPartyPurchases, setSelectedMonthForPartyPurchases] = useState("October");
+ // const[selectedMonth, setSelectedMonth] = useState("October");
+  //const[selectedYearForCategory, setSelectedYearForCategory] = useState("2025");
+  //const[selectedYearForPartyPurchases, setSelectedYearForPartyPurchases] = useState("2025");
+  //const[selectedMonthForPartyPurchases, setSelectedMonthForPartyPurchases] = useState("October");
 
 // const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
 // const year="2025"
@@ -66,9 +67,8 @@ const {data: salesPurchasesProfitData} =
    useGetAllSalesAndPurchasesYearWiseQuery({year:selectedYear})
   //Calculate metrics
   
-const {data: categoryWiseItemCount}
-=useGetCategoriesWiseItemCountQuery({month:selectedMonth,year:selectedYearForCategory});
-  console.log(selectedYear,selectedMonth);
+//const {data: categoryWiseItemCount}=useGetCategoriesWiseItemCountQuery({month:selectedMonth,year:selectedYearForCategory});
+  console.log(selectedYear);
 const {data:totalSalesPurchasesReceivablesPayablesProfit}=useGetTotalSalesPurchasesReceivablesPayablesProfitQuery()
   // Item-wise analysis
   console.log(totalSalesPurchasesReceivablesPayablesProfit,"totalSalesPurchasesReceivablesPayablesProfit");
@@ -78,8 +78,8 @@ const {data:totalSalesPurchasesReceivablesPayablesProfit}=useGetTotalSalesPurcha
     //    totalSalesPurchasesReceivablesPayablesProfit?.sales) * 100).toFixed(1);
 
     const profitMargin=totalSalesPurchasesReceivablesPayablesProfit?.profit
-       const{data: partyWiseSalesAndPurchases} =
-       useGetPartyWiseSalesAndPurchasesQuery({month:selectedMonthForPartyPurchases,year:selectedYearForPartyPurchases});
+      //  const{data: partyWiseSalesAndPurchases} =
+      //  useGetPartyWiseSalesAndPurchasesQuery({month:selectedMonthForPartyPurchases,year:selectedYearForPartyPurchases});
       
      
 
@@ -88,9 +88,9 @@ const {data:totalSalesPurchasesReceivablesPayablesProfit}=useGetTotalSalesPurcha
 
 
 
-  console.log(salesPurchasesProfitData?.data,categoryWiseItemCount);
- console.log(partyWiseSalesAndPurchases,"partyWiseSalesAndPurchases",
-  partyWiseSalesAndPurchases?.data,profitMargin);
+  //console.log(salesPurchasesProfitData?.data,categoryWiseItemCount);
+//  console.log(partyWiseSalesAndPurchases,"partyWiseSalesAndPurchases",
+//   partyWiseSalesAndPurchases?.data,profitMargin);
  
 
   
@@ -98,8 +98,8 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
   // ✅ Determine the route dynamically
   const lowerTitle = title.toLowerCase();
   let route = "";
-  if (lowerTitle.includes("sale")) route = "/sale/all-sales";
-  else if (lowerTitle.includes("purchase")) route = "/purchase/all-purchases";
+  if (lowerTitle.includes("sale")) route = "/order/all-orders";
+  else if (lowerTitle.includes("purchase")) route = "/inventory/all-inventories";
 
   return (
     <div
@@ -135,6 +135,46 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
   );
 };
 
+const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
+  // ✅ Determine the route dynamically
+  // const lowerTitle = title.toLowerCase();
+  // let route = "";
+  // if (lowerTitle.includes("sale")) route = "/sale/all-sales";
+  // else if (lowerTitle.includes("purchase")) route = "/purchase/all-purchases";
+
+  return (
+    <div
+      className="flex flex-col justify-between bg-white rounded-xl shadow-sm 
+                 border border-gray-100 hover:shadow-md transition-all 
+                 p-4 w-full min-w-[180px] h-[120px]"
+    >
+      {/* 🔹 Icon + Title */}
+      <div className="flex items-center mb-1">
+        <div className="flex gap-2 items-center">
+          <div className={`p-2 rounded-full ${color}`}>
+            <Icon className="w-5 h-5 text-white" />
+          </div>
+          <p style={{color:"black"}} className="text-sm text-gray-600 font-medium truncate mt-2 ">{title}</p>
+        </div>
+      </div>
+
+      {/* 💰 Value */}
+      <h4 className="text-2xl font-bold text-gray-900 mt-2">
+        {value?.toLocaleString() || 0}
+      </h4>
+
+      {/* 🔗 “View all …” link — only this is clickable */}
+      {/* {title.split(/\s+/).length > 1 && (
+        <NavLink
+          to={route}
+          className="text-xs text-gray-500 hover:text-[#4CA1AF] mt-2 transition-colors self-start"
+        >
+          View all {title.split(/\s+/)[1]}
+        </NavLink>
+      )} */}
+    </div>
+  );
+};
 
 
 
@@ -208,16 +248,16 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
             trendValue="+12.5%"
             color="bg-purple-600"
           />
-          <StatCard
-            title="Receivables"
-            value={totalSalesPurchasesReceivablesPayablesProfit?.total_receivables|| 0}
-            icon={AlertCircle}
+          <DineTakeawayStatCard
+            title="Orders(Dine-In)"
+            value={totalSalesPurchasesReceivablesPayablesProfit?.total_dineIn?? 0}
+            icon={Armchair}
             color="bg-orange-600"
           />
-          <StatCard
-            title="Payables"
-            value={totalSalesPurchasesReceivablesPayablesProfit?.total_payables || 0}
-            icon={DollarSign}
+          <DineTakeawayStatCard
+            title="Orders(Takeaway)"
+            value={totalSalesPurchasesReceivablesPayablesProfit?.total_takeaway ?? 0}
+            icon={Handbag}
             color="bg-red-600"
           />
           <StatCard
@@ -235,7 +275,7 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
 
   {/* 📊 Bar Chart (takes 2/3 width on desktop) */}
   
-<div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] mb-4 gap-6">
+<div className="grid grid-cols-1 lg:grid-cols-1 mb-4 gap-6">
  <div className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 sm:p-6">
   <div className='flex justify-between'>
   <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 mt-2 text-center sm:text-left">
@@ -258,7 +298,7 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
   <div
     className="
       w-full
-      h-[250px] sm:h-[350px] md:h-[400px] lg:h-[450px]
+       h-[250px] sm:h-[350px] md:h-[400px] lg:h-[450px]
       overflow-x-auto 
       
       rounded-lg
@@ -293,10 +333,10 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
             paddingTop: "10px",
           }}
         />
-        <Bar dataKey="sales" fill="#3b82f6" name="Sales" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="sales" fill="green" name="Sales" radius={[6, 6, 0, 0]} />
         <Bar
           dataKey="purchases"
-          fill="#8b5cf6"
+          fill="red"
           name="Purchases"
           radius={[6, 6, 0, 0]}
         />
@@ -314,7 +354,7 @@ const StatCard = ({ title, value, icon: Icon, color }) => {
  
 
   {/* 🥧 Pie Chart (1/3 width on desktop) */}
- <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-4 p-4 sm:p-6 flex flex-col ">
+ {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-4 p-4 sm:p-6 flex flex-col ">
   <div className='flex justify-between '>
     <div>
   <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mt-2 text-center">
@@ -420,7 +460,7 @@ outerRadius="80%"
             }
             return null;
           }}
-        /> */}
+        /> 
 
         <Legend
           verticalAlign="bottom"
@@ -436,9 +476,9 @@ outerRadius="80%"
         No category wise items data available for this month
       </div>
     )}
+</div> */}
 </div>
-</div>
-<div className="bg-white mb-4 rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 ">
+{/* <div className="bg-white mb-4 rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 ">
    <div className='flex  justify-around justify-items-center'>
   <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 mt-1 text-center">
     Party-wise Sales, Purchases Distribution
@@ -480,10 +520,10 @@ outerRadius="80%"
         </div>
 </div>
 
-  {/* Responsive 1-3 column grid */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+  
+  {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
     
-    {/* 🟦 SALES PIE */}
+    
  <div className="flex flex-col items-center justify-center w-full">
   <h4 className="text-sm sm:text-base font-medium text-gray-700 mb-2 text-center">
     Sales Distribution
@@ -524,7 +564,7 @@ outerRadius="80%"
   )}
 </div>
 
-{/* 🟪 PURCHASE PIE */}
+
 <div className="flex flex-col items-center justify-center w-full">
   <h4 className="text-sm sm:text-base font-medium text-gray-700 mb-2 text-center">
     Purchases Distribution
@@ -561,6 +601,44 @@ outerRadius="80%"
       </div>
   )}
 </div>
+
+  </div>
+   <div className="mt-6 flex overflow-x-auto justify-center align-center space-x-4 pb-2">
+  {partyWiseSalesAndPurchases?.data?.map((party, index) => (
+    <div key={party.partyName} className="flex items-center space-x-2 flex-shrink-0">
+      <span
+        className="w-4 h-4 rounded-full"
+        // style={{ backgroundColor: COLORS[index % COLORS.length] }}
+        style={{backgroundColor: generateColor(party.partyId, index)}}
+      ></span>
+      <span className="text-gray-700 text-sm">{party.partyName}</span>
+    </div>
+  ))}
+</div> 
+</div> */}
+
+ 
+
+
+
+
+
+
+
+          
+          </>
+       
+
+        
+      </div>
+      </div>
+      </div>
+    </div>
+    </div>
+    </>
+  );
+}
+
 {/* 
 
     <div className="flex flex-col items-center justify-center w-full">
@@ -692,218 +770,3 @@ outerRadius="80%"
 
 
 </div> */}
-
-  </div>
-   <div className="mt-6 flex overflow-x-auto justify-center align-center space-x-4 pb-2">
-  {partyWiseSalesAndPurchases?.data?.map((party, index) => (
-    <div key={party.partyName} className="flex items-center space-x-2 flex-shrink-0">
-      <span
-        className="w-4 h-4 rounded-full"
-        // style={{ backgroundColor: COLORS[index % COLORS.length] }}
-        style={{backgroundColor: generateColor(party.partyId, index)}}
-      ></span>
-      <span className="text-gray-700 text-sm">{party.partyName}</span>
-    </div>
-  ))}
-</div>
-</div>
-
- 
-
-
-
-{/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 col-span-1 lg:col-span-2">
-    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 text-center lg:text-left">
-     Party Wise Analysis
-    </h3>
-
-    <div className="max-w-full overflow-x-auto h-[250px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={partyWiseData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="name" stroke="#6b7280" tick={{ fontSize: 12 }} interval={0} />
-          <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#fff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-            }}
-          />
-          <Legend wrapperStyle={{ fontSize: "12px" }} />
-          <Bar dataKey="sales" fill="#3b82f6" name="Sales" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="purchases" fill="#8b5cf6" name="Purchases" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="profit" fill="#10b981" name="Profit" radius={[6, 6, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  </div> */}
-
-
-
-
-
-            {/* Product Performance Table */}
-     {/* Product Performance Table */}
-{/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 
-                overflow-y-auto overflow-x-auto
-               p-4 sm:p-6
-                w-full">
-  <div className="p-4 sm:p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Product Performance</h3>
-  </div>
-
-  <div className="min-w-full">
-    <table className="w-full text-sm sm:text-base">
-      <thead className="bg-gray-50 sticky top-[57px] sm:top-[65px] z-10">
-        <tr>
-          <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">Product</th>
-          <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">Sold Qty</th>
-          <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">Sales Revenue</th>
-          <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">Purchase Cost</th>
-          <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">Profit</th>
-          <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-wider">Margin</th>
-        </tr>
-      </thead>
-
-      <tbody className="bg-white divide-y divide-gray-200">
-        {Object.values(itemAnalysis).map((item, idx) => {
-          const profit = item.soldAmount - item.purchasedAmount;
-          const margin = item.soldAmount > 0 ? ((profit / item.soldAmount) * 100).toFixed(1) : 0;
-
-          return (
-            <tr key={idx} className="hover:bg-gray-50 transition-colors">
-              <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{item.name}</span>
-                </div>
-              </td>
-              <td className="px-4 sm:px-6 py-3 text-sm text-gray-700">{item.soldQty}</td>
-              <td className="px-4 sm:px-6 py-3 text-sm font-medium text-gray-900">₹{item.soldAmount.toLocaleString()}</td>
-              <td className="px-4 sm:px-6 py-3 text-sm text-gray-700">₹{item.purchasedAmount.toLocaleString()}</td>
-              <td className="px-4 sm:px-6 py-3">
-                <span className={`text-sm font-semibold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ₹{profit.toLocaleString()}
-                </span>
-              </td>
-              <td className="px-4 sm:px-6 py-3">
-                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold ${
-                  margin >= 20 ? 'bg-green-100 text-green-800' : 
-                  margin >= 10 ? 'bg-yellow-100 text-yellow-800' : 
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {margin}%
-                </span>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  </div>
-</div> */}
-
-          </>
-       
-
-        {/* {activeTab === 'sales' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Sales Invoices</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {salesData.map((sale, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <FileText className="w-4 h-4 text-blue-600 mr-2" />
-                          <span className="text-sm font-medium text-gray-900">{sale.Invoice_Number}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.Party_Name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{sale.Invoice_Date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{sale.Total_Amount.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">₹{sale.Total_Received.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          sale.Balance_Due === 0 ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-                        }`}>
-                          ₹{sale.Balance_Due.toLocaleString()}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'purchases' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Purchase Bills</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bill No.</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {purchaseData.map((purchase, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <FileText className="w-4 h-4 text-purple-600 mr-2" />
-                          <span className="text-sm font-medium text-gray-900">{purchase.Bill_Number}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{purchase.Party_Name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{purchase.Bill_Date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{purchase.Total_Amount.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">₹{purchase.Total_Paid.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          purchase.Balance_Due === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          ₹{purchase.Balance_Due.toLocaleString()}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )} */}
-      </div>
-      </div>
-      </div>
-    </div>
-    </div>
-    </>
-  );
-}
-

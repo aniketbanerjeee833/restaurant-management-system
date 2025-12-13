@@ -3,156 +3,330 @@
 import db from "../config/db.js";
 const getTotalSalesPurchasesReceivablesPayablesProfit = async (req, res, next) => {
   let connection;
+
   try {
     connection = await db.getConnection();
-    // Get current month and year
+
     const now = new Date();
-    const currentMonth = now.getMonth() + 1; // JS months are 0-based
+    const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    const [totalSales] = await db.query(
+    // --------------------------------------------------
+    // 1️⃣ TOTAL DINE-IN SALES for CURRENT MONTH
+    // --------------------------------------------------
+    const [[dineInResult]] = await connection.query(
       `
-      SELECT SUM(Total_Amount) AS total_sales 
-      FROM add_sale 
+      SELECT SUM(CAST(Amount AS DECIMAL(10,2))) AS total_dinein_sales
+      FROM invoices
+      WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+      `,
+      [currentMonth, currentYear]
+    );
+
+    // --------------------------------------------------
+    // 2️⃣ TOTAL TAKEAWAY SALES for CURRENT MONTH
+    // --------------------------------------------------
+    const [[takeawayResult]] = await connection.query(
+      `
+      SELECT SUM(CAST(Amount AS DECIMAL(10,2))) AS total_takeaway_sales
+      FROM takeaway_invoices
+      WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+      `,
+      [currentMonth, currentYear]
+    );
+
+    // Combined Sales Value
+    const totalDineInValue = Number(dineInResult?.total_dinein_sales || 0);
+    const totalTakeawayValue = Number(takeawayResult?.total_takeaway_sales || 0);
+
+    const totalSalesValue = totalDineInValue + totalTakeawayValue;
+    // --------------------------------------------------
+    // 3️⃣ TOTAL PURCHASES FOR CURRENT MONTH
+    // --------------------------------------------------
+    const [[purchaseResult]] = await connection.query(
+      `
+      SELECT SUM(Total_Amount) AS total_purchases
+      FROM add_purchase
       WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?
       `,
       [currentMonth, currentYear]
     );
 
-    const [totalPurchases] = await db.query(
+     const totalPurchasesValue = Number(purchaseResult?.total_purchases || 0);
+
+    // --------------------------------------------------
+    // 4️⃣ NUMBER OF SALES (COUNT)
+    // --------------------------------------------------
+    const [[dineInCount]] = await connection.query(
       `
-      SELECT SUM(Total_Amount) AS total_purchases 
-      FROM add_purchase 
-      WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?
+      SELECT COUNT(*) AS total_dinein_sales_count
+      FROM invoices
+      WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
       `,
       [currentMonth, currentYear]
     );
 
-    const [totalReceivables] = await db.query(
+    const [[takeawayCount]] = await connection.query(
       `
-      SELECT SUM(Balance_Due) AS total_receivables 
-      FROM add_sale 
-      WHERE Balance_Due > 0 
-      AND MONTH(created_at) = ? AND YEAR(created_at) = ?
+      SELECT COUNT(*) AS total_takeaway_sales_count
+      FROM takeaway_invoices
+      WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
       `,
       [currentMonth, currentYear]
     );
 
-    const [totalPayables] = await db.query(
-      `
-      SELECT SUM(Balance_Due) AS total_payables 
-      FROM add_purchase 
-      WHERE Balance_Due > 0 
-      AND MONTH(created_at) = ? AND YEAR(created_at) = ?
-      `,
-      [currentMonth, currentYear]
-    );
-
-    const totalSalesValue = totalSales[0].total_sales || 0;
-    const totalPurchasesValue = totalPurchases[0].total_purchases || 0;
-
+    // --------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------
     return res.status(200).json({
       month: currentMonth,
       year: currentYear,
       total_sales: totalSalesValue,
       total_purchases: totalPurchasesValue,
-      total_receivables: totalReceivables[0].total_receivables || 0,
-      total_payables: totalPayables[0].total_payables || 0,
+      total_dineIn: dineInCount.total_dinein_sales_count,
+      total_takeaway: takeawayCount.total_takeaway_sales_count,
       profit: totalSalesValue - totalPurchasesValue,
     });
   } catch (err) {
-    if (connection) connection.release();
     console.error("❌ Error getting monthly totals:", err);
     next(err);
-    // return res.status(500).json({ message: "Internal Server Error" });
-  }finally {
+  } finally {
     if (connection) connection.release();
   }
 };
+
+// const getAllSalesAndPurchasesYearWise = async (req, res, next) => {
+//   let connection;
+//   try {
+//     const year = parseInt(req.query.year) || 2025;
+//     console.log("📅 Year received:", year);
+//   connection = await db.getConnection();
+  
+
+//     const [dineInSales] = await db.query(
+//       `
+//       SELECT 
+//         MONTH(Invoice_Date) AS month, 
+//         SUM(Amount) AS total_DineIn_sales
+//         FROM invoices WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+//         GROUP BY MONTH(Invoice_Date)
+//         ORDER BY month ASC
+
+// `)
+
+// const [takeawaySales] = await db.query(
+//       `
+//       SELECT 
+//         MONTH(Invoice_Date) AS month, 
+//         SUM(Amount) AS total_takeaway_sales
+//         FROM takeaway_invoices WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+//         GROUP BY MONTH(Invoice_Date)
+//         ORDER BY month ASC
+
+// `)
+
+//     // Merge dine-in and takeaway sales
+//     const salesMap = new Map();
+//     dineInSales.forEach((sale) => {
+//       salesMap.set(sale.month, sale);
+//     });
+//     takeawaySales.forEach((sale) => {
+//       salesMap.set(sale.month, sale);
+//     });
+//     const sales = Array.from(salesMap.values());
+
+//     // 🟪 Fetch monthly total purchases
+//     const [purchases] = await db.query(
+//       `
+//       SELECT 
+//         MONTH(created_at) AS month, 
+//         SUM(Total_Amount) AS total_purchases
+//       FROM add_purchase
+//       WHERE YEAR(created_at) = ?
+//       GROUP BY MONTH(created_at)
+//       ORDER BY month ASC
+//       `,
+//       [year]
+//     );
+
+//     // 🧠 Merge results into a map
+//     const monthMap = new Map();
+
+  
+
+//     for (const p of purchases) {
+//       if (monthMap.has(p.month)) {
+//         monthMap.get(p.month).total_purchases = p.total_purchases || 0;
+//       } else {
+//         monthMap.set(p.month, {
+//           month: p.month,
+//           total_sales: 0,
+//           total_purchases: p.total_purchases || 0,
+//         });
+//       }
+//     }
+//     for (const s of sales) {
+//       if (monthMap.has(s.month)) {
+//         monthMap.get(s.month).total_sales = (monthMap.get(s.month).total_sales || 0) 
+//         + (s.total_DineIn_sales || 0) + (s.total_takeaway_sales || 0);
+//       } else {
+//         monthMap.set(s.month, {
+//           month: s.month,
+//           total_sales: (s.total_DineIn_sales || 0) + (s.total_takeaway_sales || 0),
+//           total_purchases: 0,
+//         });
+//       }
+//     }
+
+//     // 🧾 Ensure all 12 months exist (even if no sales/purchases)
+//     const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+//     const combinedData = allMonths.map((month) => {
+//       const d = monthMap.get(month) || {
+//         total_sales: 0,
+//         total_purchases: 0,
+//       };
+//       return {
+//         month: new Date(year, month - 1).toLocaleString("default", {
+//           month: "short",
+//         }),
+//         sales: d.total_sales,
+//         purchases: d.total_purchases,
+//         // profit: d.total_sales - d.total_purchases,
+//       };
+//     });
+
+//     return res.status(200).json({
+//       year,
+//       data: combinedData,
+//     });
+//   } catch (err) {
+//       if (connection) connection.release();
+//     console.error("❌ Error getting all sales and purchases year wise:", err);
+//     next(err);
+//     // return res.status(500).json({ message: "Internal Server Error" });
+//   }finally {
+//     if (connection) connection.release();
+//   }
+// };
+
+//INVENTOY PURCHASES ,,INVOICE TAKAWAY INVOICE ADD
 const getAllSalesAndPurchasesYearWise = async (req, res, next) => {
   let connection;
+
   try {
     const year = parseInt(req.query.year) || 2025;
     console.log("📅 Year received:", year);
-  connection = await db.getConnection();
-    // 🟦 Fetch monthly total sales
-    const [sales] = await db.query(
+
+    connection = await db.getConnection();
+
+    // ------------------------------------------------------
+    // 1️⃣ DINE-IN SALES (use CAST to avoid string concat)
+    // ------------------------------------------------------
+    const [dineInSales] = await connection.query(
       `
       SELECT 
-        MONTH(created_at) AS month, 
-        SUM(Total_Amount) AS total_sales
-      FROM add_sale
-      WHERE YEAR(created_at) = ?
-      GROUP BY MONTH(created_at)
+        MONTH(Invoice_Date) AS month,
+        SUM(CAST(Amount AS DECIMAL(10,2))) AS total_dinein_sales
+      FROM invoices
+      WHERE YEAR(Invoice_Date) = ?
+      GROUP BY MONTH(Invoice_Date)
       ORDER BY month ASC
       `,
       [year]
     );
 
-    // 🟪 Fetch monthly total purchases
-    const [purchases] = await db.query(
+    // ------------------------------------------------------
+    // 2️⃣ TAKEAWAY SALES
+    // ------------------------------------------------------
+    const [takeawaySales] = await connection.query(
       `
       SELECT 
-        MONTH(created_at) AS month, 
-        SUM(Total_Amount) AS total_purchases
-      FROM add_purchase
-      WHERE YEAR(created_at) = ?
-      GROUP BY MONTH(created_at)
+        MONTH(Invoice_Date) AS month,
+        SUM(CAST(Amount AS DECIMAL(10,2))) AS total_takeaway_sales
+      FROM takeaway_invoices
+      WHERE YEAR(Invoice_Date) = ?
+      GROUP BY MONTH(Invoice_Date)
       ORDER BY month ASC
       `,
       [year]
     );
 
-    // 🧠 Merge results into a map
-    const monthMap = new Map();
+    // ------------------------------------------------------
+    // 3️⃣ MERGE SALES
+    // ------------------------------------------------------
+    const salesMap = new Map();
 
-    for (const s of sales) {
-      monthMap.set(s.month, {
-        month: s.month,
-        total_sales: s.total_sales || 0,
-        total_purchases: 0,
+    dineInSales.forEach((row) => {
+      salesMap.set(row.month, {
+        dinein: Number(row.total_dinein_sales || 0),
+        takeaway: 0
       });
-    }
+    });
 
-    for (const p of purchases) {
-      if (monthMap.has(p.month)) {
-        monthMap.get(p.month).total_purchases = p.total_purchases || 0;
+    takeawaySales.forEach((row) => {
+      if (salesMap.has(row.month)) {
+        salesMap.get(row.month).takeaway = Number(row.total_takeaway_sales || 0);
       } else {
-        monthMap.set(p.month, {
-          month: p.month,
-          total_sales: 0,
-          total_purchases: p.total_purchases || 0,
+        salesMap.set(row.month, {
+          dinein: 0,
+          takeaway: Number(row.total_takeaway_sales || 0)
         });
       }
-    }
+    });
 
-    // 🧾 Ensure all 12 months exist (even if no sales/purchases)
-    const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
-    const combinedData = allMonths.map((month) => {
-      const d = monthMap.get(month) || {
-        total_sales: 0,
-        total_purchases: 0,
-      };
+    // ------------------------------------------------------
+    // 4️⃣ PURCHASES (CAST to ensure numeric)
+    // ------------------------------------------------------
+    const [purchases] = await connection.query(
+      `
+      SELECT 
+        MONTH(Bill_Date) AS month,
+        SUM(CAST(Total_Amount AS DECIMAL(10,2))) AS total_purchases
+      FROM add_purchase
+      WHERE YEAR(Bill_Date) = ?
+      GROUP BY MONTH(Bill_Date)
+      ORDER BY month ASC
+      `,
+      [year]
+    );
+
+    const purchaseMap = new Map();
+    purchases.forEach((p) => {
+      purchaseMap.set(p.month, Number(p.total_purchases || 0));
+    });
+
+    // ------------------------------------------------------
+    // 5️⃣ FINAL OUTPUT — always 12 months
+    // ------------------------------------------------------
+    const results = Array.from({ length: 12 }, (_, i) => {
+      const monthNum = i + 1;
+
+      const sale = salesMap.get(monthNum) || { dinein: 0, takeaway: 0 };
+      const purchase = purchaseMap.get(monthNum) || 0;
+
       return {
-        month: new Date(year, month - 1).toLocaleString("default", {
+        month: new Date(year, monthNum - 1).toLocaleString("default", {
           month: "short",
         }),
-        sales: d.total_sales,
-        purchases: d.total_purchases,
-        // profit: d.total_sales - d.total_purchases,
+        sales: Number((sale.dinein + sale.takeaway).toFixed(2)),
+        purchases: Number(purchase.toFixed(2)),
       };
     });
 
+    // ------------------------------------------------------
+    // SEND OUTPUT
+    // ------------------------------------------------------
     return res.status(200).json({
+      success: true,
       year,
-      data: combinedData,
+      data: results,
     });
+
   } catch (err) {
-      if (connection) connection.release();
-    console.error("❌ Error getting all sales and purchases year wise:", err);
+    console.error("❌ Error getting yearly sales & purchases:", err);
     next(err);
-    // return res.status(500).json({ message: "Internal Server Error" });
-  }finally {
+
+  } finally {
     if (connection) connection.release();
   }
 };

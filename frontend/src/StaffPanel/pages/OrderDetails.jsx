@@ -1,53 +1,165 @@
 
 import  { useState, useEffect } from 'react';
-import { LayoutDashboard, Clock } from 'lucide-react';
+import { LayoutDashboard, Clock, ChefHat, Armchair } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useGetTablesHavingOrdersQuery } from '../../redux/api/Staff/orderApi';
+import { orderApi, useGetTablesHavingOrdersQuery } from '../../redux/api/Staff/orderApi';
+import { io } from 'socket.io-client';
+import { useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
+const socket = io("http://localhost:4000", {
+  transports: ["websocket"],
+});
 
 export default function OrderDetails() {
     const navigate = useNavigate()
+    const dispatch = useDispatch();
   const [searchTerm, setSearchTerm] = useState('');
 //   const [tables, setTables] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+const [kotNotifications, setKotNotifications] = useState([]);
+const { data: tableHavingOrders, refetch } = useGetTablesHavingOrdersQuery();
+// const [displayOrders, setDisplayOrders] = useState([]);
 
-
-  const {data:tableHavingOrders} = useGetTablesHavingOrdersQuery()
+  // const {data:tableHavingOrders} = useGetTablesHavingOrdersQuery()
  useEffect(() => {
   console.log("API RESPONSE:", tableHavingOrders);
 }, [tableHavingOrders]);
+useEffect(() => {
+  // const handleOrderUpdate = (data) => {
+  //   console.log("📢 Dashboard received updated order:", data);
 
-  // Mock data - replace with your API call
-//   useEffect(() => {
-//     const mockData = [
-//       {
-//         "Order_Id": "ODR00012",
-//         "User_Id": "USR003",
-//         "Order_Start_Time": "2025-02-28T10:30:20.000Z",
-//         "Status": "hold",
-//         "Sub_Total": "138.00",
-//         "Tax_Amount": "6.90",
-//         "Amount": "144.90",
-//         "Table_Id": "TBL001",
-//         "Table_Name": "Table 1",
-//         "Table_Start_Time": "2025-02-28T10:30:20.000Z"
-//       },
-//       {
-//         "Order_Id": "ODR00013",
-//         "Table_Id": "TBL003",
-//         "Table_Name": "Table 3",
-//         "Table_Start_Time": "2025-02-28T10:30:20.000Z"
-//       },
-//       {
-//         "Order_Id": "ODR00014",
-//         "Table_Id": "TBL005",
-//         "Table_Name": "Table 5",
-//         "Table_Start_Time": "2025-02-28T12:15:30.000Z"
+  //   // 🔥 Refresh the order list automatically
+  //   refetch();
+  // };
+  const handleOrderUpdate = (data) => {
+  console.log("📢 Dashboard received updated order:", data);
+
+  // ⭐ If takeaway order completed → remove card immediately
+
+
+  // Otherwise → normal refetch for dine-in updates
+  refetch();
+};
+
+  dispatch(orderApi.util.invalidateTags(['Order']));
+  socket.on("frontdesk_order_update", handleOrderUpdate);
+
+  return () => {
+    socket.off("frontdesk_order_update", handleOrderUpdate);
+  };
+}, []);
+useEffect(() => {
+  const handleKotUpdate = (data) => {
+    console.log("📢 Frontend received KOT update:", data);
+
+    const orderId = data.Order_Id; // <-- This connects to the correct takeaway card
+
+    setKotNotifications((prev) => {
+      const previous = prev[orderId] || [];
+
+      // Check if item already exists
+      const idx = previous.findIndex(
+        (item) => String(item.KOT_Item_Id) === String(data.KOT_Item_Id)
+      );
+
+      let updatedList;
+
+      if (idx !== -1) {
+        // Update existing item
+        updatedList = [...previous];
+        updatedList[idx] = {
+          ...updatedList[idx],
+          status: data.status,
+        };
+      } else {
+        // Add new item
+        updatedList = [
+          ...previous,
+          {
+            KOT_Item_Id: data.KOT_Item_Id,
+            itemName: data.itemName,
+            status: data.status,
+          },
+        ];
+      }
+
+      return {
+        ...prev,
+        [orderId]: updatedList,
+      };
+    });
+
+    // Optional toast
+    toast.info(`${data.itemName} → ${data.status}`);
+  };
+
+  socket.on("frontend_kot_update", handleKotUpdate);
+
+  return () => socket.off("frontend_kot_update", handleKotUpdate);
+}, []);
+// useEffect(() => {
+//   if (!tableHavingOrders) return;
+
+//   const rawTables = tableHavingOrders.tableHavingOrders ?? [];
+//   const takeawayTables = tableHavingOrders.takeawayOrders ?? [];
+
+//   // Group dine-in orders
+//   const grouped = Object.values(
+//     rawTables.reduce((acc, row) => {
+//       if (!acc[row.Order_Id]) {
+//         acc[row.Order_Id] = {
+//           Order_Id: row.Order_Id,
+//           Amount: row.Amount,
+//           Status: row.Status,
+//           User_Id: row.User_Id,
+//           Sub_Total: row.Sub_Total,
+//           Payment_Status: row.Payment_Status,
+//           orderType: row.orderType,
+//           Tables: [],
+//           TableIds: [],
+//           Table_Start_Time: row.Table_Start_Time,
+//         };
 //       }
-//     ];
-//     setTables(mockData);
-//   }, []);
 
-  // Update timer every second
+//       acc[row.Order_Id].Tables.push(row.Table_Name);
+//       acc[row.Order_Id].TableIds.push(row.Table_Id);
+//       return acc;
+//     }, {})
+//   );
+
+//   // Add orderType for takeaway
+//   const formattedTakeaways = takeawayTables.map(t => ({
+//     ...t,
+//     orderType: "takeaway"
+//   }));
+
+//   const combined = [...grouped, ...formattedTakeaways];
+
+//   setDisplayOrders(combined);
+
+// }, [JSON.stringify(tableHavingOrders)]);
+useEffect(() => {
+  if (!tableHavingOrders) return;
+
+  const dineKots = (tableHavingOrders.tableHavingOrders ?? []).map(
+    (o) => `order_${o.KOT_Id}`
+  );
+
+  const takeawayKots = (tableHavingOrders.takeawayOrders ?? []).map(
+    (o) => `order_${o.KOT_Id}`
+  );
+
+  const allRooms = [...dineKots, ...takeawayKots];
+
+  allRooms.forEach((room) => {
+    if (room) {
+      socket.emit("join_kot_room", room);
+      console.log("📡 Joined room:", room);
+    }
+  });
+}, [tableHavingOrders]);
+
+  
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
@@ -67,10 +179,10 @@ export default function OrderDetails() {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
-// Step 1: Extract raw rows safely
+  // Step 1: Extract raw rows safely
 const rawTables = tableHavingOrders?.tableHavingOrders ?? [];
-
-// Step 2: Group by Order_Id
+const takeawayTables = tableHavingOrders?.takeawayOrders ?? [];
+ //Step 2: Group by Order_Id
 const grouped = Object.values(
   rawTables.reduce((acc, row) => {
     if (!acc[row.Order_Id]) {
@@ -84,7 +196,7 @@ const grouped = Object.values(
         Sub_Total: row.Sub_Total,
         Payment_Type: row.Payment_Type,
         Payment_Status: row.Payment_Status,
-
+        orderType: row.orderType, 
         Tables: [],    // Will store all table names
         TableIds: [],  // Optional: useful for split/merge later
         Table_Start_Time: row.Table_Start_Time, // same for all tables in same order
@@ -103,6 +215,21 @@ const filteredTables = grouped.filter(order =>
   order.Order_Id.toLowerCase().includes(searchTerm.toLowerCase())
 );
 
+
+console.log("Raw Tables Data:", rawTables, "Takeaway Tables Data:", takeawayTables);
+
+
+// const filteredTables = displayOrders.filter(order =>
+//   (order.Tables?.join(", ") || "")
+//     .toLowerCase()
+//     .includes(searchTerm.toLowerCase()) ||
+//   (order.Order_Id || order.Takeaway_Order_Id)
+//     .toLowerCase()
+//     .includes(searchTerm.toLowerCase())
+// );
+
+console.log(filteredTables)
+console.log("KOT Notifications:", kotNotifications);
 
   return (
     <>
@@ -138,15 +265,7 @@ const filteredTables = grouped.filter(order =>
       justify-start sm:justify-end 
       gap-3
     ">
-                    {/* <div className="flex items-center w-full sm:w-56">
-                      <input
-                        type="text"
-                        placeholder="Search ..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full sm:w-56"
-                      />
-                    </div> */}
+                    
 
                     <div className="hidden sm:block">
                     <button
@@ -172,7 +291,355 @@ const filteredTables = grouped.filter(order =>
     lg:grid-cols-4 
     gap-6
   ">
-  {filteredTables.map((order) => (
+
+    
+{filteredTables.length > 0 && filteredTables.map((order) => (
+  <div
+    key={order.Order_Id || order.Takeaway_Order_Id}
+    className="bg-white rounded-lg p-4 shadow-md relative border"
+    style={{
+      borderColor:
+        order.Status === "hold" || order.Status === "paid"
+          ? "#ff9800"
+          : "#4CA1AF"
+    }}
+  >
+
+    {/* Status Badge */}
+    <div
+      className={`absolute top-2 right-2 px-3 py-1 rounded-full text-xs font-bold text-white 
+        ${
+          order.Status === "hold" || order.Status === "paid"
+            ? "bg-orange-500"
+            : "bg-green-500"
+        }`}
+    >
+      {order?.Status}
+    </div>
+
+    {/* 🟩 DINE-IN ORDER CARD */}
+    {order?.orderType === "dinein" && (
+      <>
+        <h4 className="text-xl font-bold text-gray-800 mb-1">
+          {order?.Tables.join(", ")}
+        </h4>
+
+        {/* Timer */}
+        <div className="flex items-center bg-gray-100 p-3 rounded-md mb-4">
+          <Clock size={18} className="text-teal-600 mr-2" />
+          <span className="font-mono font-bold text-lg text-gray-800">
+            {getElapsedTime(order?.Table_Start_Time)}
+          </span>
+        </div>
+
+        {/* Amount */}
+        <div className="border-t pt-3 flex justify-between items-center">
+          <span className="text-sm text-gray-600">Amount:</span>
+          <span className="text-xl font-bold text-teal-600">₹{order?.Amount}</span>
+        </div>
+
+        {/* View Details */}
+        <div className="flex justify-center items-center">
+          <button
+            style={{ backgroundColor: "#4CA1AF" }}
+            className="text-white mt-2 font-bold py-2 px-4 rounded"
+            onClick={() =>
+              navigate(`/staff/orders/table-order-details/${order?.Order_Id}`)
+            }
+          >
+            View Details
+          </button>
+        </div>
+      </>
+    )}
+
+   
+ {/* 🟦 TAKEAWAY ORDER CARD */}
+{/* {order?.orderType === "takeaway" && (
+  <>
+  
+    <h4 className="text-xl font-bold text-gray-800 mb-3">
+      Takeaway Order #{order?.Takeaway_Order_Id}
+    </h4>
+
+  
+    <div className="border-t pt-3 flex justify-between items-center mb-4">
+      <span className="text-sm text-gray-600">Amount:</span>
+      <span className="text-xl font-bold text-teal-600">₹{order?.Amount}</span>
+    </div>
+
+    {kotNotifications[order?.Takeaway_Order_Id] && (
+      <div className="bg-gray-100 rounded p-2 mt-2">
+        <h4 className="text-sm font-bold mb-1 text-gray-700">
+          Kitchen Updates:
+        </h4>
+
+        {kotNotifications[order?.Takeaway_Order_Id].map((item) => (
+          <div
+            key={item.KOT_Item_Id}
+            className="flex justify-between py-1 border-b last:border-none"
+          >
+            <span className="text-gray-800 text-sm">{item?.itemName}</span>
+
+            <span
+              className={`text-xs font-bold ${
+                item?.status === "ready"
+                  ? "text-green-600"
+                  : item?.status === "preparing"
+                  ? "text-orange-500"
+                  : "text-gray-600"
+              }`}
+            >
+              {item?.status}
+            </span>
+          </div>
+        ))}
+      </div>
+    )}
+  </>
+)} */}
+
+  </div>
+))}
+
+{/* {takeawayTables.length > 0 && takeawayTables.map((order) => (
+       <div
+    key={order.Takeaway_Order_Id}
+    className="bg-white rounded-lg p-4 shadow-md relative border"
+    style={{
+      borderColor:
+        order.Status === "hold" || order.Status === "paid"
+          ? "#ff9800"
+          : "#4CA1AF"
+    }}
+  >
+
+    <div
+      className={`absolute top-2 right-2 px-3 py-1 rounded-full text-xs font-bold text-white 
+        ${
+          order.Status === "hold" || order.Status === "paid"
+            ? "bg-orange-500"
+            : "bg-green-500"
+        }`}
+    >
+      {order?.Status}
+    </div>
+          <h4 className="text-xl font-bold text-gray-800 mb-3">
+      Takeaway Order #{order?.Takeaway_Order_Id}
+    </h4>
+
+  
+    <div className="border-t pt-3 flex justify-between items-center mb-4">
+      <span className="text-sm text-gray-600">Amount:</span>
+      <span className="text-xl font-bold text-teal-600">₹{order?.Amount}</span>
+    </div>
+{kotNotifications[order?.Takeaway_Order_Id] && (
+  <div className="bg-gray-100 rounded p-2 mt-2">
+    <h4 className="text-sm font-bold mb-1 text-gray-700">
+      Kitchen Updates:
+    </h4>
+
+    {kotNotifications[order?.Takeaway_Order_Id].map((item) => (
+      <div
+        key={item.KOT_Item_Id}
+        className="flex justify-between py-1 border-b last:border-none"
+      >
+       
+        <span className="text-gray-800 text-sm">
+          {item.itemName || item.Item_Name}
+        </span>
+
+      
+        <span
+          className={`text-xs font-bold ${
+            (item?.status || item?.Item_Status) === "ready"
+              ? "text-green-600"
+              : (item.status || item.Item_Status) === "preparing"
+              ? "text-orange-500"
+              : "text-gray-600"
+          }`}
+        >
+          {item?.status || item?.Item_Status}
+        </span>
+      </div>
+    ))}
+  </div>
+)}
+
+    {/* {kotNotifications[order?.Takeaway_Order_Id] && (
+      <div className="bg-gray-100 rounded p-2 mt-2">
+        <h4 className="text-sm font-bold mb-1 text-gray-700">
+          Kitchen Updates:
+        </h4>
+
+        {kotNotifications[order?.Takeaway_Order_Id].map((item) => (
+          <div
+            key={item.KOT_Item_Id}
+            className="flex justify-between py-1 border-b last:border-none"
+          >
+            <span className="text-gray-800 text-sm">{item?.Item_Name}</span>
+
+            <span
+              className={`text-xs font-bold ${
+                item?.status === "ready"
+                  ? "text-green-600"
+                  : item?.status === "preparing"
+                  ? "text-orange-500"
+                  : "text-gray-600"
+              }`}
+            >
+              {item?.status}
+            </span>
+          </div>
+        ))}
+      </div>
+    )} 
+          </div>))} */}
+
+          {takeawayTables.length > 0 &&
+  takeawayTables.map((order) => {
+    // ✅ Get live KOT updates
+    const kotItems = kotNotifications[order.Takeaway_Order_Id] || [];
+
+    // ✅ Merge backend items with socket updates
+    const mergedItems = order.items.map((backendItem) => {
+      const updated = kotItems.find(
+        (it) =>
+          String(it.KOT_Item_Id) === String(backendItem.KOT_Item_Id)
+      );
+
+      return {
+        KOT_Item_Id: backendItem.KOT_Item_Id,
+        itemName: updated?.itemName || backendItem.Item_Name,
+        status: updated?.status || backendItem.Item_Status,
+      };
+    });
+
+    return (
+      <div
+        key={order?.Takeaway_Order_Id}
+        className="bg-white rounded-lg p-4 shadow-md relative border"
+        style={{
+          borderColor:
+            order?.Status === "hold" || order?.Status === "paid"
+              ? "#ff9800"
+              : "#4CA1AF",
+        }}
+      >
+        {/* Status Badge */}
+        <div
+          className={`absolute top-2 right-2 px-3 py-1 rounded-full text-xs font-bold text-white 
+            ${
+              order.Status === "hold" || order.Status === "paid"
+                ? "bg-orange-500"
+                : "bg-green-500"
+            }`}
+        >
+          {order.Status}
+        </div>
+
+        {/* Title */}
+        <h4 className="text-xl font-bold text-gray-800 mb-3">
+          Takeaway Order #{order.Takeaway_Order_Id}
+        </h4>
+
+        {/* Amount */}
+        <div className="border-t pt-3 flex justify-between items-center mb-4">
+          <span className="text-sm text-gray-600">Amount:</span>
+          <span className="text-xl font-bold text-teal-600">
+            ₹{order.Amount}
+          </span>
+        </div>
+
+        {/* Kitchen Updates */}
+        <div className="bg-gray-100 rounded p-2 mt-2">
+          <h4 className="text-sm font-bold mb-1 text-gray-700">
+            Kitchen Updates:
+          </h4>
+
+          {mergedItems.map((item) => (
+            <div
+              key={item.KOT_Item_Id}
+              className="flex justify-between py-1 border-b last:border-none"
+            >
+              {/* Item Name */}
+              <span className="text-gray-800 text-sm">
+                {item.itemName}
+              </span>
+
+              {/* Item Status */}
+              <span
+                className={`text-xs font-bold ${
+                  item.status === "ready"
+                    ? "text-green-600"
+                    : item.status === "preparing"
+                    ? "text-orange-500"
+                    : "text-gray-600"
+                }`}
+              >
+                {item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  })}
+
+
+  </div>
+
+    {/* No results */}
+    {filteredTables.length === 0 && (
+     
+         <div className="flex flex-col items-center justify-center w-full  text-center">
+                  <div className="bg-white rounded-full p-8 shadow-lg mb-6">
+                  <Armchair className="w-20 h-20 text-gray-300" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-700 mb-2">
+                    No tables having orders found
+                  </h2>
+                  <p className="text-gray-500">
+                    Waiting for new orders to arrive...
+                  </p>
+                  <div className="mt-6 flex gap-2">
+                    <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce"></div>
+                    <div className="w-3 h-3 bg-red-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
+                  </div>
+                </div>
+    )}
+
+</div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+// 🔥 Listen for bill completion (order closed)
+  // useEffect(() => {
+  //   const handleClosed = ({ Order_Id }) => {
+  //     console.log("🧾 Order closed:", Order_Id);
+
+  //     refetch();
+
+  //     toast.info(`Order ${Order_Id} closed & invoice generated`);
+  //   };
+
+  //   socket.on("frontdesk_order_closed", handleClosed);
+
+  //   return () => {
+  //     socket.off("frontdesk_order_closed", handleClosed);
+  //   };
+  // }, []);
+ 
+  // Update timer every second
+
+  {/* {filteredTables.length===0 && (} */}
+  {/* {filteredTables.length > 0 && filteredTables.map((order) => (
   <div
     key={order.Order_Id}
     className="bg-white rounded-lg p-4 shadow-md relative border"
@@ -186,7 +653,7 @@ const filteredTables = grouped.filter(order =>
       {order.Status}
     </div>
 
-    {/* Combined Table Names */}
+
     <div>
     <h4 className="text-xl font-bold text-gray-800 mb-1">
       {order.Tables.join(", ")}
@@ -195,9 +662,9 @@ const filteredTables = grouped.filter(order =>
 
     {/* <p className="text-sm text-gray-600 mb-2">
       Order: <span className="font-semibold">{order.Order_Id}</span>
-    </p> */}
+    </p> 
 
-    {/* Timer */}
+    
     <div className="flex items-center bg-gray-100 p-3 rounded-md mb-4">
       <Clock size={18} className="text-teal-600 mr-2" />
       <span className="font-mono font-bold text-lg text-gray-800">
@@ -205,7 +672,7 @@ const filteredTables = grouped.filter(order =>
       </span>
     </div>
 
-    {/* Amount */}
+   
     <div className="border-t pt-3 flex justify-between items-center">
       <span className="text-sm text-gray-600">Amount:</span>
       <span className="text-xl font-bold text-teal-600">₹{order.Amount}</span>
@@ -221,22 +688,37 @@ const filteredTables = grouped.filter(order =>
     </button>
     </div>
   </div>
-))}
+))} */}
 
+ // Step 2: Group by Order_Id
+// const grouped = Object.values(
+//   rawTables.reduce((acc, row) => {
+//     if (!acc[row.Order_Id]) {
+//       acc[row.Order_Id] = {
+//         Order_Id: row.Order_Id,
+//         Amount: row.Amount,
+//         Status: row.Status,
+//         User_Id: row.User_Id,
+//         Tax_Type: row.Tax_Type,
+//         Tax_Amount: row.Tax_Amount,
+//         Sub_Total: row.Sub_Total,
+//         Payment_Type: row.Payment_Type,
+//         Payment_Status: row.Payment_Status,
+//         orderType: row.orderType, 
+//         Tables: [],    // Will store all table names
+//         TableIds: [],  // Optional: useful for split/merge later
+//         Table_Start_Time: row.Table_Start_Time, // same for all tables in same order
+//       };
+//     }
 
-    {/* No results */}
-    {filteredTables.length === 0 && (
-      <div className="col-span-full text-center text-gray-500 py-10">
-        No tables having orders found
-      </div>
-    )}
-  </div>
-</div>
+//     // Push table into group
+//     acc[row.Order_Id].Tables.push(row.Table_Name);
+//     acc[row.Order_Id].TableIds.push(row.Table_Id);
 
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
+//     return acc;
+//   }, {})
+// );
+// const filteredTables = grouped.filter(order =>
+//   order.Tables.join(", ").toLowerCase().includes(searchTerm.toLowerCase()) ||
+//   order.Order_Id.toLowerCase().includes(searchTerm.toLowerCase())
+// );

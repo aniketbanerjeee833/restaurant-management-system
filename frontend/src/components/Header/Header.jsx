@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useGetUserQuery, useLogoutUserMutation } from "../../redux/api/userApi";
 
-import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import MobileSideMenu from "../MobileSideMenu/MobileSideMenu";
 import { LogOut,ChevronUp, ChevronDown } from 'lucide-react';
@@ -12,9 +11,9 @@ const Header = () => {
  const[mobileViewSideBarOpen, setMobileViewSideBarOpen] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
-   const dispatch = useDispatch();
+   //const dispatch = useDispatch();
    const IconComponent = dropdownOpen ? ChevronUp : ChevronDown;
-  const { data: userMe, isLoading, isError } = useGetUserQuery();
+  const { data: userMe,  } = useGetUserQuery();
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -137,6 +136,25 @@ const Header = () => {
     >
       Takeaway
     </button>}
+   {userMe?.user?.role==="kitchen-staff" && <button
+      type="button"
+       style={{backgroundColor:"green"}}
+      onClick={() => navigate("/new/all-new-food-items")}
+      className="text-white text-sm sm:text-base font-semibold py-2 px-3 sm:px-4 
+      rounded "
+    >
+      Food Items
+    </button>}
+
+      {userMe?.user?.role==="kitchen-staff" && <button
+      type="button"
+       style={{backgroundColor:"red"}}
+      onClick={() => navigate("/kitchen-staff/orders/all-orders")}
+      className="text-white text-sm sm:text-base font-semibold py-2 px-3 sm:px-4 
+      rounded "
+    >
+      Orders
+    </button>}
 
 
     {/* ADMIN DROPDOWN */}
@@ -148,7 +166,9 @@ const Header = () => {
           toggleDropdown();
         }}
       >
-        {userMe?.user?.role==="admin"?<span>Admin Account</span>:<span>Staff Account</span>}
+        {userMe?.user?.role==="admin"&&<span>Admin Account</span>}
+        {userMe?.user?.role==="staff"&&<span>Staff Account</span>}
+        {userMe?.user?.role==="kitchen-staff"&&<span>Kitchen Staff Account</span>}
         <IconComponent size={18} className="ml-1" />
       </NavLink>
 

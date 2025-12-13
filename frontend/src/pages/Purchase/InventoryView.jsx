@@ -238,7 +238,7 @@ return (
                                                         {/* RHF Error */}
                                                        
                                                       </div>
-                                                      <div className="input-field  flex gap-2
+                                                      {purchase?.billPurchaseDetails?.GSTIN && <div className="input-field  flex gap-2
                                                               justify-center items-center w-1/2 gstin-class">
                                                         <span className=" whitespace-nowrap active ">
                                                           GSTIN
@@ -246,10 +246,10 @@ return (
                                                         </span>
                                 
                         <input type="text" style={{ marginBottom: "0px" }}
-                        value={purchase?.billPurchaseDetails?.GSTIN ?? ""}
+                        value={purchase?.billPurchaseDetails?.GSTIN}
                                              readOnly />
                                                       
-                                                      </div>
+                                                      </div>}
                                 
                                 
                                                     </div>
@@ -352,7 +352,8 @@ return (
                                                 {/* <th>Item_HSN</th> */}
                                                 <th>Qty</th>
                                                 <th>Unit</th>
-                                                <th>Price/Unit</th>
+                                                {/* <th>Price/Unit</th> */}
+                                                 <th>Price</th>
                                                 <th>Discount</th>
                                                 <th>Tax</th>
                                                 <th>Tax Amount</th>
@@ -367,7 +368,7 @@ return (
                                                     <td>{item?.Item_Name}</td>
                                                     {/* <td>{item?.Item_HSN}</td> */}
                                                     <td>{item?.Quantity}</td>
-                                                    <td>{item?.Item_Unit}</td>
+                                                    <td>{item?.Item_Unit || "N/A"}</td>
                                                     <td>{item?.Purchase_Price}</td>
                                                     <td>{
                                                          item?.Discount_Type_On_Purchase_Price === "Percentage" ?

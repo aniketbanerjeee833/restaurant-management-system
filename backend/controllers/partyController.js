@@ -288,6 +288,137 @@ const getAllParties = async (req, res, next) => {
   }
 };
 
+// const getSinglePartyDetailsSalesPurchases = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     connection = await db.getConnection();
+
+//     const { Party_Id } = req.params;
+//     const page = parseInt(req.query.page, 10) || 1;
+//     const limit = 10;
+//     const offset = (page - 1) * limit;
+//       // const fromDate = req.query.fromDate || null;
+//       // const toDate = req.query.toDate || null;
+
+//     if(!Party_Id){
+//       connection.release();
+//       return res.status(400).json({
+//         success: false,
+//         message: "Party Id is required",
+//       });
+//     }
+//     const [partyDetails]= await connection.query(
+//       `SELECT * FROM add_party WHERE Party_Id=?`,
+//       [Party_Id]
+//     )
+//     // Fetch ALL purchases + sales
+//     const [purchases] = await connection.query(
+//       `SELECT Purchase_Id , Bill_Date , Bill_Number, Total_Amount, State_Of_Supply, Total_Paid, Balance_Due, Payment_Type, 
+//       "Purchase" AS Type
+//        FROM add_purchase WHERE Party_Id=?`,
+//       [Party_Id]
+//     );
+
+//     // const [sales] = await connection.query(
+//     //   `SELECT Sale_Id , Invoice_Date , Invoice_Number, Total_Amount,State_Of_Supply, Total_Received, Balance_Due, Payment_Type, "Sale" AS Type
+//     //    FROM add_sale WHERE Party_Id=?`,
+//     //   [Party_Id]
+//     // );
+
+//     // Pagination across purchases → sales
+//     let pagedPurchases = [];
+//     //let pagedSales = [];
+
+//     if (offset < purchases.length) {
+//       pagedPurchases = purchases.slice(offset, offset + limit);
+//     } 
+
+//     const totalRecords = purchases.length ;
+//     const totalPages = Math.ceil(totalRecords / limit);
+
+//     // Fetch item details for only paged ones
+//     const purchaseIds = pagedPurchases.map(r => r.Purchase_Id);
+//     //const saleIds = pagedSales.map(r => r.Sale_Id);
+
+//     // ITEMS
+//     if (purchaseIds.length > 0) {
+//       const [purchaseItems] = await connection.query(
+//         `SELECT pi.Material_Id, 
+//         pi.Purchase_Id,
+//         pi.Quantity,
+//         pi.Item_Unit,
+//         pi.Purchase_Price,
+//         pi.Discount_On_Purchase_Price,
+//         pi.Discount_Type_On_Purchase_Price,
+//         pi.Tax_Type,
+//         pi.Tax_Amount,
+//         pi.Amount,
+//          m.name,m.base_unit
+//          FROM add_purchase_items pi
+//          LEFT JOIN add_material m ON m.Material_Id = pi.Material_Id
+//          WHERE pi.Purchase_Id IN (?)`,
+//         [purchaseIds]
+//       );
+
+//       pagedPurchases = pagedPurchases.map(p => ({
+//         ...p,
+//         items: purchaseItems.filter(i => i.Purchase_Id === p.Purchase_Id)
+//       }));
+//     }
+
+//     // if (saleIds.length > 0) {
+//     //   const [saleItems] = await connection.query(
+//     //     `SELECT si.*, it.Item_Name,it.Item_HSN,it.Item_Category,it.Item_Unit
+//     //      FROM add_sale_items si
+//     //      LEFT JOIN add_item it ON it.Item_Id = si.Item_Id
+//     //      WHERE si.Sale_Id IN (?)`,
+//     //     [saleIds]
+//     //   );
+
+//     //   pagedSales = pagedSales.map(s => ({
+//     //     ...s,
+//     //     items: saleItems.filter(i => i.Sale_Id === s.Sale_Id)
+//     //   }));
+//     // }
+
+//     // Summary
+//     const [[purchaseSummary]] = await connection.query(
+//       `SELECT SUM(Total_Amount) AS Total_Amount, SUM(Total_Paid) AS Total_Paid, SUM(Balance_Due) AS Balance_Due
+//        FROM add_purchase WHERE Party_Id=?`,
+//       [Party_Id]
+//     );
+
+//     // const [[salesSummary]] = await connection.query(
+//     //   `SELECT SUM(Total_Amount) AS Total_Amount, SUM(Total_Received) AS Total_Received, SUM(Balance_Due) AS Balance_Due
+//     //    FROM add_sale WHERE Party_Id=?`,
+//     //   [Party_Id]
+//     // );
+
+//     return res.status(200).json({
+//       success: true,
+//       partyId: Party_Id,
+//       partyDetails:partyDetails[0],
+//       totalRecords,
+//       totalPages,
+//       page,
+//       limit,
+//       summary: {
+//         purchases: purchaseSummary,
+//         // sales: salesSummary,
+//       },
+//       purchases: pagedPurchases,
+//       // sales: pagedSales,
+//     });
+
+//   } catch (err) {
+//     console.error("❌ Error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+
 const getSinglePartyDetailsSalesPurchases = async (req, res, next) => {
   let connection;
 
@@ -295,110 +426,89 @@ const getSinglePartyDetailsSalesPurchases = async (req, res, next) => {
     connection = await db.getConnection();
 
     const { Party_Id } = req.params;
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = 10;
-    const offset = (page - 1) * limit;
-      const fromDate = req.query.fromDate || null;
-      const toDate = req.query.toDate || null;
 
-    if(!Party_Id){
+    if (!Party_Id) {
       connection.release();
       return res.status(400).json({
         success: false,
         message: "Party Id is required",
       });
     }
-    const [partyDetails]= await connection.query(
+
+    // --------------------------
+    // PARTY DETAILS
+    // --------------------------
+    const [partyDetails] = await connection.query(
       `SELECT * FROM add_party WHERE Party_Id=?`,
-      [Party_Id]
-    )
-    // Fetch ALL purchases + sales
-    const [purchases] = await connection.query(
-      `SELECT Purchase_Id , Bill_Date , Bill_Number, Total_Amount, State_Of_Supply, Total_Paid, Balance_Due, Payment_Type, 
-      "Purchase" AS Type
-       FROM add_purchase WHERE Party_Id=?`,
       [Party_Id]
     );
 
-    // const [sales] = await connection.query(
-    //   `SELECT Sale_Id , Invoice_Date , Invoice_Number, Total_Amount,State_Of_Supply, Total_Received, Balance_Due, Payment_Type, "Sale" AS Type
-    //    FROM add_sale WHERE Party_Id=?`,
-    //   [Party_Id]
-    // );
+    // --------------------------
+    // GET ALL PURCHASES (NO PAGINATION)
+    // --------------------------
+    const [purchases] = await connection.query(
+      `SELECT Purchase_Id, Bill_Date, Bill_Number, Total_Amount, State_Of_Supply,
+              Total_Paid, Balance_Due, Payment_Type, "Purchase" AS Type
+       FROM add_purchase 
+       WHERE Party_Id=? 
+       ORDER BY Bill_Date DESC`,
+      [Party_Id]
+    );
 
-    // Pagination across purchases → sales
-    let pagedPurchases = [];
-    //let pagedSales = [];
+    const purchaseIds = purchases.map(p => p.Purchase_Id);
 
-    if (offset < purchases.length) {
-      pagedPurchases = purchases.slice(offset, offset + limit);
-    } 
-
-    const totalRecords = purchases.length ;
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    // Fetch item details for only paged ones
-    const purchaseIds = pagedPurchases.map(r => r.Purchase_Id);
-    //const saleIds = pagedSales.map(r => r.Sale_Id);
-
-    // ITEMS
+    // --------------------------
+    // ADD ITEMS FOR ALL PURCHASES
+    // --------------------------
     if (purchaseIds.length > 0) {
       const [purchaseItems] = await connection.query(
-        `SELECT pi.*, m.name,m.unit
+        `SELECT 
+            pi.Material_Id,
+            pi.Purchase_Id,
+            pi.Quantity,
+            pi.Item_Unit,
+            pi.Purchase_Price,
+            pi.Discount_On_Purchase_Price,
+            pi.Discount_Type_On_Purchase_Price,
+            pi.Tax_Type,
+            pi.Tax_Amount,
+            pi.Amount,
+            m.name AS Material_Name,
+            m.base_unit AS Base_Unit
          FROM add_purchase_items pi
          LEFT JOIN add_material m ON m.Material_Id = pi.Material_Id
          WHERE pi.Purchase_Id IN (?)`,
         [purchaseIds]
       );
 
-      pagedPurchases = pagedPurchases.map(p => ({
-        ...p,
-        items: purchaseItems.filter(i => i.Purchase_Id === p.Purchase_Id)
-      }));
+      // attach items to each purchase
+      purchases.forEach(p => {
+        p.items = purchaseItems.filter(i => i.Purchase_Id === p.Purchase_Id);
+      });
     }
 
-    // if (saleIds.length > 0) {
-    //   const [saleItems] = await connection.query(
-    //     `SELECT si.*, it.Item_Name,it.Item_HSN,it.Item_Category,it.Item_Unit
-    //      FROM add_sale_items si
-    //      LEFT JOIN add_item it ON it.Item_Id = si.Item_Id
-    //      WHERE si.Sale_Id IN (?)`,
-    //     [saleIds]
-    //   );
-
-    //   pagedSales = pagedSales.map(s => ({
-    //     ...s,
-    //     items: saleItems.filter(i => i.Sale_Id === s.Sale_Id)
-    //   }));
-    // }
-
-    // Summary
+    // --------------------------
+    // SUMMARY TOTALS (CALCULATED FROM DATABASE)
+    // --------------------------
     const [[purchaseSummary]] = await connection.query(
-      `SELECT SUM(Total_Amount) AS Total_Amount, SUM(Total_Paid) AS Total_Paid, SUM(Balance_Due) AS Balance_Due
-       FROM add_purchase WHERE Party_Id=?`,
+      `SELECT 
+         COALESCE(SUM(Total_Amount),0) AS Total_Amount,
+         COALESCE(SUM(Total_Paid),0) AS Total_Paid,
+         COALESCE(SUM(Balance_Due),0) AS Balance_Due
+       FROM add_purchase 
+       WHERE Party_Id=?`,
       [Party_Id]
     );
-
-    // const [[salesSummary]] = await connection.query(
-    //   `SELECT SUM(Total_Amount) AS Total_Amount, SUM(Total_Received) AS Total_Received, SUM(Balance_Due) AS Balance_Due
-    //    FROM add_sale WHERE Party_Id=?`,
-    //   [Party_Id]
-    // );
 
     return res.status(200).json({
       success: true,
       partyId: Party_Id,
-      partyDetails:partyDetails[0],
-      totalRecords,
-      totalPages,
-      page,
-      limit,
+      partyDetails: partyDetails[0] || null,
+      totalRecords: purchases.length,
+      purchases,
       summary: {
-        purchases: purchaseSummary,
-        // sales: salesSummary,
-      },
-      purchases: pagedPurchases,
-      // sales: pagedSales,
+        purchases: purchaseSummary
+      }
     });
 
   } catch (err) {
@@ -408,7 +518,6 @@ const getSinglePartyDetailsSalesPurchases = async (req, res, next) => {
     if (connection) connection.release();
   }
 };
-
 
 
 

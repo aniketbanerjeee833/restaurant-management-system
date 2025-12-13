@@ -30,7 +30,7 @@ const getAllStaffs = async (req, res, next) => {
     }
 
     // 3️⃣ Build search SQL
-    let whereClause = `WHERE role = 'staff'`;
+    let whereClause = `WHERE role = 'staff' OR role = 'kitchen-staff'`;
 
     if (search) {
       whereClause += ` AND (

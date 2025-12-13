@@ -3,7 +3,7 @@ import { useState } from "react";
 import {  useTotalInvoicesEachDayQuery } from "../../redux/api/Staff/orderApi";
 import { toast } from "react-toastify";
 import { NavLink } from "react-router-dom";
-import { Filter, X } from "lucide-react";
+import { Filter, LayoutDashboard, X } from "lucide-react";
 
 
 export default function AllOrdersDashboard() {
@@ -83,112 +83,209 @@ export default function AllOrdersDashboard() {
        }
      };
  
+//   const renderCalendar = () => {
+//    const year = currentDate.getFullYear();
+//    const month = currentDate.getMonth();
+//    const daysInMonth = getDaysInMonth(year, month);
+//    const firstDay = getFirstDayOfMonth(year, month);
+//    const today = new Date().getDate();
+ 
+//    // Convert API data → lookup maps
+//    const invoicesEachDay = totalInvoiceEachDay?.data?.reduce((acc, item) => {
+//      acc[item.date] = item.total_invoices;
+//      return acc;
+//    }, {}) || {};
+
+//       // Convert API data → lookup maps
+//    const takeawayInvoicesEachDay = totalInvoiceEachDay?.takeawayInvoices?.reduce((acc, item) => {
+//      acc[item.date] = item.total_takeaway_invoices;
+//      return acc;
+//    }, {}) || {};
+
+ 
+ 
+//   //  const purchasesEachDay = totalPurchasesByDate?.reduce((acc, item) => {
+//   //    acc[item.date] = item.total_purchases;
+//   //    return acc;
+//   //  }, {}) || {};
+ 
+//    const days = [];
+ 
+//    // Empty cells before first day
+//    for (let i = 0; i < firstDay; i++) {
+//      days.push(<div key={`e-${i}`} className="h-24 bg-gray-50 border"></div>);
+//    }
+ 
+//    // Days with sales/purchase/new sale data
+//    for (let d = 1; d <= daysInMonth; d++) {
+//      const dateStr = formatDate(year, month, d);
+ 
+//      const isToday =
+//        d === today &&
+//        month === new Date().getMonth() &&
+//        year === new Date().getFullYear();
+ 
+//      const isSelected = selectedDate === dateStr;
+ 
+//      const totalInvoices = invoicesEachDay[dateStr] || 0;
+//      const totalTakeawayInvoices = takeawayInvoicesEachDay[dateStr] || 0;
+//     //  const totalPurchases = purchasesEachDay[dateStr] || 0;
+//      // const totalNewSales = newSalesEachDay[dateStr] || 0;
+ 
+//      days.push(
+     
+//      <div
+//    key={d}
+//    onClick={() => handleDateClick(d)}
+//    className={`
+//      h-24 border p-1 cursor-pointer relative rounded-md transition
+//      ${isSelected ? "bg-blue-100 border-blue-400" :
+//      isToday ? "bg-green-100 border-green-400" :
+//      "bg-white hover:bg-gray-50"}
+//    `}
+//  >
+//    {/* Day number */}
+//    <div className="text-sm font-semibold text-gray-700">{d}</div>
+ 
+//    {/* BOTTOM STACKED SECTION */}
+//    <div className="absolute bottom-1 right-1 flex flex-col space-y-[2px]">
+ 
+//      {/* Total Sales */}
+//      {totalInvoices > 0 && (
+//        <span style={{color:"red"}}
+//         className="text-[15px]  font-medium">
+//         Orders: {totalInvoices}
+//        </span>
+//      )}
+//        {totalTakeawayInvoices > 0 && (
+//        <span style={{color:"blue"}}
+//         className="text-[15px]  font-medium">
+//         Takeaways: {totalTakeawayInvoices}
+//        </span>
+//      )}
+ 
+//      {/* Total Purchases */}
+//      {/* {totalPurchases > 0 && (
+//        <span className="text-[12px] text-red-700 font-medium">
+//          Purchases: {totalPurchases}
+//        </span>
+//      )} */}
+ 
+//      {/* Total New Sales */}
+//      {/* {totalNewSales > 0 && (
+//        <span className="text-[12px] text-purple-700 font-medium">
+//          New Sales: {totalNewSales}
+//        </span>
+//      )} */}
+ 
+//    </div>
+//  </div>
+ 
+     
+//      );
+//    }
+ 
+//    return days;
+//  };
+ 
   const renderCalendar = () => {
-   const year = currentDate.getFullYear();
-   const month = currentDate.getMonth();
-   const daysInMonth = getDaysInMonth(year, month);
-   const firstDay = getFirstDayOfMonth(year, month);
-   const today = new Date().getDate();
- 
-   // Convert API data → lookup maps
-   const invoicesEachDay = totalInvoiceEachDay?.data?.reduce((acc, item) => {
-     acc[item.date] = item.total_invoices;
-     return acc;
-   }, {}) || {};
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+  const today = new Date().getDate();
 
-      // Convert API data → lookup maps
-   const takeawayInvoicesEachDay = totalInvoiceEachDay?.takeawayInvoices?.reduce((acc, item) => {
-     acc[item.date] = item.total_takeaway_invoices;
-     return acc;
-   }, {}) || {};
+  // Convert API data to lookup maps
+  const invoicesEachDay =
+    totalInvoiceEachDay?.data?.reduce((acc, item) => {
+      acc[item.date] = item.total_invoices;
+      return acc;
+    }, {}) || {};
 
- 
- 
-  //  const purchasesEachDay = totalPurchasesByDate?.reduce((acc, item) => {
-  //    acc[item.date] = item.total_purchases;
-  //    return acc;
-  //  }, {}) || {};
- 
-   const days = [];
- 
-   // Empty cells before first day
-   for (let i = 0; i < firstDay; i++) {
-     days.push(<div key={`e-${i}`} className="h-24 bg-gray-50 border"></div>);
-   }
- 
-   // Days with sales/purchase/new sale data
-   for (let d = 1; d <= daysInMonth; d++) {
-     const dateStr = formatDate(year, month, d);
- 
-     const isToday =
-       d === today &&
-       month === new Date().getMonth() &&
-       year === new Date().getFullYear();
- 
-     const isSelected = selectedDate === dateStr;
- 
-     const totalInvoices = invoicesEachDay[dateStr] || 0;
-     const totalTakeawayInvoices = takeawayInvoicesEachDay[dateStr] || 0;
-    //  const totalPurchases = purchasesEachDay[dateStr] || 0;
-     // const totalNewSales = newSalesEachDay[dateStr] || 0;
- 
-     days.push(
-     
-     <div
-   key={d}
-   onClick={() => handleDateClick(d)}
-   className={`
-     h-24 border p-1 cursor-pointer relative rounded-md transition
-     ${isSelected ? "bg-blue-100 border-blue-400" :
-     isToday ? "bg-green-100 border-green-400" :
-     "bg-white hover:bg-gray-50"}
-   `}
- >
-   {/* Day number */}
-   <div className="text-sm font-semibold text-gray-700">{d}</div>
- 
-   {/* BOTTOM STACKED SECTION */}
-   <div className="absolute bottom-1 right-1 flex flex-col space-y-[2px]">
- 
-     {/* Total Sales */}
-     {totalInvoices > 0 && (
-       <span style={{color:"red"}}
-        className="text-[15px]  font-medium">
-        Orders: {totalInvoices}
-       </span>
-     )}
-       {totalTakeawayInvoices > 0 && (
-       <span style={{color:"blue"}}
-        className="text-[15px]  font-medium">
-        Takeaways: {totalTakeawayInvoices}
-       </span>
-     )}
- 
-     {/* Total Purchases */}
-     {/* {totalPurchases > 0 && (
-       <span className="text-[12px] text-red-700 font-medium">
-         Purchases: {totalPurchases}
-       </span>
-     )} */}
- 
-     {/* Total New Sales */}
-     {/* {totalNewSales > 0 && (
-       <span className="text-[12px] text-purple-700 font-medium">
-         New Sales: {totalNewSales}
-       </span>
-     )} */}
- 
-   </div>
- </div>
- 
-     
-     );
-   }
- 
-   return days;
- };
- 
-  
+  const takeawayInvoicesEachDay =
+    totalInvoiceEachDay?.takeawayInvoices?.reduce((acc, item) => {
+      acc[item.date] = item.total_takeaway_invoices;
+      return acc;
+    }, {}) || {};
+
+  const days = [];
+
+  // Blank cells before the first day
+  for (let i = 0; i < firstDay; i++) {
+    days.push(<div key={`e-${i}`} className="h-20 sm:h-24 bg-gray-50 border"></div>);
+  }
+
+  // Calendar days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = formatDate(year, month, d);
+
+    const isToday =
+      d === today &&
+      month === new Date().getMonth() &&
+      year === new Date().getFullYear();
+
+    const isSelected = selectedDate === dateStr;
+
+    const totalInvoices = invoicesEachDay[dateStr] || 0;
+    const totalTakeawayInvoices = takeawayInvoicesEachDay[dateStr] || 0;
+
+    days.push(
+      <div
+        key={d}
+        onClick={() => handleDateClick(d)}
+        className={`
+          h-20 sm:h-24 border p-1 cursor-pointer relative rounded-md transition
+          ${isSelected ? "bg-blue-100 border-blue-400" :
+          isToday ? "bg-green-100 border-green-400" :
+          "bg-white hover:bg-gray-50"}
+        `}
+      >
+        {/* Day Number */}
+        <div className="text-sm sm:text-base font-semibold text-gray-700">
+          {d}
+        </div>
+
+        {/* Bottom values (Orders, Takeaways) */}
+        <div
+          className="
+            absolute bottom-1 right-1 flex flex-col space-y-[1px]
+            max-w-[85%] sm:max-w-full text-right
+          "
+        >
+
+          {/* Orders */}
+          {totalInvoices > 0 && (
+            <span
+              style={{ color: "red" }}
+              className="
+                text-[10px] sm:text-[13px] md:text-[15px]
+                font-medium leading-tight break-words
+              "
+            >
+              Orders: {totalInvoices}
+            </span>
+          )}
+
+          {/* Takeaways */}
+          {totalTakeawayInvoices > 0 && (
+            <span
+              style={{ color: "blue" }}
+              className="
+                text-[10px] sm:text-[13px] md:text-[15px]
+                font-medium leading-tight break-words
+              "
+            >
+              Takeaways: {totalTakeawayInvoices}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return days;
+};
+
  
   
     return (
@@ -202,13 +299,27 @@ export default function AllOrdersDashboard() {
     
        {/* Breadcrumb / Nav */}
        <div className="sb2-2-2">
-         <ul className="flex flex-wrap gap-2">
+         {/* <ul className="flex flex-wrap gap-2">
            <li>
              <NavLink to={"/home"}>
                <i className="fa fa-home" aria-hidden="true"></i> Home
              </NavLink>
            </li>
-         </ul>
+         </ul> */}
+            <ul >
+                   <li>
+                   
+                     <NavLink style={{ display: "flex", flexDirection: "row" }}
+                       to="/home"
+         
+                     >
+                       <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
+                       {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+                       Dashboard
+                     </NavLink>
+                   </li>
+         
+                 </ul>
        </div>
  
        {/* Calendar & Leads */}

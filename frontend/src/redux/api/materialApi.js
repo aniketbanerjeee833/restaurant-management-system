@@ -2,7 +2,6 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 
 
-
 export const materialApi = createApi({
   reducerPath: "materialApi",
   baseQuery: fetchBaseQuery({
@@ -56,6 +55,14 @@ getAllMaterials: builder.query({
   invalidatesTags: ["Material"],
 }),
 
+eachMaterialReport: builder.query({
+  query: ({ Material_Name }) => ({
+    url: `material/single-material-report/${Material_Name}`,
+    method: "GET",
+  }),
+  providesTags: ["Material"],
+}),
+
 addReleaseMaterials: builder.mutation({
   query: (body ) => ({
     url: `material/release-material`,
@@ -64,7 +71,17 @@ addReleaseMaterials: builder.mutation({
   }),
   invalidatesTags: ["Material"],
 }),
-
+ printEachMaterialDetailsReport: builder.mutation({
+  query: (payload) => ({
+    url: "material/print-each-material-details-report",
+    method: "POST",
+    body: JSON.stringify(payload),   // IMPORTANT
+    headers: {
+      "Content-Type": "application/json",
+    },
+    responseHandler: (response) => response.blob(), 
+  }),
+}),
    
     
 
@@ -82,7 +99,9 @@ addReleaseMaterials: builder.mutation({
    
     useAddMaterialMutation,
     useEditMaterialMutation,
-    useAddReleaseMaterialsMutation
+    useEachMaterialReportQuery,
+    useAddReleaseMaterialsMutation,
+    usePrintEachMaterialDetailsReportMutation
 
  }=materialApi
    

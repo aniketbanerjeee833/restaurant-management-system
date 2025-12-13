@@ -51,7 +51,7 @@ export default function InventoryAdd() {
   const navigate = useNavigate();
   const { data: parties } = useGetAllPartiesQuery();
   // const { data: items, } = useGetAllItemsQuery();
-    const { data: materials, isLoading } = useGetAllMaterialsQuery();
+    const { data: materials } = useGetAllMaterialsQuery();
   
   console.log(materials, parties);
 
@@ -263,8 +263,8 @@ export default function InventoryAdd() {
   const calculateRowAmount = (row, index, itemsValues) => {
     const price = num(row.Purchase_Price);
     const qty = Math.max(1, num(row.Quantity)); // default 1
-    const subtotal = price * qty;
-
+    // const subtotal = price * qty;
+const subtotal = price ;
     // discount
     let disc = num(row.Discount_On_Purchase_Price);
     if ((row.Discount_Type_On_Purchase_Price || "Percentage") === "Percentage") {
@@ -465,14 +465,12 @@ export default function InventoryAdd() {
     flex flex-col sm:flex-row 
     justify-between 
     items-start sm:items-center 
-    w-full 
-    
-    mt-4               
+    w-full   mt-10  sm:mt-0             
   ">
 
                   {/* LEFT HEADER */}
                   <div className="w-full sm:w-auto">
-                    <h4 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2 mt-4">Add New Inventory</h4>
+                    <h4 className="text-xl sm:text-2xl font-bold mt-4 mb-1 sm:mb-0 sm:mt-0">Add New Inventory</h4>
                     {/* <p className="text-gray-500 mb-2 sm:mb-4">
         Add new purchase details
       </p> */}
@@ -751,7 +749,8 @@ export default function InventoryAdd() {
                           
                           <th>Qty</th>
                           <th>Unit</th>
-                          <th>Price/Unit</th>
+                          {/* <th>Price/Unit</th> */}
+                           <th>Price</th>
                           <th>Discount</th>
                           <th>Tax</th>
                           <th>Tax Amount</th>
@@ -784,141 +783,10 @@ export default function InventoryAdd() {
                             </td>
 
                       
-{/* <td style={{ padding: "0px", width: "10%", position: "relative" }}>
-  <div ref={(el) => (categoryRefs.current[i] = el)}>
-  <input
-  type="text"
-  value={watch(`items.${i}.Item_Category`) || rows[i]?.categorySearch || ""}
-  style={{ marginBottom: "0px" }}
-  readOnly={rows[i]?.isExistingItem}
-  placeholder="Category"
-  className="w-full outline-none border-b-2 text-gray-900"
-  onClick={() => {
-     setShowModal(false);
-    if (!rows[i]?.isExistingItem) {
-      setRows((prev) =>
-        prev.map((row, idx) => ({
-          ...row,
-          CategoryOpen: idx === i ? !row.CategoryOpen : false,
-        }))
-      );
-    }
-  }}
-  onChange={(e) => {
-    const value = e.target.value;
-    handleRowChange(i, "categorySearch", value);
-    setValue(`items.${i}.Item_Category`, value, { shouldValidate: true });
-    handleRowChange(i, "isExistingItem", false);
-  }}
-/>
 
-
-    {errors?.items?.[i]?.Item_Category && (
-      <p className="text-red-500 text-xs mt-1">
-        {errors.items[i].Item_Category.message}
-      </p>
-    )}
-
-    {rows[i]?.CategoryOpen && !rows[i]?.isExistingItem && (
-      <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-        <span className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
-          onClick={() => {
-            setShowModal(true);
-            handleRowChange(i, "CategoryOpen", false);
-          }}>
-          + Add Category
-        </span>
-
-        {categories
-          ?.filter((cat) =>
-            cat.Item_Category.toLowerCase().startsWith(
-              (rows[i]?.categorySearch || "").toLowerCase()
-            )
-          )
-          .map((cat, idx) => (
-            <div
-              key={idx}
-              onClick={() => {
-  handleSelect(i, cat.Item_Category);
-  handleRowChange(i, "categorySearch", cat.Item_Category);
-  setValue(`items.${i}.Item_Category`, cat.Item_Category, { shouldValidate: true });
-  handleRowChange(i, "CategoryOpen", false);
-}}
-            
-              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-            >
-              {cat.Item_Category}
-            </div>
-          ))}
-
-        {categories?.filter((cat) =>
-          cat.Item_Category.toLowerCase().startsWith(
-            (rows[i]?.categorySearch || "").toLowerCase()
-          )
-        ).length === 0 && (
-          <p className="px-3 py-2 text-gray-500">No categories found</p>
-        )}
-      </div>
-    )}
-  </div>
-
-  {showModal && (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(0,0,0,0.4)",
-        backdropFilter: "blur(4px)",
-        zIndex: 30,
-      }}
-    >
-      <div className="bg-white p-6 rounded-lg shadow-lg w-96 relative">
-        <button
-          type="button"
-          onClick={() => setShowModal(false)}
-          style={{ backgroundColor: "transparent" }}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-        >
-          ✕
-        </button>
-
-        <h4 className="text-lg font-semibold mb-4">Add New Category</h4>
-        <input
-          type="text"
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#4CA1AF]"
-          placeholder="Enter category name"
-        />
-
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => setShowModal(false)}
-            style={{ backgroundColor: "lightgray" }}
-            className="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleAddCategory}
-            style={{ backgroundColor: "#4CA1AF" }}
-            className="px-4 py-2 rounded-md bg-[#4CA1AF] text-white hover:bg-[#5c52d4]"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
-</td> */}
 
                             {/* Item Dropdown */}
-                            <td style={{ padding: "0px", width: "25%", position: "relative" }}>
+                            <td style={{ padding: "0px", width: "28%", position: "relative" }}>
                               <div ref={(el) => (itemRefs.current[i] = el)}> {/* ✅ attach ref */}
                                 <input
                                   type="text"
@@ -986,7 +854,7 @@ export default function InventoryAdd() {
                                                     //categorySearch: it.Item_Category || "", // ✅ sync UI state
                                                     isExistingItem: true,   // lock category
                                                     //isHSNLocked: true,      
-                                                    isUnitLocked: true,     // lock unit
+                                                    //isUnitLocked: true,     // lock unit
                                                   };
                                                   return updated;
                                                 });
@@ -999,7 +867,7 @@ export default function InventoryAdd() {
                                                 // setValue(`items.${i}.Item_HSN`, it.Item_HSN, { shouldValidate: true , shouldDirty: true});
                                                 setValue(`items.${i}.Purchase_Price`, it.Purchase_Price || 0, { shouldValidate: true , shouldDirty: true});
                                                 setValue(`items.${i}.Quantity`, 1, { shouldValidate: true , shouldDirty: true});
-                                                setValue(`items.${i}.Item_Unit`, it.unit, { shouldValidate: true , shouldDirty: true});
+                                                setValue(`items.${i}.Item_Unit`, it.current_stock_unit, { shouldValidate: true , shouldDirty: true});
                                                 handleRowChange(i, "itemOpen", false);
 
 
@@ -1040,7 +908,7 @@ export default function InventoryAdd() {
                                                 }}
                                               >
                                                          {it?.current_stock
-                                      ? `${it.current_stock} ${reorderLevelUnits[it.unit] || ""}`
+                                      ? `${it.current_stock} ${reorderLevelUnits[it.current_stock_unit] || ""}`
                                       : "N/A"}
                                                 {/* {it.currentStock || 0} */}
                                               </td>
@@ -1069,30 +937,7 @@ export default function InventoryAdd() {
                             </td>
 
                          
-                            {/* <td style={{ padding: "0px", width: "8%" }}>
-                              <input
-                                type="text"
-                                value={rows[i]?.Item_HSN || watch(`items.${i}.Item_HSN`) || ""}
-                                maxLength={8}              // limit to 8 digits
-
-                                onChange={(e) => {
-                                  if (!rows[i]?.isHSNLocked) {
-                                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                                    handleRowChange(i, "Item_HSN", e.target.value);
-                                    setValue(`items.${i}.Item_HSN`, e.target.value, { shouldValidate: true, shouldDirty: true });
-                                    // setValue(`items.${i}.Item_HSN`, e.target.value);
-                                  }
-                                }}
-                                placeholder="HSN Code"
-                                className="w-full outline-none border-b-2 text-gray-900"
-                                readOnly={rows[i]?.isHSNLocked} // ✅ lock if item is from dropdown
-                              />
-                              {errors?.items?.[i]?.Item_HSN && (
-                                <p className="text-red-500 text-xs mt-1">
-                                  {errors.items[i].Item_HSN.message}
-                                </p>
-                              )}
-                            </td> */}
+                           
 
                             {/* Qty */}
                             <td style={{ padding: "0px", width: "4%" }}>
@@ -1135,7 +980,7 @@ export default function InventoryAdd() {
                             </td>
 
                             {/* Unit */}
-                            <td style={{ padding: "0px",width: "15%" }}>
+                            <td style={{ padding: "0px",width: "12%" }}>
                               <Controller
                                 control={control}
                                 name={`items.${i}.Item_Unit`}
@@ -1144,7 +989,7 @@ export default function InventoryAdd() {
                                     {...field}
                                     className="form-select "
                                     style={{ width: "100%", fontSize: "12px", marginLeft: "0px" }}
-                                    disabled={rows[i]?.isUnitLocked} // ✅ lock only if item is from dropdown
+                                    //disabled={rows[i]?.isUnitLocked} // ✅ lock only if item is from dropdown
                                     onChange={(e) => {
                                       const value = e.target.value;
                                       handleRowChange(i, "Item_Unit", value);
@@ -1169,7 +1014,7 @@ export default function InventoryAdd() {
 
 
                             {/* Price/Unit */}
-                           <td style={{ padding: "0px", width: "6%" }}>
+                           <td style={{ padding: "0px", width: "8%" }}>
                               <div className="d-flex align-items-center"> 
                                  <input
                                   type="text"

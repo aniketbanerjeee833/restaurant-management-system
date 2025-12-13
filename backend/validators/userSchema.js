@@ -24,7 +24,8 @@ city: z.string().optional().refine(
   (val) => !val || val.trim().length >= 1,
   { message: "City must be at least 1 character" }
 ),
-      role: z.enum(["admin", "user"]).default("user"),
+      role: z.enum(["admin", "staff","kitchen-staff"]).default("staff"),
+       categories: z.array(z.string()).optional(),
   });
 
 export { loginSchema, registerSchema };

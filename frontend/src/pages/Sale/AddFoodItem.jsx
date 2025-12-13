@@ -70,13 +70,13 @@ export default function AddFoodItem() {
     // const [showGSTIN, setShowGSTIN] = useState("");
     //console.log(latestInvoiceNumber, "latestInvoiceNumber");
     const[addFoodItem, {isLoading:isAddingFoodItem}] = useAddFoodItemMutation();
-    const itemUnits = {
+    // const itemUnits = {
         
-        "pcs": "Pcs",
-        "plates": "Plates",
-        "btl": "Bottle",
+    //     "pcs": "Pcs",
+    //     "plates": "Plates",
+    //     "btl": "Bottle",
 
-    }
+    // }
 
     const handleAddCategory = async () => {
 
@@ -180,7 +180,7 @@ export default function AddFoodItem() {
         Item_Image: "",
         Item_Category: "",
         Item_Price: "",
-        Item_Quantity: "1",
+        // Item_Quantity: "1",
         Tax_Type: "None",
         Tax_Amount: "",
         Amount: "",
@@ -218,7 +218,7 @@ const handleAddRow = () => {
     Item_Image: "",
     Item_Category: "",
     Item_Price: "",
-    Item_Quantity: "1",
+    // Item_Quantity: "1",
   });
 };
 
@@ -417,11 +417,13 @@ itemsSafe.forEach((item) => {
 
                             <div className="inn-title w-full px-2 py-3">
 
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full mt-4">
+                                <div className="flex flex-col 
+                                sm:flex-row justify-between items-start 
+                                sm:items-center w-full  mt-10  sm:mt-0">
 
                                     {/* LEFT HEADER */}
                                     <div className="w-full sm:w-auto">
-                                        <h4 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Add Food Item</h4>
+                                        <h4 className="text-xl sm:text-2xl font-bold mb-1 mt-4 sm:mb-0 sm:-mt-0 ">Add Food Item</h4>
                                         {/* <p className="text-gray-500 mb-2 sm:mb-4">
         Add new sale details
       </p> */}
@@ -458,265 +460,7 @@ itemsSafe.forEach((item) => {
                             <div style={{ padding: "0", backgroundColor: "#f1f1f19d" }} className="tab-inn">
                                 <form onSubmit={handleSubmit(onSubmit)}>
                                     <div className="flex flex-col justify-between gap-6 w-full sm:flex-row heading-wrapper">
-                                        {/* <div className="grid grid-rows-2 ml-2 w-full sm:w-1/2 lg:w-1/3 ">
-
-
-                                            <div className="w-1/2 flex flex-col relative mt-2 gap-2 party-class"
-                                                style={{ marginBottom: "0px", marginTop: "0px" }}>
-
-                                              
-                                                <span className="whitespace-nowrap active ">
-                                                    Party
-                                                    <span className="text-red-500">*</span>
-                                                </span>
-                                                <div className="relative w-full">
-
-                                                   
-                                                    <div
-                                                        className="flex  justify-between border rounded-md  bg-white cursor-pointer"
-                                                        onClick={() => setOpen((prev) => !prev)}
-                                                    >
-                                                        <input
-                                                            type="text"
-                                                            id="Party_Name"
-
-                                                            value={partySearch}
-                                                            onChange={(e) => {
-                                                                const value = e.target.value;
-                                                                setPartySearch(value);
-                                                                setValue("Party_Name", value, { shouldValidate: true });
-                                                                setOpen(true);
-                                                            }}
-                                                            onClick={() => setOpen((prev) => !prev)}
-                                                            onBlur={() => {
-                                                                const typedValue = partySearch.trim().toLowerCase();
-
-                                                                // ✅ Full match only (not partial)
-                                                                const matchedParty = parties?.parties?.find(
-                                                                    (party) => party.Party_Name.toLowerCase() === typedValue
-                                                                );
-
-                                                                if (matchedParty) {
-                                                                    // ✅ Set full party info
-                                                                    setPartySearch(matchedParty.Party_Name);
-                                                                    setValue("Party_Name", matchedParty.Party_Name, { shouldValidate: true, shouldDirty: true });
-
-                                                                    // ✅ Check GSTIN (must be present)
-                                                                    if (!matchedParty.GSTIN || matchedParty.GSTIN.trim() === "") {
-
-                                                                        setValue("GSTIN", "", { shouldValidate: true });
-                                                                    } else {
-                                                                        setValue("GSTIN", matchedParty.GSTIN, { shouldValidate: true, shouldDirty: true });
-                                                                    }
-
-
-                                                                } else {
-                                                                    // ❌ Not an exact match → clear field
-                                                                    setPartySearch("");
-                                                                    setValue("Party_Name", "");
-                                                                }
-
-                                                                setTimeout(() => setOpen(false), 150);
-                                                            }}
-                                                            placeholder="Search By Name/Phone"
-                                                            className="w-full outline-none py-1 px-2 text-gray-900"
-                                                            style={{ marginBottom: 0, marginTop: "4px", border: "none", height: "2rem", borderBottom: "0px" }}
-                                                        />
-                                                        <span className="ml-2  absolute right-5 top-1/3  text-gray-700">
-                                                            ▼
-                                                        </span>
-                                                    </div>                                      
-                                                    {open && (
-                                                        <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                                                            <span
-                                                                onClick={() => setShowPartyModal(true)}
-                                                                className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
-                                                            >
-                                                                + Add Party
-                                                            </span>
-
-                                                            {parties?.parties
-                                                                ?.filter(
-                                                                    (party) =>
-                                                                        party?.Party_Name?.toLowerCase().includes(partySearch.toLowerCase()) ||
-                                                                        party?.Phone_Number?.includes(partySearch)
-                                                                )
-                                                                .map((party, i) => (
-                                                                    <div
-                                                                        key={i}
-                                                                        onClick={() => {
-                                                                            // Select from dropdown
-                                                                            setPartySearch(party.Party_Name);
-                                                                            setValue("Party_Name", party.Party_Name, { shouldValidate: true, shouldDirty: true });
-
-                                                                            // ✅ GSTIN validation on selection
-                                                                            if (!party.GSTIN || party.GSTIN.trim() === "") {
-
-                                                                                setValue("GSTIN", "", { shouldValidate: true });
-                                                                            } else {
-                                                                                setValue("GSTIN", party.GSTIN, { shouldValidate: true, shouldDirty: true });
-                                                                            }
-
-
-                                                                            setOpen(false);
-                                                                        }}
-                                                                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                                                                    >
-                                                                        {party.Party_Name} ({party.Phone_Number})
-                                                                    </div>
-                                                                ))}
-
-                                                            
-                                                            {parties?.parties?.filter((party) =>
-                                                                party?.Party_Name?.toLowerCase().includes(partySearch.toLowerCase())
-                                                            ).length === 0 && (
-                                                                    <p className="px-3 py-2 text-gray-500">No Party found</p>
-                                                                )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                           
-                                                {showPartyModal && (
-                                                    <PartyAddModal
-                                                        onClose={() => setShowPartyModal(false)}
-                                                        onSave={(newParty) => {
-                                                            setPartySearch(newParty);
-                                                            setValue("Party_Name", newParty, { shouldValidate: true });
-                                                            setShowPartyModal(false);
-                                                        }}
-                                                    />
-                                                )}
-
-                                               
-                                                {errors?.Party_Name && (
-                                                    <p className="text-red-500 text-xs mt-1">{errors?.Party_Name?.message}</p>
-                                                )}
-                                            </div>
-
-                                            <div className="input-field  flex gap-4
-                              justify-center items-center w-1/2 gstin-class">
-                                                <span className=" whitespace-nowrap active ">
-                                                    GSTIN
-
-                                                </span>
-                                                <input
-                                                    type="text"
-                                                    style={{ marginBottom: "0px" }}
-                                                    id=" GSTIN"
-                                                    value={showGSTIN || ""}
-                                                    {...register("GSTIN")}
-                                                    placeholder="GSTIN"
-                                                    className="w-full outline-none border-b-2 text-gray-900"
-                                                    readOnly
-
-                                                />
-                                                {errors?.GSTIN && (
-                                                    <p className="text-red-500 text-xs mt-1">
-                                                        {errors?.GSTIN?.message}
-                                                    </p>
-                                                )}
-                                            </div> 
-
-
-                                        </div>*/}
-                                        {/*<div className="grid grid-rows-3 w-full sm:w-1/2 lg:w-1/3 ml-auto gap-0  mr-2">
-
-
-
-
-
-                                          
-                                            <div className="flex items-center w-full gap-3  justify-end">
-
-                                                
-                                                <span className="whitespace-nowrap ">
-                                                    Invoice Number <span className="text-red-500">*</span>
-                                                </span>
-
-                                                <input
-                                                    type="text"
-                                                    id=" Invoice_Number"
-                                                    {...register("Invoice_Number")}
-                                                    placeholder=" Invoice_Number"
-
-                                                    className="invoice-number-class 
-                                                    outline-none 
-                                                    text-gray-900 
-                                                            py-1 
-                                                        bg-transparent "
-
-
-
-                                                    style={{ marginBottom: 0, border: "none", width: "50%" }}
-                                                    readOnly
-                                                />
-                                                {errors?.Invoice_Number && (
-                                                    <p className="text-red-500 text-xs mt-1">
-                                                        {errors?.Invoice_Number?.message}
-                                                    </p>
-                                                )}
-                                            </div> 
-
-                                            
-
-                                            <div className="flex items-center w-full gap-3 justify-end">
-                                               
-                                                <span className=" whitespace-nowrap active">
-                                                    Invoice Date
-                                                    <span className="text-red-500">*</span>
-                                                </span>
-                                                <input
-                                                    type="date"
-                                                    style={{ marginBottom: 0, width: "50%", border: "none" }}
-                                                    id=" Invoice_Date"
-                                                    {...register("Invoice_Date")}
-                                                    placeholder=" Invoice_Date"
-                                                  className="w-full outline-none text-gray-900 invoice-date-class"
-                                                    min={
-                                                        latestInvoiceNumber?.latestInvoiceInfo?.createdAt
-                                                            ? new Date(latestInvoiceNumber?.latestInvoiceInfo?.createdAt).toISOString().split("T")[0]
-                                                            : ""
-                                                    } // ✅ Prevent earlier dates
-                                                />
-                                                {errors?.Invoice_Date && (
-                                                    <p className="text-red-500 text-xs mt-1">
-                                                        {errors?.Invoice_Date?.message}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                           
-
-
-
-                                            <div className="flex items-center w-full gap-3 justify-end
-                                           state-of-supply-class"
-                                           >
-                                              
-                                                <span className=" whitespace-nowrap active">
-                                                    State of Supply
-                                                    <span className="text-red-500">*</span>
-                                                </span>
-                                                <select
-                                                    style={{ marginBottom: "0px", width: "50%", border: "none" }}
-                                                    id="stateOfSupply"
-                                                    className="validate mt-2"
-                                                    {...register("State_Of_Supply")}
-                                                >
-                                                    <option value="">Select State</option>
-                                                    <option value="West Bengal">West Bengal</option>
-                                                    <option value="Maharashtra">Maharashtra</option>
-                                                    <option value="Karnataka">Karnataka</option>
-                                                    <option value="Delhi">Delhi</option>
-                                                </select>
-                                                {errors?.State_Of_Supply && (
-                                                    <p className="text-red-500 text-xs mt-1">
-                                                        {errors?.State_Of_Supply?.message}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>*/}
-
+                                        
                                     </div>
 
 
@@ -733,7 +477,7 @@ itemsSafe.forEach((item) => {
                                                     <th>Category</th>
                                                     <th>Name</th>
                                                     <th>Image</th>
-                                                    <th>Qty</th>
+                                                    {/* <th>Qty</th> */}
                                                     {/* <th>Unit</th> */}
                                                     <th>Price/Unit</th>
                                                     {/* <th>Discount</th> */}
@@ -1020,7 +764,7 @@ itemsSafe.forEach((item) => {
 </td>
 
                                                         
-                                                        <td style={{ padding: "0px",width:"5%" }}>
+                                                        {/* <td style={{ padding: "0px",width:"5%" }}>
                                                             <input
                                                                 type="text"
                                                                 className="form-control"
@@ -1059,7 +803,7 @@ itemsSafe.forEach((item) => {
                                                                     {errors.items[i].Item_Quantity.message}
                                                                 </p>
                                                             )}
-                                                        </td>
+                                                        </td> */}
 
                                                         {/* Unit */}
                                                         {/* <td style={{ padding: "0px",width:"10%" }}>
@@ -1812,3 +1556,261 @@ className="flex flex-col gap-4 mt-3 w-full">
         </>
     );
 }
+{/* <div className="grid grid-rows-2 ml-2 w-full sm:w-1/2 lg:w-1/3 ">
+
+
+                                            <div className="w-1/2 flex flex-col relative mt-2 gap-2 party-class"
+                                                style={{ marginBottom: "0px", marginTop: "0px" }}>
+
+                                              
+                                                <span className="whitespace-nowrap active ">
+                                                    Party
+                                                    <span className="text-red-500">*</span>
+                                                </span>
+                                                <div className="relative w-full">
+
+                                                   
+                                                    <div
+                                                        className="flex  justify-between border rounded-md  bg-white cursor-pointer"
+                                                        onClick={() => setOpen((prev) => !prev)}
+                                                    >
+                                                        <input
+                                                            type="text"
+                                                            id="Party_Name"
+
+                                                            value={partySearch}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                setPartySearch(value);
+                                                                setValue("Party_Name", value, { shouldValidate: true });
+                                                                setOpen(true);
+                                                            }}
+                                                            onClick={() => setOpen((prev) => !prev)}
+                                                            onBlur={() => {
+                                                                const typedValue = partySearch.trim().toLowerCase();
+
+                                                                // ✅ Full match only (not partial)
+                                                                const matchedParty = parties?.parties?.find(
+                                                                    (party) => party.Party_Name.toLowerCase() === typedValue
+                                                                );
+
+                                                                if (matchedParty) {
+                                                                    // ✅ Set full party info
+                                                                    setPartySearch(matchedParty.Party_Name);
+                                                                    setValue("Party_Name", matchedParty.Party_Name, { shouldValidate: true, shouldDirty: true });
+
+                                                                    // ✅ Check GSTIN (must be present)
+                                                                    if (!matchedParty.GSTIN || matchedParty.GSTIN.trim() === "") {
+
+                                                                        setValue("GSTIN", "", { shouldValidate: true });
+                                                                    } else {
+                                                                        setValue("GSTIN", matchedParty.GSTIN, { shouldValidate: true, shouldDirty: true });
+                                                                    }
+
+
+                                                                } else {
+                                                                    // ❌ Not an exact match → clear field
+                                                                    setPartySearch("");
+                                                                    setValue("Party_Name", "");
+                                                                }
+
+                                                                setTimeout(() => setOpen(false), 150);
+                                                            }}
+                                                            placeholder="Search By Name/Phone"
+                                                            className="w-full outline-none py-1 px-2 text-gray-900"
+                                                            style={{ marginBottom: 0, marginTop: "4px", border: "none", height: "2rem", borderBottom: "0px" }}
+                                                        />
+                                                        <span className="ml-2  absolute right-5 top-1/3  text-gray-700">
+                                                            ▼
+                                                        </span>
+                                                    </div>                                      
+                                                    {open && (
+                                                        <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                                            <span
+                                                                onClick={() => setShowPartyModal(true)}
+                                                                className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                                                            >
+                                                                + Add Party
+                                                            </span>
+
+                                                            {parties?.parties
+                                                                ?.filter(
+                                                                    (party) =>
+                                                                        party?.Party_Name?.toLowerCase().includes(partySearch.toLowerCase()) ||
+                                                                        party?.Phone_Number?.includes(partySearch)
+                                                                )
+                                                                .map((party, i) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        onClick={() => {
+                                                                            // Select from dropdown
+                                                                            setPartySearch(party.Party_Name);
+                                                                            setValue("Party_Name", party.Party_Name, { shouldValidate: true, shouldDirty: true });
+
+                                                                            // ✅ GSTIN validation on selection
+                                                                            if (!party.GSTIN || party.GSTIN.trim() === "") {
+
+                                                                                setValue("GSTIN", "", { shouldValidate: true });
+                                                                            } else {
+                                                                                setValue("GSTIN", party.GSTIN, { shouldValidate: true, shouldDirty: true });
+                                                                            }
+
+
+                                                                            setOpen(false);
+                                                                        }}
+                                                                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                                                    >
+                                                                        {party.Party_Name} ({party.Phone_Number})
+                                                                    </div>
+                                                                ))}
+
+                                                            
+                                                            {parties?.parties?.filter((party) =>
+                                                                party?.Party_Name?.toLowerCase().includes(partySearch.toLowerCase())
+                                                            ).length === 0 && (
+                                                                    <p className="px-3 py-2 text-gray-500">No Party found</p>
+                                                                )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                           
+                                                {showPartyModal && (
+                                                    <PartyAddModal
+                                                        onClose={() => setShowPartyModal(false)}
+                                                        onSave={(newParty) => {
+                                                            setPartySearch(newParty);
+                                                            setValue("Party_Name", newParty, { shouldValidate: true });
+                                                            setShowPartyModal(false);
+                                                        }}
+                                                    />
+                                                )}
+
+                                               
+                                                {errors?.Party_Name && (
+                                                    <p className="text-red-500 text-xs mt-1">{errors?.Party_Name?.message}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="input-field  flex gap-4
+                              justify-center items-center w-1/2 gstin-class">
+                                                <span className=" whitespace-nowrap active ">
+                                                    GSTIN
+
+                                                </span>
+                                                <input
+                                                    type="text"
+                                                    style={{ marginBottom: "0px" }}
+                                                    id=" GSTIN"
+                                                    value={showGSTIN || ""}
+                                                    {...register("GSTIN")}
+                                                    placeholder="GSTIN"
+                                                    className="w-full outline-none border-b-2 text-gray-900"
+                                                    readOnly
+
+                                                />
+                                                {errors?.GSTIN && (
+                                                    <p className="text-red-500 text-xs mt-1">
+                                                        {errors?.GSTIN?.message}
+                                                    </p>
+                                                )}
+                                            </div> 
+
+
+                                        </div>*/}
+                                        {/*<div className="grid grid-rows-3 w-full sm:w-1/2 lg:w-1/3 ml-auto gap-0  mr-2">
+
+
+
+
+
+                                          
+                                            <div className="flex items-center w-full gap-3  justify-end">
+
+                                                
+                                                <span className="whitespace-nowrap ">
+                                                    Invoice Number <span className="text-red-500">*</span>
+                                                </span>
+
+                                                <input
+                                                    type="text"
+                                                    id=" Invoice_Number"
+                                                    {...register("Invoice_Number")}
+                                                    placeholder=" Invoice_Number"
+
+                                                    className="invoice-number-class 
+                                                    outline-none 
+                                                    text-gray-900 
+                                                            py-1 
+                                                        bg-transparent "
+
+
+
+                                                    style={{ marginBottom: 0, border: "none", width: "50%" }}
+                                                    readOnly
+                                                />
+                                                {errors?.Invoice_Number && (
+                                                    <p className="text-red-500 text-xs mt-1">
+                                                        {errors?.Invoice_Number?.message}
+                                                    </p>
+                                                )}
+                                            </div> 
+
+                                            
+
+                                            <div className="flex items-center w-full gap-3 justify-end">
+                                               
+                                                <span className=" whitespace-nowrap active">
+                                                    Invoice Date
+                                                    <span className="text-red-500">*</span>
+                                                </span>
+                                                <input
+                                                    type="date"
+                                                    style={{ marginBottom: 0, width: "50%", border: "none" }}
+                                                    id=" Invoice_Date"
+                                                    {...register("Invoice_Date")}
+                                                    placeholder=" Invoice_Date"
+                                                  className="w-full outline-none text-gray-900 invoice-date-class"
+                                                    min={
+                                                        latestInvoiceNumber?.latestInvoiceInfo?.createdAt
+                                                            ? new Date(latestInvoiceNumber?.latestInvoiceInfo?.createdAt).toISOString().split("T")[0]
+                                                            : ""
+                                                    } // ✅ Prevent earlier dates
+                                                />
+                                                {errors?.Invoice_Date && (
+                                                    <p className="text-red-500 text-xs mt-1">
+                                                        {errors?.Invoice_Date?.message}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                           
+
+
+
+                                            <div className="flex items-center w-full gap-3 justify-end
+                                           state-of-supply-class"
+                                           >
+                                              
+                                                <span className=" whitespace-nowrap active">
+                                                    State of Supply
+                                                    <span className="text-red-500">*</span>
+                                                </span>
+                                                <select
+                                                    style={{ marginBottom: "0px", width: "50%", border: "none" }}
+                                                    id="stateOfSupply"
+                                                    className="validate mt-2"
+                                                    {...register("State_Of_Supply")}
+                                                >
+                                                    <option value="">Select State</option>
+                                                    <option value="West Bengal">West Bengal</option>
+                                                    <option value="Maharashtra">Maharashtra</option>
+                                                    <option value="Karnataka">Karnataka</option>
+                                                    <option value="Delhi">Delhi</option>
+                                                </select>
+                                                {errors?.State_Of_Supply && (
+                                                    <p className="text-red-500 text-xs mt-1">
+                                                        {errors?.State_Of_Supply?.message}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>*/}

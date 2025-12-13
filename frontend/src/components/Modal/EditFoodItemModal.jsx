@@ -767,7 +767,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                             </div>
                         </div>
                         <div className="row">
-                            <div className="input-field col s6">
+                            {/* <div className="input-field col s6">
                                 <span className="active">
                                     Item Quantity
                                     <span className="text-red-500 font-bold text-lg">&nbsp;*</span>
@@ -783,14 +783,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                                         let value = e.target.value.replace(/[^0-9]/g, "");
 
 
-                                        // if (!itemsValues[i]?.Item_Name?.trim()) return;
-
-                                        // ✅ Clamp value
-                                        // let num = parseInt(value, 10);
-
-                                        // if (isNaN(num) || num < 0) {
-                                        //     num = 0; // reset to 0
-                                        // }
+                                  
                                         if (value === "") {
                                             setValue(`Item_Quantity`, "", { shouldValidate: true });
                                             return;
@@ -820,7 +813,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                                         {errors.Item_Quantity.message}
                                     </p>
                                 )}
-                            </div>
+                            </div> */}
 
                             {/* Unit */}
 

@@ -1,7 +1,7 @@
 
 import {  useNavigate, useParams } from 'react-router-dom';
 import { useGetSinglePartyDetailsSalesPurchasesQuery, usePrintSinglePartyDetailsSalesPurchasesReportMutation } from '../../redux/api/partyAPi';
-import { useState } from 'react';
+
 import { Eye } from 'lucide-react';
 
 export default function PartySalesPurchasesDetails() {
@@ -31,20 +31,22 @@ console.log(partyDetails, "partyDetails");
 const purchases = partyDetails?.purchases ?? [];
     
     const party= partyDetails?.partyDetails ?? {};
-    const[page, setPage] = useState(1);
-    const[singlePartyDetailsSalesPurchases,{isLoading:isPrintLoading}]=usePrintSinglePartyDetailsSalesPurchasesReportMutation()
+    //const[page, setPage] = useState(1);
+    const[singlePartyDetailsSalesPurchases,{isLoading:isPrintLoading}]=
+    usePrintSinglePartyDetailsSalesPurchasesReportMutation()
+
     //const[showRangeModal, setShowRangeModal] = useState(false);
     //   const [fromDate, setFromDate] = useState('');
     //     const [toDate, setToDate] = useState('')
-   const handlePageChange = (newPage) => {
-        setPage(newPage);
-    }
-    const handleNextPage = () => {
-        setPage(page + 1);
-    }
-    const handlePreviousPage = () => {
-        setPage(page - 1);
-    }
+//    const handlePageChange = (newPage) => {
+//         setPage(newPage);
+//     }
+//     const handleNextPage = () => {
+//         setPage(page + 1);
+//     }
+//     const handlePreviousPage = () => {
+//         setPage(page - 1);
+//     }
     const handlePrint = async () => {
   try {
     const payload = {
@@ -247,7 +249,8 @@ const purchases = partyDetails?.purchases ?? [];
                                                  {/* <th>Item_HSN</th> */}
                                                  <th>Qty</th>
                                                  <th>Unit</th>
-                                                 <th>Price/Unit</th>
+                                                 {/* <th>Price/Unit</th> */}
+                                                  <th>Price</th>
                                                  <th>Discount</th>
                                                  <th>Tax</th>
                                                  <th>Tax Amount</th>
@@ -262,7 +265,7 @@ const purchases = partyDetails?.purchases ?? [];
                                                      <td>{item?.name}</td>
                                                      {/* <td>{item?.Item_HSN}</td> */}
                                                      <td>{item?.Quantity}</td>
-                                                     <td>{item?.unit}</td>
+                                                     <td>{item?.Item_Unit}</td>
                                                      <td>{item?.Purchase_Price}</td>
                                                      <td>{
                                                           item?.Discount_Type_On_Purchase_Price === "Percentage" ? `${item?.Discount_On_Purchase_Price==0.00?0:
@@ -384,7 +387,7 @@ const purchases = partyDetails?.purchases ?? [];
                                   
 
                              </div>
-                        <div className="flex justify-center align-center space-x-2 p-4">
+                        {/* <div className="flex justify-center align-center space-x-2 p-4">
                             <button type="button"
                                 onClick={() => handlePreviousPage()}
                                 disabled={page === 1}
@@ -418,7 +421,7 @@ const purchases = partyDetails?.purchases ?? [];
                             >
                                 Next →
                             </button>
-                        </div>
+                        </div> */}
                      </div>
                  </div>
              </div>

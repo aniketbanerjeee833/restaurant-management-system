@@ -1,28 +1,32 @@
 
 
-import { useGetAllFoodItemsQuery } from "../../redux/api/foodItemApi";
-import {   useGetAllTablesQuery } from "../../redux/api/tableApi";
+import { foodItemApi, useGetAllFoodItemsQuery } from "../../redux/api/foodItemApi";
+
 
 
 import { useState } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 
-
+import { io } from "socket.io-client";
 
 import { useRef } from "react";
 import { useEffect } from "react";
 
 import { toast } from "react-toastify";
 
-import { useDispatch, useSelector } from "react-redux";
+
 
 import { LayoutDashboard, Minus, Plus, ShoppingCart } from "lucide-react";
 import { useGetTableOrderDetailsQuery, useUpdateOrderMutation } from "../../redux/api/Staff/orderApi";
 import OrderDetailsModal from "../../components/Modal/OrderDetailsModal";
+import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
+import { useDispatch } from "react-redux";
 
-
+const socket = io("http://localhost:4000", {
+  transports: ["websocket"],
+});
 
 
 
@@ -30,10 +34,9 @@ import OrderDetailsModal from "../../components/Modal/OrderDetailsModal";
 
 
 export default function TableOrderDetails() {
-    // const { userId } = useSelector((state) => state.user);
-    const dispatch = useDispatch();
 
     const {Order_Id}=useParams();
+    const dispatch = useDispatch();
     const[orderDetailsModalOpen,setOrderDetailsModalOpen]=useState(false);
    //console.log(Order_Id);
     const {data:tableOrderDetails}=useGetTableOrderDetailsQuery(Order_Id);
@@ -63,32 +66,22 @@ export default function TableOrderDetails() {
 
 
     const navigate = useNavigate();
-    // const { data: parties } = useGetAllPartiesQuery();
-
-    // console.log(items, "items");
-
-    //const [open, setOpen] = useState(false);
-    //const[categoryOpen,setCategoryOpen] = useState(false);
-    // const [showModal, setShowModal] = useState(false);
-    //const[selected,setSelected] = useState([]);
-    // const [tableSearch, setTableSearch] = useState("");
-    // const [open, setOpen] = useState(false);
-    // const [newCategory, setNewCategory] = useState("");
+ 
    
     const [selectedTables, setSelectedTables] = useState([]);
     //const [addOrder, { isLoading: isAddingOrder }] = useAddOrderMutation();
-    const itemUnits = {
+    // const itemUnits = {
 
-        "pcs": "Pcs",
-        "plates": "Plates",
-        "btl": "Bottle",
+    //     "pcs": "Pcs",
+    //     "plates": "Plates",
+    //     "btl": "Bottle",
 
-    }
-    const { data: tables, isLoading } = useGetAllTablesQuery({});
-    const { data: menuItems, isMenuItemsLoading } = useGetAllFoodItemsQuery({});
+    // }
+ 
+    const { data: menuItems } = useGetAllFoodItemsQuery({});
     //console.log(tables, isLoading, "tables", menuItems, isMenuItemsLoading);
         const items = menuItems?.foodItems
-    const[updateOrder,{isLoading:isUpdateOrderLoading}]=useUpdateOrderMutation();
+    const[updateOrder]=useUpdateOrderMutation();
     const [rows, setRows] = useState([
         {
             CategoryOpen: false, categorySearch: "", preview: null
@@ -96,26 +89,150 @@ export default function TableOrderDetails() {
     ]);
         const [cart, setCart] = useState({});
     const [activeCategory, setActiveCategory] = useState('All');
-const { data: categories, isLoading: isLoadingCategories } = useGetAllCategoriesQuery()
-console.log(categories,"categories");
+const { data: categories } = useGetAllCategoriesQuery()
+//console.log(categories,"categories");
   //const existingCategories=categories?.map((category) => category.Item_Category);
   const existingCategories = [...new Set(categories?.map(c => c.Item_Category))];
   const newCategories = ["All", ...existingCategories];
    // 
 
-    // const [addNewSale, { isLoading: isAddingSale }] = useAddNewSaleMutation();
-    // const[addPurchase,{isLoading:isAddingPurchase}]=useAddPurchaseMutation();
-    // helper to update a field in a specific row
-    const handleRowChange = (index, field, value) => {
-        setRows((prev) => {
-            const updated = [...prev];
-            updated[index] = {
-                ...updated[index],
-                [field]: value,
-            };
-            return updated;
-        });
-    };
+
+   const [kotNotifications, setKotNotifications] = useState([]);
+useEffect(() => {
+  const handleAvailabilityChange = (data) => {
+    console.log("📢 Food status changed:", data);
+
+    // Force RTK Query to refetch
+    dispatch(foodItemApi.util.invalidateTags([{ type: "Food-Item", id: "LIST" }]));
+  };
+
+  socket.on("food_item_availability_changed", handleAvailabilityChange);
+
+  return () => {
+    socket.off("food_item_availability_changed", handleAvailabilityChange);
+  };
+}, []);
+
+
+
+// Join the Socket.IO room for this order
+useEffect(() => {
+  if (!tableOrderDetails?.KOT_Id) return;
+
+  const room = `order_${tableOrderDetails.KOT_Id}`;
+
+  console.log("Joining room:", room);
+  socket.emit("join_order_room", tableOrderDetails.KOT_Id);
+
+  return () => {
+    console.log("Leaving room:", room);
+    socket.emit("leave_order_room", tableOrderDetails.KOT_Id);
+  };
+}, [tableOrderDetails?.KOT_Id]);
+
+useEffect(() => {
+  if (!tableOrderDetails?.kitchenItems) return;
+
+  // full reset when refreshing page
+  const fresh = tableOrderDetails.kitchenItems.map(it => ({
+    KOT_Id: tableOrderDetails.KOT_Id,
+    KOT_Item_Id: it.KOT_Item_Id,
+    itemName: it.Item_Name,
+    status: it.Item_Status || "pending",
+    time: null,
+  }));
+
+  setKotNotifications(fresh);
+
+}, [tableOrderDetails]);
+
+// 2️⃣ Listen for socket updates and UPDATE existing item instead of pushing new
+// useEffect(() => {
+//   const handleKotUpdate = (data) => {
+//     console.log("📢 Frontend received KOT update:", data);
+//     toast.info(`${data.itemName} → ${data.status}`);
+
+//     setKotNotifications((prev) => {
+//       const idx = prev.findIndex(
+//         (n) => n.KOT_Item_Id === data.KOT_Item_Id
+//       );
+
+//       // If item already exists → update its status + time
+//       if (idx !== -1) {
+//         const copy = [...prev];
+//         copy[idx] = {
+//           ...copy[idx],
+//           status: data.status,
+//           time: data.time,
+//         };
+//         return copy;
+//       }
+
+//       // Fallback: if not found, add as new (rare but safe)
+//       return [
+//         ...prev,
+//         {
+//           KOT_Id: data.KOT_Id,
+//           KOT_Item_Id: data.KOT_Item_Id,
+//           itemName: data.itemName,
+//           status: data.status,
+//           time: data.time,
+//         },
+//       ];
+//     });
+//   };
+
+//   socket.on("frontend_kot_update", handleKotUpdate);
+
+//   return () => {
+//     socket.off("frontend_kot_update", handleKotUpdate);
+//   };
+// }, []);
+useEffect(() => {
+  const handleKotUpdate = (data) => {
+    console.log("📢 Frontend received KOT update:", data);
+    toast.info(`${data.itemName} → ${data.status}`);
+
+    // setKotNotifications((prev) => {
+    //   const index = prev.findIndex(n => n.KOT_Item_Id === data.KOT_Item_Id);
+  setKotNotifications((prev) => {
+      const index = prev.findIndex(
+        (n) => String(n.KOT_Item_Id) === String(data.KOT_Item_Id)
+      );
+
+      // 🟢 1. If item already exists → update status/time
+      if (index !== -1) {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          status: data.status,
+          // time: data.time,
+        };
+        return updated;
+      }
+
+      // 🟢 2. If the row is NEW (e.g., new biriyani added), append it
+      return [
+        ...prev,
+        {
+          KOT_Id: data.KOT_Id,
+          KOT_Item_Id: data.KOT_Item_Id,
+          itemName: data.itemName,
+          status: data.status,
+          // time: data.time,
+        }
+      ];
+    });
+  };
+
+  socket.on("frontend_kot_update", handleKotUpdate);
+
+  return () => {
+    socket.off("frontend_kot_update", handleKotUpdate);
+  };
+}, []);
+
+console.log(kotNotifications,"kotNotifications");
     useEffect(() => {
         const handleClickOutside = (event) => {
             setRows((prev) =>
@@ -146,7 +263,7 @@ console.log(categories,"categories");
 
 
     const {
-         register,
+       
          control,
          handleSubmit,
          setValue,
@@ -163,108 +280,90 @@ console.log(categories,"categories");
  }
      });
 
-    // const {
-    //     register,
-    //     control,
-    //     handleSubmit,
-    //     setValue,
-    //     watch,
-    //     reset,
-    //     formState: { errors },
-    // } = useForm({
-    //     defaultValues: {
-           
-           
-    //         Amount: "0.00",
-    //         Sub_Total: "0.00",
 
-    //         items: [
-    //             {
-    //                 Item_Name: "",
-    //                 Item_Price: "",
-    //                 Item_Quantity: 1,
-    //                 Amount: "0.00",
-    //             }
-    //         ]
-    //     }
-    // });
+ const [showSummary, setShowSummary] = useState(false);
 
 
-// useEffect(() => 
-//     { if (!tableOrderDetails) return; 
-//         const prefilledItems = tableOrderDetails.items.map((item) =>
-//              ({ Item_Name: item?.Item_Name, Item_Price: item?.Price,
-                 
-//                   item?.Quantity, Amount: item?.Amount, })); 
-//                   setSelectedTables(tableOrderDetails.tables.map((t) => t.Table_Name));
-//                    reset({ items: prefilledItems, Sub_Total: tableOrderDetails?.order?.Sub_Total, 
-//                      Tax_Amount: tableOrderDetails?.order?.Tax_Amount, Amount: tableOrderDetails?.order.Amount,
-//                       Tax_Type: tableOrderDetails?.order?.Tax_Type, Table_Names: tableOrderDetails?.tables?.map((t) 
-//                       => t?.Table_Name),
-//  OPTIONAL }); }, [tableOrderDetails, reset]);
 
-    useEffect(() => {
+//     useEffect(() => {
+//   if (!tableOrderDetails) return;
+
+//   const prefilledItems = tableOrderDetails?.orderItems?.map((item) => ({
+//     Item_Name: item?.Item_Name,
+//     Item_Price: item?.Price, 
+//     Item_Quantity: item?.Quantity,
+//     // Item_Image: item?.Item_Image,
+//     Amount: item?.Amount,
+//     // Food_Item_Price: item?.Food_Item_Price,
+//     id: item?.id
+//   }));
+//  setSelectedTables(tableOrderDetails?.tables.map((t) => t?.Table_Name));
+
+//   reset({
+//     items: prefilledItems,
+//     Sub_Total: tableOrderDetails?.order?.Sub_Total,
+//     Amount: tableOrderDetails?.order?.Amount,
+//     Table_Names: tableOrderDetails?.tables?.map((t) => t?.Table_Name),
+//   });
+
+//   // 🔥 Build mapping: menuItemId → rowIndex
+//   const map = {};
+//   tableOrderDetails?.orderItems.forEach((it, idx) => {
+//     map[it.id] = idx; // or item.id if that is the menu item ID
+//   });
+
+//   itemRowMap.current = map;
+
+//   // 🔥 Also sync cart with existing quantities
+//   const initialCart = {};
+//   tableOrderDetails?.orderItems.forEach((it) => {
+//     initialCart[it.id] = it.Quantity;
+//   });
+
+//   setCart(initialCart);
+
+// }, [tableOrderDetails, reset]);
+
+useEffect(() => {
   if (!tableOrderDetails) return;
 
-  const prefilledItems = tableOrderDetails.items.map((item) => ({
+  const prefilledItems = tableOrderDetails?.orderItems?.map((item) => ({
     Item_Name: item?.Item_Name,
-    Item_Price: item?.Price, 
+    Item_Price: item?.Price,
     Item_Quantity: item?.Quantity,
-    // Item_Image: item?.Item_Image,
     Amount: item?.Amount,
-    // Food_Item_Price: item?.Food_Item_Price,
-    id: item?.id
+    id: item?.Item_Id   // ✅ USE Item_Id
   }));
- setSelectedTables(tableOrderDetails.tables.map((t) => t.Table_Name));
+
+  setSelectedTables(tableOrderDetails?.tables.map((t) => t));
 
   reset({
     items: prefilledItems,
+    customerDetails: tableOrderDetails?.customer,
     Sub_Total: tableOrderDetails?.order?.Sub_Total,
-    Amount: tableOrderDetails?.order.Amount,
-    Table_Names: tableOrderDetails?.tables?.map((t) => t?.Table_Name),
+    Amount: tableOrderDetails?.order?.Amount,
+    Table_Names: tableOrderDetails?.tables?.map((t) => t),
   });
 
-  // 🔥 Build mapping: menuItemId → rowIndex
+  // 🔥 Build mapping: Item_Id → rowIndex
   const map = {};
-  tableOrderDetails.items.forEach((it, idx) => {
-    map[it.id] = idx; // or item.id if that is the menu item ID
+  tableOrderDetails?.orderItems.forEach((it, idx) => {
+    map[it.Item_Id] = idx;   // ✅ FIXED
   });
-
   itemRowMap.current = map;
 
-  // 🔥 Also sync cart with existing quantities
+  // 🔥 Also sync cart quantities with Item_Id
   const initialCart = {};
-  tableOrderDetails.items.forEach((it) => {
-    initialCart[it.id] = it.Quantity;
+  tableOrderDetails?.orderItems.forEach((it) => {
+    initialCart[it.Item_Id] = it.Quantity;  // ✅ FIXED
   });
-
   setCart(initialCart);
 
 }, [tableOrderDetails, reset]);
 
-// useEffect(() => {
-//   if (!tableOrderDetails) return;
 
-//   const prefilledItems = tableOrderDetails.items.map((item) => ({
-//     Item_Name: item?.Item_Name,
-//     Item_Price: item?.Price,      // FIX: Use Price, not Item_Price
-//     Item_Quantity: item?.Quantity,
-//     Amount: item?.Amount,
-//   }));
 
-//   setSelectedTables(tableOrderDetails.tables.map((t) => t.Table_Name));
-//   reset({
-//     items: prefilledItems,
-//     Sub_Total: tableOrderDetails?.order?.Sub_Total,
-//     // Tax_Amount: tableOrderDetails?.order?.Tax_Amount,
-//     Amount: tableOrderDetails?.order.Amount,
-//     // Tax_Type: tableOrderDetails?.order?.Tax_Type,
-//     Table_Names: tableOrderDetails?.tables?.map((t) => t?.Table_Name), // OPTIONAL
-//   });
-
-// }, [tableOrderDetails, reset]);
-
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append } = useFieldArray({
         control,
         name: "items",
     });
@@ -300,38 +399,7 @@ const updateTotals = () => {
     setValue("Amount", subTotal.toFixed(2));
 };
 
-// const updateCart = (itemId, delta, index, itemName, itemAmount) => {
-//   const amount = parseFloat(itemAmount || 0);
 
-//   setCart(prev => {
-//     const newQty = Math.max(0, (prev[itemId] || 0) + delta);
-
-//     let rowIndex = itemRowMap.current[itemId];
-
-//     // ➤ Row doesn't exist → create one (ONLY for new additions)
-//     if (rowIndex === undefined) {
-//       rowIndex = fields.length;
-//       itemRowMap.current[itemId] = rowIndex;
-
-//       append({
-//         Item_Name: itemName,
-//         Item_Price: amount,
-//         Item_Quantity: newQty,
-//         Amount: (amount * newQty).toFixed(2),
-//       });
-//     }
-
-//     // ➤ Update existing row
-//     setValue(`items.${rowIndex}.Item_Name`, itemName);
-//     setValue(`items.${rowIndex}.Item_Price`, amount);
-//     setValue(`items.${rowIndex}.Item_Quantity`, newQty);
-//     setValue(`items.${rowIndex}.Amount`, (amount * newQty).toFixed(2));
-
-//     setTimeout(() => updateTotals(), 0);
-
-//     return { ...prev, [itemId]: newQty };
-//   });
-// };
 const updateCart = (itemId, delta, index, itemName, itemAmount) => {
   const amount = parseFloat(itemAmount || 0);
 
@@ -369,177 +437,10 @@ const updateCart = (itemId, delta, index, itemName, itemAmount) => {
 };
 
 
-    const handleAddRow = () => {
-        setRows((prev) => [
-            ...prev.map((row) => ({
-                ...row,
-                CategoryOpen: false,
-
-                //   itemOpen: false
-            })),
-            {
-                //   itemSearch: "",
-                //   itemOpen: false,
-                CategoryOpen: false,
-                categorySearch: "",
-
-            },
-        ]);
-
-        append({
-            Item_Name: "",
-
-            Item_Price: "",
-            Item_Quantity: "1",
-        });
-    };
-
-
-    const handleDeleteRow = (i) => {
-        setRows((prev) => prev.filter((_, idx) => idx !== i)); // remove UI state
-        remove(i); // remove from form
-    };
     const formValues = watch();
     const itemsValues = watch("items");   // watch all item rows
     //const totalPaid = watch("Total_Paid"); // watch Total_Paid
-    const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
-
-    // const calculateRowAmount = (row, index, itemsValues) => {
-    //     const price = num(row.Item_Price);
-    //     const qty = Math.max(1, num(row.Item_Quantity)); // default 1
-    //     const subtotal = price * qty;
-
-    //     // discount
-    //     // let disc = num(row.Discount_On_Sale_Price);
-    //     // if ((row.Discount_Type_On_Sale_Price || "Percentage") === "Percentage") {
-    //     //     disc = (subtotal * disc) / 100;
-    //     // }
-    //     // const afterDiscount = Math.max(0, subtotal - disc);
-
-    //     // tax
-    //     const taxPercent = TAX_RATES[row.Tax_Type] ?? 0;
-    //     const taxAmount = (subtotal * taxPercent) / 100;
-
-    //     const finalAmount = subtotal + taxAmount;
-
-
-
-    //     return {
-    //         ...row,
-    //         Item_Quantity: String(qty),
-    //         Tax_Amount: taxAmount.toFixed(2),
-    //         Amount: finalAmount.toFixed(2),
-    //         Sub_Total: totalAmount.toFixed(2), // ✅ correct grand total
-
-    //     };
-    // };
-
-    // const calculateRowAmount = (row, index, itemsValues) => {
-    //     const price = num(row.Item_Price);
-    //     const qty = Math.max(1, num(row.Item_Quantity));
-    //     const subtotal = price * qty;
-
-    //     // TAX
-    //     const taxPercent = TAX_RATES[row.Tax_Type] ?? 0;
-    //     const taxAmount = (subtotal * taxPercent) / 100;
-
-    //     const finalAmount = subtotal + taxAmount;
-
-    //     // -----------------------------------------
-    //     // 🔥 Calculate TOTAL INVOICE SUBTOTAL here
-    //     // -----------------------------------------
-    //     let totalSubTotal = 0;
-
-    //     itemsValues.forEach((item, i) => {
-    //         const itemPrice = num(item.Item_Price);
-    //         const itemQty = Math.max(1, num(item.Item_Quantity));
-    //         totalSubTotal += itemPrice * itemQty;
-    //     });
-
-    //     return {
-    //         Tax_Amount: taxAmount.toFixed(2),
-    //         Amount: finalAmount.toFixed(2),
-    //         Sub_Total: totalSubTotal.toFixed(2),
-    //     };
-    // };
-
-    const calculateRowAmount = (row, index, itemsValues) => {
-        const price = num(row.Item_Price);
-        const qty = Math.max(1, num(row.Item_Quantity));
-        const rowAmount = price * qty;
-
-        // ---------------------------------------
-        // 1️⃣ Calculate Subtotal (sum of all rows)
-        // ---------------------------------------
-        let subTotal = 0;
-
-        itemsValues.forEach((item, i) => {
-            const itemPrice = num(item.Item_Price);
-            const itemQty = Math.max(1, num(item.Item_Quantity));
-            subTotal += itemPrice * itemQty;
-        });
-
-        // ---------------------------------------
-        // 2️⃣ Calculate Tax (ONCE on subtotal)
-        // ---------------------------------------
-        const taxPercent = TAX_RATES[row.Tax_Type] ?? 0;
-        const taxAmount = (subTotal * taxPercent) / 100;
-
-        // ---------------------------------------
-        // 3️⃣ Final Total Amount
-        // ---------------------------------------
-        const finalAmount = subTotal + taxAmount;
-
-        return {
-            Row_Amount: rowAmount.toFixed(2),
-            Sub_Total: subTotal.toFixed(2),
-            Tax_Amount: taxAmount.toFixed(2),
-            Amount: finalAmount.toFixed(2),
-        };
-    };
-
-
-
-    const calculateInvoiceTotals = (taxType, itemsValues) => {
-        // 1️⃣ Calculate subtotal from all rows
-        let subTotal = 0;
-        itemsValues.forEach((item) => {
-            const price = num(item.Item_Price);
-            const qty = Math.max(1, num(item.Item_Quantity));
-            subTotal += price * qty;
-        });
-
-        // 2️⃣ Tax calculation (based on subtotal)
-        const taxPercent = TAX_RATES[taxType] ?? 0;
-        const taxAmount = (subTotal * taxPercent) / 100;
-
-        // 3️⃣ Final total
-        const finalAmount = subTotal + taxAmount;
-
-        return {
-            Sub_Total: subTotal.toFixed(2),
-            Tax_Amount: taxAmount.toFixed(2),
-            Amount: finalAmount.toFixed(2),
-        };
-    };
-
-    //const itemsValues = watch("items"); // watch all rows
-
-
-    const handleSelect = (rowIndex, categoryName) => {
-        setRows((prev) => {
-            const updated = [...prev];
-            updated[rowIndex] = {
-                ...updated[rowIndex],
-                Item_Category: categoryName,
-                CategoryOpen: false,
-                isExistingItem: false,   // user-typed, so still editable
-            };
-            return updated;
-        });
-
-        setValue(`items.${rowIndex}.Item_Category`, categoryName, { shouldValidate: true });
-    };
+    // const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
 
 
 useEffect(() => {
@@ -563,22 +464,27 @@ useEffect(() => {
         const cleanedItems = data.items.filter(
             (it) => it.Item_Name && it.Item_Name.trim() !== ""
         );
-
+        for (const item of cleanedItems) {
+  if (!item.Item_Quantity || Number(item.Item_Quantity) <= 0) {
+    toast.error(`Quantity for "${item.Item_Name}" must be greater than zero`);
+    return;
+  }
+}
         if (cleanedItems.length === 0) {
             toast.error("Please add at least one valid item with a name.");
             return;
         }
 
         // Check duplicate item names
-        const seen = new Set();
-        for (const item of cleanedItems) {
-            const name = item.Item_Name.trim().toLowerCase();
-            if (seen.has(name)) {
-                toast.error(`Duplicate item: ${item.Item_Name}`);
-                return;
-            }
-            seen.add(name);
-        }
+        //const seen = new Set();
+        // for (const item of cleanedItems) {
+        //     const name = item.Item_Name.trim().toLowerCase();
+        //     if (seen.has(name)) {
+        //         toast.error(`Duplicate item: ${item.Item_Name}`);
+        //         return;
+        //     }
+        //     seen.add(name);
+        // }
 
         // Prepare items safely
         const itemsSafe = cleanedItems.map((item) => ({
@@ -623,75 +529,9 @@ useEffect(() => {
 
 
 
-    // const onSubmit = async (data) => {
-    //     console.log("Form Data (from RHF):", data);
-
-    //     if (!data.items || data.items.length === 0) {
-    //         toast.error("Please add at least one item before saving.");
-    //         return;
-    //     }
-
-    //     // Remove empty rows
-    //     const cleanedItems = data.items.filter(
-    //         (it) => it.Item_Name && it.Item_Name.trim() !== ""
-    //     );
-
-    //     if (cleanedItems.length === 0) {
-    //         toast.error("Please add at least one valid item with a name.");
-    //         return;
-    //     }
-
-    //     // Check duplicate names
-    //     const seen = new Set();
-    //     for (const item of cleanedItems) {
-    //         const name = item.Item_Name.trim().toLowerCase();
-    //         if (seen.has(name)) {
-    //             toast.error(`Duplicate item: ${item.Item_Name}`);
-    //             return;
-    //         }
-    //         seen.add(name);
-    //     }
-
-    //     // Ensure tax fields exist (auto values)
-    //     const itemsSafe = cleanedItems.map((item) => ({
-    //         ...item,
-    //         Tax_Type: item.Tax_Type || "None",
-    //         Tax_Amount: item.Tax_Amount || "0.00",
-    //         Amount: item.Amount || "0.00",
-    //     }));
-
-    //     // ------------------------------
-    //     // 🚀 Build FormData for multer
-    //     // ------------------------------
-    //     const formData = new FormData();
-
-    //     // Add JSON items
-    //     formData.append("items", JSON.stringify({ items: itemsSafe }));
 
 
-
-    //     console.log("📦 Final FormData Prepared", formData);
-
-    //     try {
-    //         const res = await addOrder(formData).unwrap();
-
-    //         if (!res?.success) {
-    //             toast.error(res.message || "Failed to add Food Items");
-    //             return;
-    //         }
-
-    //         toast.success("Food Items added successfully!");
-    //         navigate("/new/all-new-food-items");
-
-    //     } catch (error) {
-    //         console.error("Submission Error:", error);
-    //         toast.error(error?.data?.message || "Failed to add food items");
-    //     }
-    // };
-
-
-
-console.log(itemsValues,filteredItems,cart)
+console.log(itemsValues,cart);
     console.log("Current form values:", formValues);
     console.log("Form errors:", errors);
 
@@ -704,10 +544,7 @@ console.log(itemsValues,filteredItems,cart)
             <div className="sb2-2-2">
                 <ul>
                     <li>
-                        {/* <NavLink to="/">
-                                <i className="fa fa-home mr-2" aria-hidden="true"></i>
-                                Dashboard
-                            </NavLink> */}
+                       
                         <NavLink style={{ display: "flex", flexDirection: "row" }}
                             to="/home"
 
@@ -725,15 +562,17 @@ console.log(itemsValues,filteredItems,cart)
             <div className="sb2-2-3" >
                 <div className="row" style={{ margin: "0px" }}>
                     <div className="col-md-12">
-                        <div style={{ padding: "20px" }}
+                        <div style={{ padding: "20px",marginBottom:"20px" }}
                             className="box-inn-sp">
 
                             <div className="inn-title w-full px-2 py-3">
 
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full mt-4">
+                                <div className="flex flex-col mt-10 
+                                sm:flex-row justify-between items-start 
+                                sm:items-center w-full sm:mt-0">
 
                                     {/* LEFT HEADER */}
-                                    <div className="w-full sm:w-auto">
+                                    <div className="w-full flex justify-center items-center sm:w-auto">
                                         <h4 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
                                             Update Order
                                         </h4>
@@ -743,12 +582,18 @@ console.log(itemsValues,filteredItems,cart)
                                     </div>
 
                                     {/* RIGHT BUTTON SECTION */}
-                                    <div className="
+                                    {/* <div className="
       w-full sm:w-auto 
       flex flex-wrap sm:flex-nowrap 
       justify-start sm:justify-end 
       gap-3
-    ">
+    "> */}
+                                <div className="
+       w-full flex justify-center items-center sm:w-auto 
+       flex flex-wrap sm:flex-nowrap 
+        sm:justify-end 
+       gap-3
+     ">
                                         <button
                                             type="button"
                                             onClick={() => navigate("/staff/orders/all-orders")}
@@ -774,42 +619,80 @@ console.log(itemsValues,filteredItems,cart)
                                 <form onSubmit={handleSubmit(onSubmit)}>
 
 
-                                    <div className="grid grid-cols-1  mt-2 gap-6 w-full heading-wrapper">
+<div className="w-full mt-2 mb-2">
+      {/* ⭐ SELECTED TABLES — Centered on large screens, stacked on mobile */}
+      <div className="mb-6">
+        <div className="flex flex-col lg:flex-row lg:justify-center lg:items-center gap-2">
+          {selectedTables?.length > 0 ? (
+            <>
+              {/* Mobile: Stack vertically */}
+              <div className="flex flex-col gap-2   justify-center items-center lg:hidden">
+                {selectedTables.map((name, idx) => (
+                  <div
+                    key={idx}
+                    className="px-4 py-3 bg-blue-200 text-blue-900 rounded-lg text-base font-semibold text-center shadow-md"
+                  >
+                    {name}
+                  </div>
+                ))}
+              </div>
 
-                                        
-                                        
+              {/* Large screens: Horizontal centered */}
+              <div className="hidden lg:flex lg:flex-wrap lg:gap-3 lg:justify-center">
+                {selectedTables.map((name, idx) => (
+                  <div
+                    key={idx}
+                    className="px-4 py-3 bg-blue-200 text-blue-900 rounded-lg text-base font-semibold shadow-md"
+                  >
+                    {name}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-gray-500 text-center w-full py-4">No tables selected</p>
+          )}
+        </div>
+      </div>
+
+      {/* ⭐ KITCHEN ITEMS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
+        {kotNotifications?.length === 0 ? (
+          <p className="text-gray-500 text-sm text-center col-span-full py-8">
+            No active kitchen updates
+          </p>
+        ) : (
+          kotNotifications.map((n, i) => (
+            <div
+              key={i}
+              className="bg-white shadow-md hover:shadow-lg 
+              rounded-lg p-2 flex flex-col gap-3 text-sm transition-all
+               duration-300 border border-gray-100"
+            >
+              <div className="flex justify-between items-start gap-2">
+                <span className="font-semibold text-gray-800 text-base leading-tight flex-1">
+                  {n.itemName}
+                </span>
+
+                <span
+                  className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${
+                    n.status === "ready"
+                      ? "bg-green-100 text-green-700 border border-green-300"
+                      : n.status === "preparing"
+                      ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                      : "bg-gray-100 text-gray-500 border border-gray-300"
+                  }`}
+                >
+                  {n.status}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
 
 
-                                        {/* EMPTY MIDDLE COLUMN */}
-                                        <div></div>
-
-                                        {/* RIGHT PANEL showing selected tables */}
-                                        <div className="flex flex-wrap gap-2 justify-center">
-                                            {selectedTables.map((name, idx) => (
-                                                <h4
-                                                    key={idx}
-                                                    className="px-3 py-2 bg-blue-200 text-blue-900 rounded-md text-sm flex items-center gap-2"
-                                                >
-                                                    {name}
-                                                    {/* <button
-                                                        className="text-red-600 font-bold"
-                                                        // onClick={() => {
-                                                        //     const updated = selectedTables.filter((t) => t !== name);
-                                                        //     setSelectedTables(updated);
-                                                        //     setValue("Table_Names", updated);
-                                                        // }}
-                                                    >
-                                                        
-                                                    </button> */}
-                                                </h4>
-                                            ))}
-
-                                            {selectedTables.length === 0 && (
-                                                <p className="text-gray-500">No tables selected</p>
-                                            )}
-                                        </div>
-
-                                    </div>
                                                                                                                        <div 
                                                 style={{ backgroundColor: "#f1f1f19d"}} className=" mx-auto px-2 py-2">
   <div
@@ -823,6 +706,7 @@ console.log(itemsValues,filteredItems,cart)
   >
     {newCategories?.map((cat,index) => (
       <button
+      type="button"
         key={index}
         onClick={() => setActiveCategory(cat)}
         className={`
@@ -854,188 +738,281 @@ console.log(itemsValues,filteredItems,cart)
                                             
                                             
                                                                                         {/* Food Items Grid */}
-                                                                                        <div className=" mx-auto px-4 py-4">
+                                                                                        <div className=" mx-auto px-2 py-4">
                                                                                             <div className="grid grid-cols-1 sm:grid-cols-2 
                                                                                             lg:grid-cols-4 xl:grid-cols-6 gap-6">
-                                                                                        {filteredItems?.map((item, index) => {
-                                                                                                  
-                                                                                                    return(
-                                                                                                     
-                                                        <div key={item.id ?? index}
-                                              className="group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg 
-                                                transition-all duration-300 hover:-translate-y-1"
-                                            >
+                                             
+                                            {filteredItems?.map((item, index) => {
                                             
-                                              {/* IMAGE SECTION (Reduced Height) */}
-                                              <div className="relative h-32 bg-gradient-to-br from-[#4CA1AF22] to-[#4CA1AF44]">
+                                              const unavailable = item.is_available === 0; //  unavailable items
                                             
-                                                {/* Background Image */}
-                                                <img
-                                                  src={
-                                                    item?.Item_Image
-                                                      ? `http://localhost:4000/uploads/food-item/${item?.Item_Image}`
-                                                      : ""
-                                                  }
-                                                  alt={item?.Item_Name}
-                                                  className="w-full h-full object-cover opacity-90"
-                                                />
-                                            
-                                                {/* Gradient Overlay */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                                            
-                                                {/* CATEGORY BADGE */}
-                                                <div className="absolute top-2 right-2">
-                                                  <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#4CA1AF] shadow">
-                                                    {item?.Item_Category}
-                                                  </span>
-                                                </div>
-                                            
-                                                {/* ITEM TITLE */}
-                                                <div className="absolute bottom-1 left-2 right-2">
-                                                  <h4 className="text-white text-[20px]  leading-tight">
-                                                    {item?.Item_Name}
-                                                  </h4>
-                                                </div>
-                                              </div>
-                                            
-                                              {/* DETAILS SECTION */}
-                                              <div className="p-2">
-                                                {/* PRICE & TOTAL (Compact Row) */}
-                                                <div className="flex justify-between items-center mb-2">
-                                                  <div>
-                                                    <div className="text-base font-semibold text-gray-800">
-                                                      ₹{parseFloat(item?.Item_Price).toFixed(2)}
-                                                    </div>
-                                                    <div className="text-[10px] text-gray-500">
-                                                      Tax: {TAX_RATES[item?.Tax_Type]}%
-                                                    </div>
-                                                  </div>
-                                            
-                                                  <div className="text-right">
-                                                    <div className="text-sm font-bold text-[#4CA1AF]">
-                                                      ₹{parseFloat(item.Amount).toFixed(2)}
-                                                    </div>
-                                                    <div className="text-[10px] text-gray-500">Total</div>
-                                                  </div>
-                                                </div>
-                                            
-                                                {/* CART CONTROLS — VERY COMPACT */}
-                                                <div className="flex items-center justify-between bg-[#4CA1AF10] rounded-md p-1.5">
-                                                  <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                      updateCart(item.id, -1, index, item?.Item_Name, item?.Amount)
+                                              return (
+                                                <div
+                                                  key={item.id ?? index}
+                                                  className={`
+                                                    group relative bg-white rounded-xl overflow-hidden shadow-md transition-all duration-300 
+                                                    ${unavailable 
+                                                      ? "opacity-40 grayscale cursor-not-allowed" 
+                                                      : "hover:shadow-lg hover:-translate-y-1"
                                                     }
-                                                    className="w-7 h-7 flex items-center justify-center bg-white 
-                                                      rounded-md shadow hover:bg-gray-100 text-[#4CA1AF] transition"
-                                                  >
-                                                    <Minus className="w-3 h-3" />
-                                                  </button>
-                                            
-                                                  <span className="text-base font-semibold text-gray-800 px-2">
-                                                    {cart[item?.id] || 0}
-                                                  </span>
-                                            
-                                                  <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                      updateCart(item.id, 1, index, item.Item_Name, item?.Amount)
-                                                    }
-                                                    className="w-7 h-7 flex items-center justify-center bg-[#4CA1AF] 
-                                                      rounded-md text-white shadow hover:bg-[#3a8c98] transition"
-                                                  >
-                                                    <Plus className="w-3 h-3" />
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            </div>
-                                            
-                                                                                                    )
-                                            
-                                            })}
-                                                                                            </div>
-                                                                                        </div>
-                                            
-                                                       
-                                                  <div className="w-full flex justify-center md:justify-end sale-wrapper px-4">
-                                            
-                                              <div className="w-full md:w-1/2 lg:w-1/3 flex flex-col gap-4">
-                                            
-                                                {/* Subtotal */}
-                                                <div className="flex justify-between items-center gap-4  ">
-                                                  <span className="font-medium whitespace-nowrap">Sub Total</span>
-                                                  <input
-                                                    type="text"
-                                                    {...register("Sub_Total")}
-                                                    readOnly
-                                                    className="form-control bg-transparent text-right"
-                                                    style={{ height: "1.2rem" }}
-                                                  />
-                                                </div>
-                                            
-                                                {/* Amount */}
-                                                <div className="flex justify-between items-center gap-4">
-                                                  <span className="font-medium whitespace-nowrap">Amount</span>
-                                                  <input
-                                                    type="text"
-                                                    {...register("Amount")}
-                                                    readOnly
-                                                    className="form-control bg-transparent text-right"
-                                                    style={{ height: "1.2rem" }}
-                                                  />
-                                                </div>
-                                            
-                                                {/* BUTTONS SECTION */}
-                                                <div className="
-                                                    flex flex-col 
-                                                    md:flex-row 
-                                                    gap-3 
-                                                    md:justify-end 
-                                                    w-full
-                                                  "
+                                                  `}
                                                 >
                                             
-                                                  {/* SAVE & HOLD */}
-                                                  <button
-                                                    type="submit"
-                                                    disabled={formValues.errorCount > 0 || isUpdateOrderLoading}
-                                                    className="relative w-full md:w-auto flex items-center justify-center gap-3 
-                                                               text-white font-bold py-2 px-5 rounded shadow"
-                                                    style={{ backgroundColor: "#4CA1AF" }}
-                                                  >
-                                                    {isUpdateOrderLoading ? "Saving..." : "Save & Hold"}
+                                                  {/* ===== UNAVAILABLE BADGE ===== */}
+                                                  {unavailable && (
+                                                    <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 py-1 rounded shadow">
+                                                      Unavailable
+                                                    </div>
+                                                  )}
                                             
-                                                    {/* Cart Icon with Badge */}
-                                                    <span className="relative">
-                                                      <ShoppingCart size={22} />
-                                                      {totalItems > 0 && (
-                                                        <span className="
-                                                            absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold 
-                                                            w-4 h-4 flex items-center justify-center rounded-full shadow
-                                                          "
-                                                        >
-                                                          {totalItems}
-                                                        </span>
-                                                      )}
-                                                    </span>
-                                                  </button>
+                                                  {/* ===== IMAGE SECTION ===== */}
+                                                  <div className="relative h-32 bg-gradient-to-br from-[#4CA1AF22] to-[#4CA1AF44]">
                                             
-                                                  {/* SAVE AND PAY BILL */}
-                                                  <button
-                                                    type="button"
-                                                    onClick={()=>setOrderDetailsModalOpen(true)}
-                                                    className="w-full md:w-auto text-white font-bold py-2 px-5 rounded shadow"
-                                                    style={{ backgroundColor: "#4CA1AF" }}
-                                                  >
-                                                    Save & Pay Bill
-                                                  </button>
+                                                    <img
+                                                      src={
+                                                        item?.Item_Image
+                                                          ? `http://localhost:4000/uploads/food-item/${item?.Item_Image}`
+                                                          : ""
+                                                      }
+                                                      alt={item?.Item_Name}
+                                                      className="w-full h-full object-cover opacity-90"
+                                                    />
                                             
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                                            
+                                                    <div className="absolute top-2 right-2">
+                                                      <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#4CA1AF] shadow">
+                                                        {item?.Item_Category}
+                                                      </span>
+                                                    </div>
+                                            
+                                                    <div className="absolute bottom-1 left-2 right-2">
+                                                      <h4 className="text-white text-[20px] leading-tight">
+                                                        {item?.Item_Name}
+                                                      </h4>
+                                                    </div>
+                                                  </div>
+                                            
+                                                  {/* ===== DETAILS SECTION ===== */}
+                                                  <div className="p-2">
+                                            
+                                                    {/* PRICE ROW */}
+                                                    <div className="flex justify-between items-center mb-2">
+                                                      <div>
+                                                        <div className="text-base font-semibold text-gray-800">
+                                                          ₹{parseFloat(item?.Item_Price).toFixed(2)}
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-500">
+                                                          Tax: {TAX_RATES[item?.Tax_Type]}%
+                                                        </div>
+                                                      </div>
+                                            
+                                                      <div className="text-right">
+                                                        <div className="text-sm font-bold text-[#4CA1AF]">
+                                                          ₹{parseFloat(item?.Amount).toFixed(2)}
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-500">Total</div>
+                                                      </div>
+                                                    </div>
+                                            
+                                                    {/* ===== CART CONTROLS ===== */}
+                                                    <div className="flex items-center justify-between bg-[#4CA1AF10] rounded-md p-1.5">
+                                            
+                                                      {/* MINUS BUTTON */}
+                                                      {/* <button
+                                                        type="button"
+                                                        disabled={unavailable || cart[item.Item_Id] === 0}
+                                                        onClick={() =>
+                                                          !unavailable &&
+                                                          updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
+                                                        }
+                                                        className={`
+                                                          w-7 h-7 flex items-center justify-center rounded-md shadow transition
+                                                          ${unavailable
+                                                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                            : "bg-white hover:bg-gray-100 text-[#4CA1AF]"
+                                                          }
+                                                        `}
+                                                      >
+                                                        <Minus className="w-3 h-3" />
+                                                      </button> */}
+                                                             <button
+                                                        type="button"
+                                                        disabled={unavailable || Number(cart[item.Item_Id] || 0) === 0}
+                                                        onClick={() =>
+                                                          !unavailable &&
+                                                          updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
+                                                        }
+                                                        className={`
+                                                          w-7 h-7 flex items-center justify-center rounded-md shadow transition
+                                                          ${unavailable || Number(cart[item.Item_Id] || 0) === 0
+                                                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                            : "bg-white hover:bg-gray-100 text-[#4CA1AF]"
+                                                          }
+                                                        `}
+                                                      >
+                                                        <Minus className="w-3 h-3" />
+                                                      </button>
+                                            
+                                                      {/* QUANTITY DISPLAY */}
+                                                      <span className="text-base font-semibold text-gray-800 px-2">
+                                                        {cart[item.Item_Id] || 0}
+                                                      </span>
+                                            
+                                                      {/* PLUS BUTTON */}
+                                                      <button
+                                                        type="button"
+                                                        disabled={unavailable}
+                                                        onClick={() =>
+                                                          !unavailable &&
+                                                          updateCart(item?.Item_Id, 1, index, item?.Item_Name, item?.Amount)
+                                                        }
+                                                        className={`
+                                                          w-7 h-7 flex items-center justify-center rounded-md shadow transition
+                                                          ${unavailable
+                                                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                            : "bg-[#4CA1AF] text-white hover:bg-[#3a8c98]"
+                                                          }
+                                                        `}
+                                                      >
+                                                        <Plus className="w-3 h-3" />
+                                                      </button>
+                                            
+                                                    </div>
+                                            
+                                                  </div>
                                                 </div>
-                                              </div>
-                                            </div>
+                                              );
+                                            })}
+                                            
+                                                                                            </div>
+                                                                                        </div>
+ 
+                                                <div className="
+                                                    fixed bottom-0 left-0 w-full 
+                                                    bg-white shadow-lg 
+                                                    px-4 py-2 z-50
+                                                  "
+                                                >
+                                                   <div className="flex justify-center items-center gap-12 w-full">
+                                                  {/* <div className="grid grid-cols-3"> */}
+                                                    
+                                                  
+                                                    {/* SAVE & HOLD */}
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setShowSummary(true)}   // open bottom sheet
+                                                      // disabled={formValues.errorCount > 0 || isAddingOrder}
+                                                      className="relative w-full md:w-auto flex items-center justify-center gap-3 
+                                                                 text-white font-bold py-3 px-6 rounded shadow"
+                                                      style={{ backgroundColor: "#4CA1AF" }}
+                                                    >
+                                                      Save & Hold
+                                                      {/* {isAddingOrder ? "Saving..." : "Save & Hold"} */}
+                                                
+                                                      <span className="relative">
+                                                        <ShoppingCart size={22} />
+                                                        {totalItems > 0 && (
+                                                          <span className="absolute -top-2 -right-2 bg-red-500 text-white 
+                                                                           text-[10px] font-bold w-4 h-4 flex items-center justify-center 
+                                                                           rounded-full shadow">
+                                                            {totalItems}
+                                                          </span>
+                                                        )}
+                                                      </span>
+                                                    </button>
+                                                
+                                                {/* <div></div> */}
+                                                    {/* SAVE & PAY BILL */}
+                                                    
+                                                    <button
+                                                      type="button"
+                                                       onClick={()=>setOrderDetailsModalOpen(true)}
+                                                      className="w-full md:w-auto text-white font-bold py-3 px-6 rounded shadow"
+                                                      style={{ backgroundColor: "#4CA1AF" }}
+                                                    >
+                                                      Save & Pay Bill
+                                                    </button>
+                                                
+                                                  </div>
+                                                </div>
+                                                
+                                                {/* BACKDROP */}
+                                                {showSummary && (
+                                                  <div>
+                                                
+                                                    <button
+                                                    type="button"
+                                                    onClick={() => setShowSummary(false)}
+                                                    className="fixed inset-0 bg-black/40 z-40"></button>
+                                                  </div>
+                                                )}
+                                                
+                                                {/* BOTTOM SHEET */}
+                                                <div
+                                                  className={`
+                                                    fixed left-0 bottom-0 w-full 
+                                                    bg-white shadow-2xl rounded-t-2xl z-50
+                                                    transform transition-transform duration-300 p-4
+                                                    ${showSummary ? "translate-y-0" : "translate-y-full"}
+                                                  `}
+                                                  style={{ maxHeight: "vh" }}
+                                                >
+                                                  {/* HANDLE BAR */}
+                                                  <div className="w-full flex justify-center py-2">
+                                                    <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+                                                  </div>
+                                               
+                    <div className="px-4 pb-3 border-b">
+    <div className="flex justify-between items-center">
+      <div className="flex justify-center items-center mx-auto">
+      <h2 className="text-lg font-bold text-gray-700">Bill Summary</h2>
+      </div>
+      <div className="flex justify-enditems-center gap-2">
+      <button type="button" style={{backgroundColor:"transparent"}} 
+      className="text-gray-500 text-2xl font-bold"
+      onClick={() => setShowSummary(false)}>✖</button>
+      </div>
+    </div>
+  </div>
+                                                
+                                                  {/* SUMMARY CONTENT */}
+                                                  <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
+                                                    {itemsValues && itemsValues?.map((item, index) => (
+                                                      <div key={index} className="border-b pb-2 mb-2">
+                                                        <div className="flex justify-between">
+                                                          <span className="font-semibold">{item?.Item_Name}</span>
+                                                          <span>x {item?.Item_Quantity}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm text-gray-500">
+                                                          <span>Amount</span>
+                                                          <span>₹{item?.Amount}</span>
+                                                        </div>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                
+                                                  {/* TOTAL FOOTER */}
+                                                  <div className="px-4 py-3 border-t">
+                                                    <div className="flex justify-between text-lg font-bold text-gray-900">
+                                                      <span>Total</span>
+                                                      <span>₹{watch("Amount")}</span>
+                                                    </div>
+                                                    <div className="flex justify-center mt-4">
+                                                      <button type="submit"
+                                                       className="w-16 h-10 flex items-center justify-center bg-[#4CA1AF] 
+                                                          rounded-md text-white shadow hover:bg-[#3a8c98] ">
+                                                          OK
+                                                      </button>
+                                                      
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              {/* </div>
+                                            </div> */}
                                             
                                                 
-                                                                                    </div>
+                                              </div>
 
 
 
@@ -1940,3 +1917,66 @@ console.log(itemsValues,filteredItems,cart)
         </div>
     )}
 </div> */}
+
+// useEffect(() => {
+//   socket.on("frontend_kot_update", (data) => {
+//     console.log("📢 Frontend received KOT update:", data);
+
+//     // Show toast popup
+//     toast.info(`KOT ${data.KOT_Id}: item updated`);
+
+//     // Store notification for UI
+//     setKotNotifications((prev) => [
+//       ...prev,
+//       {
+//         KOT_Id: data.KOT_Id,
+//         message: data.message,
+//         time: new Date().toLocaleTimeString(),
+//       },
+//     ]);
+//   });
+
+//   return () => {
+//     socket.off("frontend_kot_update");
+//   };
+// }, []);
+
+// useEffect(() => {
+//   if(tableOrderDetails){
+//     setKotNotifications(tableOrderDetails?.items);
+//   }
+// }, [tableOrderDetails]);
+// useEffect(() => {
+//   socket.on("frontend_kot_update", (data) => {
+//     console.log("📢 Frontend received KOT update:", data);
+
+//     toast.info(`${data.itemName} → ${data.status}`);
+
+//     setKotNotifications((prev) => [
+//       ...prev,
+//       {
+//         itemName: data.itemName,
+//         status: data.status,
+//         KOT_Id: data.KOT_Id,
+//         time: data.time,
+//       },
+//     ]);
+//   });
+
+//   return () => socket.off("frontend_kot_update");
+// }, []);
+// useEffect(() => {
+//   if (tableOrderDetails?.kitchenItems) {
+   
+
+//         setKotNotifications(
+//       tableOrderDetails?.kitchenItems?.map((it) => ({
+//         KOT_Id: tableOrderDetails.KOT_Id,
+//         KOT_Item_Id: it.KOT_Item_Id,
+//         itemName: it.Item_Name,
+//         status: it.Item_Status || "pending",
+//         time: null,
+//       }))
+//     );
+//   }
+// }, [tableOrderDetails]);

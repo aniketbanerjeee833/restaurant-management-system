@@ -164,7 +164,7 @@ export default function FoodItemModal({ onClose,foodItem,editingFoodItem}) {
                   </div>
                   
                   <div className="row">
-                       <div className="input-field col s6 ">
+                       {/* <div className="input-field col s6 ">
                       <span className="active">Quantity</span>
                       
                       
@@ -177,7 +177,7 @@ export default function FoodItemModal({ onClose,foodItem,editingFoodItem}) {
           readOnly={!editingFoodItem}
 
       />
-                    </div>
+                    </div> */}
 
   
    <div className="input-field col s6 ">
@@ -202,7 +202,7 @@ export default function FoodItemModal({ onClose,foodItem,editingFoodItem}) {
                     <input type="text"
                       className="w-full outline-none border-b-2 text-gray-900"
                       readOnly={!editingFoodItem}
-                      value={foodItem?.Tax_Type}
+                      value={`${TAX_RATES[foodItem?.Tax_Type]}%`}
                       />
                          
        
@@ -222,15 +222,7 @@ export default function FoodItemModal({ onClose,foodItem,editingFoodItem}) {
           type="text"
           id="Amount"
           
-          // {...register("Item_HSN")}
-        //    {...register("Paid_Via")}
-        //   value={dailyExpense?.Paid_Via}
-        //   readOnly={!editingDailyExpense}
-        //   onChange={(e)=>{
-        //     if(editingDailyExpense){
-        //       setDailyExpense({...dailyExpense,Paid_Via:e.target.value})
-        //     }
-        //   }}
+      
           placeholder="Amount"
           className="w-full outline-none border-b-2 text-gray-900"
   readOnly={!editingFoodItem}

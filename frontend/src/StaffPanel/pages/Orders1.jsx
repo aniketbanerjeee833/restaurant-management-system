@@ -5,7 +5,7 @@ import { tableApi, useGetAllTablesQuery } from "../../redux/api/tableApi";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import {  useFieldArray, useForm } from "react-hook-form";
 
 
 

@@ -266,7 +266,8 @@ export default function InventoryEdit() {
   const calculateRowAmount = (row, index, itemsValues) => {
     const price = num(row.Purchase_Price);
     const qty = Math.max(1, num(row.Quantity)); // default 1
-    const subtotal = price * qty;
+    // const subtotal = price * qty;
+    const subtotal = price;
 
     // discount
     let disc = num(row.Discount_On_Purchase_Price);
@@ -561,193 +562,7 @@ console.log("payload:", payload);
                         Party
                         <span className="text-red-500">*</span>
                       </span>
-              {/* <div className="relative w-full">
-
-                         
-                          <div
-                            className="flex  justify-between border rounded-md  bg-white cursor-pointer"
-                            onClick={() => setOpen((prev) => !prev)}
-                          >
-                      <input
-                        type="text"
-                        id="Party_Name"
-                        value={partySearch}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setPartySearch(value);
-                          setValue("Party_Name", value, { shouldValidate: true });
-                          setOpen(true);
-                        }}
-                        onClick={() => setOpen((prev) => !prev)}
-                        onBlur={() => {
-                          const typedValue = partySearch.trim().toLowerCase();
-
-                          // ✅ Full match only (not partial)
-                          const matchedParty = parties?.parties?.find(
-                            (party) => party.Party_Name.toLowerCase() === typedValue
-                          );
-
-                          if (matchedParty) {
-                            // ✅ Set full party info
-                            setPartySearch(matchedParty.Party_Name);
-                            setValue("Party_Name", matchedParty.Party_Name, { shouldValidate: true, shouldDirty: true });
-
-                            // ✅ Check GSTIN (must be present)
-                            if (!matchedParty.GSTIN || matchedParty.GSTIN.trim() === "") {
-
-                              setValue("GSTIN", "", { shouldValidate: true });
-                            } else {
-                              setValue("GSTIN", matchedParty.GSTIN, { shouldValidate: true, shouldDirty: true });
-                            }
-
-
-                          } else {
-                            // ❌ Not an exact match → clear field
-                            setPartySearch("");
-                            setValue("Party_Name", "");
-                          }
-
-                          setTimeout(() => setOpen(false), 150);
-                        }}
-                        placeholder="Party Name"
-                        className="w-full outline-none border-b-2 py-1 px-2  text-gray-900"
-style={{ marginBottom: 0, marginTop: "4px",border: "none",
-        height:"2rem",borderBottom: "0px" }}
-                      />
-                        <span className="ml-2  absolute right-5 top-1/3  text-gray-700">
-                              ▼
-                            </span>
-
-    </div>                  
-                      {open && (
-                        <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          <span
-                            onClick={() => setShowPartyModal(true)}
-                            className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
-                          >
-                            + Add Party
-                          </span>
-
-                          {parties?.parties
-                            ?.filter(
-                              (party) =>
-                                party?.Party_Name?.toLowerCase().includes(partySearch.toLowerCase()) ||
-                                party?.Phone_Number?.includes(partySearch)
-                            )
-                            .map((party, i) => (
-                              <div
-                                key={i}
-                                onClick={() => {
-                                  // Select from dropdown
-                                  setPartySearch(party.Party_Name);
-                                  setValue("Party_Name", party.Party_Name, { shouldValidate: true, shouldDirty: true });
-
-                                  // ✅ GSTIN validation on selection
-                                  if (!party.GSTIN || party.GSTIN.trim() === "") {
-
-                                    setValue("GSTIN", "", { shouldValidate: true });
-                                  } else {
-                                    setValue("GSTIN", party.GSTIN, { shouldValidate: true, shouldDirty: true });
-                                  }
-
-
-                                  setOpen(false);
-                                }}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                              >
-                                {party.Party_Name} ({party.Phone_Number})
-                              </div>
-                            ))}
-
-                          {
-                          {parties?.parties?.filter((party) =>
-                            party?.Party_Name?.toLowerCase().includes(partySearch.toLowerCase())
-                          ).length === 0 && (
-                              <p className="px-3 py-2 text-gray-500">No Party found</p>
-                            )}
-                        </div>
-                      )}
-  </div> */}
-  {/* <div className="relative w-full">
-  <div
-    className="flex justify-between border rounded-md bg-white cursor-pointer"
-    onClick={() => setOpen((prev) => !prev)}
-  >
-    <input
-      type="text"
-      id="Party_Name"
-      value={partySearch}
-      onChange={(e) => {
-        const value = e.target.value;
-        setPartySearch(value);
-        setValue("Party_Name", value, { shouldValidate: true });
-        setOpen(true);
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        setOpen(true);
-      }}
-      onBlur={() => {
-        setTimeout(() => {
-          const typedValue = partySearch.trim().toLowerCase();
-          const matchedParty = parties?.parties?.find(
-            (p) => p.Party_Name.toLowerCase() === typedValue
-          );
-
-          if (matchedParty) {
-            setPartySearch(matchedParty.Party_Name);
-            setValue("Party_Name", matchedParty.Party_Name, { shouldValidate: true });
-            setValue("GSTIN", matchedParty.GSTIN || "", { shouldValidate: true });
-          }
-
-          setOpen(false);
-        }, 150);
-      }}
-      placeholder="Search By Name/Phone"
-      className="w-full outline-none py-1 px-2 text-gray-900"
-      style={{ marginBottom: 0, marginTop: "4px", border: "none", height: "2rem" }}
-    />
-    <span className="ml-2 absolute right-5 top-1/3 text-gray-700">▼</span>
-  </div>
-
-  {open && (
-    <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-      <span
-        onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
-      >
-        + Add Party
-      </span>
-
-      {parties?.parties
-        ?.filter(
-          (party) =>
-            party.Party_Name.toLowerCase().includes(partySearch.toLowerCase()) ||
-            party.Phone_Number.includes(partySearch)
-        )
-        .map((party, i) => (
-          <div
-            key={i}
-            onClick={() => {
-              setPartySearch(party.Party_Name);
-              setValue("Party_Name", party.Party_Name, { shouldValidate: true });
-              setValue("GSTIN", party.GSTIN || "", { shouldValidate: true });
-              setOpen(false);
-            }}
-            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-          >
-            {party.Party_Name} ({party.Phone_Number})
-          </div>
-        ))}
-
-      {parties?.parties?.filter((party) =>
-        party.Party_Name.toLowerCase().includes(partySearch.toLowerCase())
-      ).length === 0 && (
-        <p className="px-3 py-2 text-gray-500">No Party found</p>
-      )}
-    </div>
-  )}
-</div> */}
+              
 
 <div className="relative w-full">
   <div
@@ -977,7 +792,8 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
                           {/* <th>Item_HSN</th> */}
                           <th>Qty</th>
                           <th>Unit</th>
-                          <th>Price/Unit</th>
+                          {/* <th>Price/Unit</th> */}
+                            <th>Price</th>
                           <th>Discount</th>
                           <th>Tax</th>
                           <th>Tax Amount</th>
@@ -1194,7 +1010,7 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
   )} 
 </td> */}
                             {/* Item Dropdown */}
-                            <td style={{ padding: "0px", width: "25%", position: "relative" }}>
+                            <td style={{ padding: "0px", width: "28%", position: "relative" }}>
                               <div ref={(el) => (itemRefs.current[i] = el)}> {/* ✅ attach ref */}
                                 <input
                                   type="text"
@@ -1274,7 +1090,7 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
                                                 //setValue(`items.${i}.Item_HSN`, it.Item_HSN, { shouldValidate: true, shouldDirty: true });
                                                 setValue(`items.${i}.Purchase_Price`, it.Purchase_Price || 0, { shouldValidate: true , shouldDirty: true});
                                                 setValue(`items.${i}.Quantity`, 1, { shouldValidate: true , shouldDirty: true});
-                                                setValue(`items.${i}.Item_Unit`, it.unit, { shouldValidate: true , shouldDirty: true});
+                                                 setValue(`items.${i}.Item_Unit`, it.current_stock_unit, { shouldValidate: true , shouldDirty: true});
                                                 handleRowChange(i, "itemOpen", false);
 
                                                
@@ -1315,7 +1131,7 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
                                                 }}
                                               >
                                                    {it?.current_stock
-                                      ? `${it.current_stock} ${reorderLevelUnits[it.unit] || ""}`
+                                      ? `${it?.current_stock} ${reorderLevelUnits[it?.current_stock_unit] || ""}`
                                       : "N/A"}
                                                 {/* {${it.current_stock} ${reorderLevelUnits[]} } */}
                                               </td>
@@ -1343,28 +1159,7 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
                               </div>
                             </td>
 
-                            {/*HSN Code */}
-                            {/* <td style={{ padding: "0px",width: "8%" }}>
-                              <input
-                                type="text"
-                                value={rows[i]?.Item_HSN || watch(`items.${i}.Item_HSN`) || ""}
-                                onChange={(e) => {
-                                  if (!rows[i]?.isHSNLocked) {
-                                    handleRowChange(i, "Item_HSN", e.target.value);
-                                    setValue(`items.${i}.Item_HSN`, e.target.value, { shouldValidate: true, shouldDirty: true });
-                                  }
-                                }}
-                                placeholder="HSN Code"
-                                className="w-full outline-none border-b-2 text-gray-900"
-                                readOnly={rows[i]?.isHSNLocked} // ✅ lock if item is from dropdown
-                              />
-                              {errors?.items?.[i]?.Item_HSN && (
-                                <p className="text-red-500 text-xs mt-1">
-                                  {errors.items[i].Item_HSN.message}
-                                </p>
-                              )}
-                            </td> */}
-
+                            
                             {/* Qty */}
                             <td style={{ padding: "0px" ,width: "4%"}}>
                               <input
@@ -1409,7 +1204,7 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
                             </td>
 
                             {/* Unit */}
-                            <td style={{ padding: "0px" ,width: "15%"}}>
+                            <td style={{ padding: "0px" ,width: "12%"}}>
                               <Controller
                                 control={control}
                                 name={`items.${i}.Item_Unit`}
@@ -1418,7 +1213,7 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
                                     {...field}
                                     className="form-select "
                                     style={{ width: "100%", fontSize: "12px", marginLeft: "0px" }}
-                                    disabled={rows[i]?.isUnitLocked} // ✅ lock only if item is from dropdown
+                                    //disabled={rows[i]?.isUnitLocked} // ✅ lock only if item is from dropdown
                                     onChange={(e) => {
                                       const value = e.target.value;
                                       handleRowChange(i, "Item_Unit", value);
@@ -2247,3 +2042,191 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
     </>
   );
 }
+
+{/* <div className="relative w-full">
+
+                         
+                          <div
+                            className="flex  justify-between border rounded-md  bg-white cursor-pointer"
+                            onClick={() => setOpen((prev) => !prev)}
+                          >
+                      <input
+                        type="text"
+                        id="Party_Name"
+                        value={partySearch}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setPartySearch(value);
+                          setValue("Party_Name", value, { shouldValidate: true });
+                          setOpen(true);
+                        }}
+                        onClick={() => setOpen((prev) => !prev)}
+                        onBlur={() => {
+                          const typedValue = partySearch.trim().toLowerCase();
+
+                          // ✅ Full match only (not partial)
+                          const matchedParty = parties?.parties?.find(
+                            (party) => party.Party_Name.toLowerCase() === typedValue
+                          );
+
+                          if (matchedParty) {
+                            // ✅ Set full party info
+                            setPartySearch(matchedParty.Party_Name);
+                            setValue("Party_Name", matchedParty.Party_Name, { shouldValidate: true, shouldDirty: true });
+
+                            // ✅ Check GSTIN (must be present)
+                            if (!matchedParty.GSTIN || matchedParty.GSTIN.trim() === "") {
+
+                              setValue("GSTIN", "", { shouldValidate: true });
+                            } else {
+                              setValue("GSTIN", matchedParty.GSTIN, { shouldValidate: true, shouldDirty: true });
+                            }
+
+
+                          } else {
+                            // ❌ Not an exact match → clear field
+                            setPartySearch("");
+                            setValue("Party_Name", "");
+                          }
+
+                          setTimeout(() => setOpen(false), 150);
+                        }}
+                        placeholder="Party Name"
+                        className="w-full outline-none border-b-2 py-1 px-2  text-gray-900"
+style={{ marginBottom: 0, marginTop: "4px",border: "none",
+        height:"2rem",borderBottom: "0px" }}
+                      />
+                        <span className="ml-2  absolute right-5 top-1/3  text-gray-700">
+                              ▼
+                            </span>
+
+    </div>                  
+                      {open && (
+                        <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          <span
+                            onClick={() => setShowPartyModal(true)}
+                            className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                          >
+                            + Add Party
+                          </span>
+
+                          {parties?.parties
+                            ?.filter(
+                              (party) =>
+                                party?.Party_Name?.toLowerCase().includes(partySearch.toLowerCase()) ||
+                                party?.Phone_Number?.includes(partySearch)
+                            )
+                            .map((party, i) => (
+                              <div
+                                key={i}
+                                onClick={() => {
+                                  // Select from dropdown
+                                  setPartySearch(party.Party_Name);
+                                  setValue("Party_Name", party.Party_Name, { shouldValidate: true, shouldDirty: true });
+
+                                  // ✅ GSTIN validation on selection
+                                  if (!party.GSTIN || party.GSTIN.trim() === "") {
+
+                                    setValue("GSTIN", "", { shouldValidate: true });
+                                  } else {
+                                    setValue("GSTIN", party.GSTIN, { shouldValidate: true, shouldDirty: true });
+                                  }
+
+
+                                  setOpen(false);
+                                }}
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                              >
+                                {party.Party_Name} ({party.Phone_Number})
+                              </div>
+                            ))}
+
+                          {
+                          {parties?.parties?.filter((party) =>
+                            party?.Party_Name?.toLowerCase().includes(partySearch.toLowerCase())
+                          ).length === 0 && (
+                              <p className="px-3 py-2 text-gray-500">No Party found</p>
+                            )}
+                        </div>
+                      )}
+  </div> */}
+  {/* <div className="relative w-full">
+  <div
+    className="flex justify-between border rounded-md bg-white cursor-pointer"
+    onClick={() => setOpen((prev) => !prev)}
+  >
+    <input
+      type="text"
+      id="Party_Name"
+      value={partySearch}
+      onChange={(e) => {
+        const value = e.target.value;
+        setPartySearch(value);
+        setValue("Party_Name", value, { shouldValidate: true });
+        setOpen(true);
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        setOpen(true);
+      }}
+      onBlur={() => {
+        setTimeout(() => {
+          const typedValue = partySearch.trim().toLowerCase();
+          const matchedParty = parties?.parties?.find(
+            (p) => p.Party_Name.toLowerCase() === typedValue
+          );
+
+          if (matchedParty) {
+            setPartySearch(matchedParty.Party_Name);
+            setValue("Party_Name", matchedParty.Party_Name, { shouldValidate: true });
+            setValue("GSTIN", matchedParty.GSTIN || "", { shouldValidate: true });
+          }
+
+          setOpen(false);
+        }, 150);
+      }}
+      placeholder="Search By Name/Phone"
+      className="w-full outline-none py-1 px-2 text-gray-900"
+      style={{ marginBottom: 0, marginTop: "4px", border: "none", height: "2rem" }}
+    />
+    <span className="ml-2 absolute right-5 top-1/3 text-gray-700">▼</span>
+  </div>
+
+  {open && (
+    <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+      <span
+        onClick={() => setShowPartyModal(true)}
+        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+      >
+        + Add Party
+      </span>
+
+      {parties?.parties
+        ?.filter(
+          (party) =>
+            party.Party_Name.toLowerCase().includes(partySearch.toLowerCase()) ||
+            party.Phone_Number.includes(partySearch)
+        )
+        .map((party, i) => (
+          <div
+            key={i}
+            onClick={() => {
+              setPartySearch(party.Party_Name);
+              setValue("Party_Name", party.Party_Name, { shouldValidate: true });
+              setValue("GSTIN", party.GSTIN || "", { shouldValidate: true });
+              setOpen(false);
+            }}
+            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+          >
+            {party.Party_Name} ({party.Phone_Number})
+          </div>
+        ))}
+
+      {parties?.parties?.filter((party) =>
+        party.Party_Name.toLowerCase().includes(partySearch.toLowerCase())
+      ).length === 0 && (
+        <p className="px-3 py-2 text-gray-500">No Party found</p>
+      )}
+    </div>
+  )}
+</div> */}

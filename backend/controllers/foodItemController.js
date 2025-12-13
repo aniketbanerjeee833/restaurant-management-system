@@ -1,3 +1,4 @@
+import { io } from "../app.js";
 import db from "../config/db.js";
 import fs from "fs";
 
@@ -59,7 +60,7 @@ const addFoodItem = async (req, res, next) => {
                 Item_Name,
                 Item_Category,
                 Item_Price,
-                Item_Quantity,
+                // Item_Quantity,
               
                 Tax_Type,
                 Tax_Amount,
@@ -72,16 +73,16 @@ const addFoodItem = async (req, res, next) => {
             await connection.query(
   `INSERT INTO add_food_item 
   (Item_Id, Item_Name, Item_Image, Item_Category,
-   Item_Price, Item_Quantity,  Tax_Type, Tax_Amount, Amount,
+   Item_Price,   Tax_Type, Tax_Amount, Amount,
    created_at, updated_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+   VALUES (?, ?, ?, ?, ?, ?,  ?, ?, NOW(), NOW())`,
   [
     newItemId,
     Item_Name,
     imageFileName,
     Item_Category,
     Item_Price,
-    Item_Quantity,
+    
         
     Tax_Type,         // correct
     Tax_Amount,       // FIXED — was wrong earlier
@@ -515,4 +516,52 @@ const editSingleFoodItem = async (req, res, next) => {
         if (connection) connection.release();
     }
 };
-export { addFoodItem,getAllFoodItems,editSingleFoodItem };
+
+const toggleFoodItemAvailability = async (req, res,next) => {
+
+    let connection;
+
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+  const { Item_Id} = req.params;
+
+  if (!Item_Id) {
+    return res.status(400).json({ message: "Item_Id is required" });
+  }
+
+  const [item] = await db.query(
+    `UPDATE add_food_item 
+     SET is_available = NOT is_available
+     WHERE Item_Id = ?`,
+    [Item_Id]
+  );
+  if(item.affectedRows === 0) {
+    return res.status(404).json({ message: "Food item not found" });
+  }
+
+    await connection.commit();
+    const [updatedItem] = await connection.query(
+    `SELECT is_available FROM add_food_item WHERE Item_Id = ?`,
+    [Item_Id]
+  );
+
+  const newStatus = updatedItem[0].is_available === 1 ? "available" : "not available";
+// After updating DB
+io.emit("food_item_availability_changed", {
+  Item_Id,
+  is_available: newStatus,
+});
+
+  return res.status(200).json({ success: true, message: "Availability updated" });
+
+} catch (err) {
+    if (connection) await connection.rollback();
+    console.error("❌ Error toggling food item availability:", err);
+     next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+export { addFoodItem,getAllFoodItems,editSingleFoodItem,toggleFoodItemAvailability };

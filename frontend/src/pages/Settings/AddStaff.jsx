@@ -8,6 +8,8 @@ import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 
 import { useSelector } from 'react-redux';
+import { useRef } from 'react';
+import { useGetAllCategoriesQuery } from '../../redux/api/itemApi';
 
 
 
@@ -16,7 +18,11 @@ import { useSelector } from 'react-redux';
 export default function AddStaff() {
    //const{userId,staffId} = useSelector((state) => state.user)
    const[showPassword, setShowPassword] = useState("");
-  
+   const [categorySearch, setCategorySearch] = useState("");
+const [categoryOpen, setCategoryOpen] = useState(false);
+
+
+     const categoryRefs = useRef([]); 
 
    const[registerUser]=useRegisterUserMutation();
   const navigate=useNavigate();
@@ -24,13 +30,26 @@ export default function AddStaff() {
     register,
     handleSubmit,
     watch,
+    setValue,
     
     formState: { errors },
-  } = useForm();
-
+  } =  useForm({
+  defaultValues: {
+    role: "kitchen_staff",
+    categories: [],
+  },
+});
+  const { data: categories } = useGetAllCategoriesQuery()
+  console.log(categories, "categories");
 const formValues = watch();
+
+const selectedCategories = watch("categories") || [];
+const selectedRole = watch("role");
+
 const {user}=useSelector((state) => state.user);
 console.log(user);
+
+
 const onSubmit = async (data) => {
   console.log("Raw Form Data (from RHF):", data);
 
@@ -191,6 +210,143 @@ try {
                                               {renderInput('pincode', 'text', 'Pincode')}
                
                                         </div>
+    <div style={{width:"100%"}}
+    className="grid grid-cols-[0.2fr_1fr] w-full ml-2 mb-2 gap-4">
+
+  {/* ================= ROLE ================= */}
+  <div className="flex flex-col items-start ">
+     <span className="active">
+        Role <span className="text-red-500">*</span>
+      </span>
+
+    <select
+  
+      {...register("role", { required: "Role is required" })}
+      className="w-full outline-none border text-gray-900 bg-white rounded-md p-2"
+      onChange={(e) => {
+        const value = e.target.value;
+        setValue("role", value);
+
+        // Reset categories if role changes
+        if (value !== "kitchen-staff") {
+          setValue("categories", []);
+          setCategorySearch("");
+          setCategoryOpen(false);
+        }
+      }}
+    >
+      <option value="">Select Role</option>
+      <option value="staff">Staff</option>
+      <option value="kitchen-staff">Kitchen Staff</option>
+    </select>
+  </div>
+
+  {errors?.role && (
+    <p className="text-red-500 text-xs">{errors.role.message}</p>
+  )}
+
+  {/* ================= CATEGORIES ================= */}
+  {selectedRole === "kitchen-staff" && (
+    <div className="relative">
+
+      <span className="active">
+        Assign Categories <span className="text-red-500">*</span>
+      </span>
+
+      {/* INPUT + CHIPS */}
+      <div
+        className="flex flex-wrap items-center gap-2 border  p-2 cursor-text"
+        onClick={() => setCategoryOpen(true)}
+      >
+        {/* Selected Categories */}
+        {selectedCategories?.map((cat, idx) => (
+          <span
+            key={idx}
+            className="bg-[#4CA1AF] text-white px-2 py-1  flex items-center gap-1 text-sm"
+          >
+            {cat}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setValue(
+                  "categories",
+                  selectedCategories.filter((c) => c !== cat),
+                  { shouldValidate: true }
+                );
+              }}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+
+        <input
+        style={{marginBottom:"0px",border:"none"}}
+          type="text"
+          value={categorySearch}
+          onChange={(e) => {
+            setCategorySearch(e.target.value);
+            setCategoryOpen(true);
+          }}
+          placeholder="Search category"
+          className="flex-1 outline-none"
+          
+        />
+      </div>
+
+      {/* DROPDOWN */}
+      {categoryOpen && (
+        <div className="absolute z-20 mt-1 
+        w-full bg-white border rounded shadow max-h-48 overflow-y-auto">
+
+          {categories
+            ?.filter(
+              (cat) =>
+                cat.Item_Category
+                  .toLowerCase()
+                  .includes(categorySearch.toLowerCase()) &&
+                !selectedCategories.includes(cat.Item_Category)
+            )
+            .map((cat, idx) => (
+              <div
+                key={idx}
+                onClick={() => {
+                  setValue(
+                    "categories",
+                    [...selectedCategories, cat.Item_Category],
+                    { shouldValidate: true }
+                  );
+                  setCategorySearch("");
+                  setCategoryOpen(false);
+                }}
+                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+              >
+                {cat.Item_Category}
+              </div>
+            ))}
+
+          {categories?.length === 0 && (
+            <p className="px-3 py-2 text-gray-500">No categories found</p>
+          )}
+        </div>
+      )}
+
+      {/* ERROR */}
+      {errors?.categories && (
+        <p className="text-red-500 text-xs mt-1">
+          At least one category is required
+        </p>
+      )}
+    </div>
+  )}
+
+
+
+</div>
+
+
+
                                                
                                         
                                              <div className="flex justify-end ">

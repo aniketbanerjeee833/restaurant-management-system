@@ -7,10 +7,22 @@ export const orderApi = createApi({
     baseUrl: "http://localhost:4000/api/staff/",
     credentials: "include",
   }),
-  invalidatesTags: ["Order","Takeaway-Order"],
+  invalidatesTags: ["Order","Takeaway-Order","Customer"],
 
   endpoints: (builder) => ({
 
+    addNewCustomer: builder.mutation({
+      query: (payload) => ({
+        url: `order/add-new-customer`,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["Customer"],
+    }),
+    getAllCustomers: builder.query({
+      query: () => `order/all-customers`,
+      providesTags: ["Customer"],
+    }),
  addOrder: builder.mutation({
   query: (payload) => ({
     url: `order/add-order`,
@@ -87,9 +99,17 @@ getAllInvoicesAndOrdersEachDay: builder.query({
 }),
 
 getAllInvoicesOfOrdersAndTakeawaysInDateRange: builder.query({
-  query: ({ fromDate, toDate }) => `order/get-all-invoices-orders-takeaways-in-date-range?fromDate=${fromDate}&toDate=${toDate}`,
-  providesTags: ["Order"],
+  query: ({ fromDate, toDate, page = 1, search = "" }) => {
+    const params = new URLSearchParams();
+    params.append("fromDate", fromDate);
+    params.append("toDate", toDate);
+    params.append("page", page);
+    if (search) params.append("search", search.trim());
+
+    return `order/get-all-invoices-orders-takeaways-in-date-range?${params.toString()}`;
+  },
 }),
+
 
 takeawayAddOrdersAndGenerateInvoices: builder.mutation({
   query: (payload) => ({
@@ -100,30 +120,21 @@ takeawayAddOrdersAndGenerateInvoices: builder.mutation({
   invalidatesTags: ["Takeaway-Order"],
 }),
 
-// getAllInvoicesAndOrdersEachDay: builder.query({
-//   query: ({ page, search = "", date } = {}) => {
-//     const params = new URLSearchParams();
-
-//     // ✅ Append only when defined
-//     if (page) params.append("page", page);
-//     if (search) params.append("search", search);
-   
+nextInvoiceNumber: builder.query({
+  query: () => `order/next-invoice-number`,
+  providesTags: ["Order"],
+}),
 
 
-//     const queryString = params.toString();
-//     return `order/get-all-invoices-orders-each-day?date=${date}${queryString}`
-    
-//   },
-//   providesTags: ["Order"],
-// }),
 
 })
 })
 
-export const { useAddOrderMutation,useGetTablesHavingOrdersQuery,
+export const { useAddNewCustomerMutation,useGetAllCustomersQuery,
+  useAddOrderMutation,useGetTablesHavingOrdersQuery,
   useGetTableOrderDetailsQuery ,useUpdateOrderMutation,
 useConfirmOrderBillPaidAndInvoiceGeneratedMutation,
 useTotalInvoicesEachDayQuery,
 useGetAllInvoicesAndOrdersEachDayQuery,
 useGetAllInvoicesOfOrdersAndTakeawaysInDateRangeQuery,
-useTakeawayAddOrdersAndGenerateInvoicesMutation} = orderApi
+useTakeawayAddOrdersAndGenerateInvoicesMutation,useNextInvoiceNumberQuery} = orderApi

@@ -8,12 +8,12 @@ import MaterialModal from "../../components/Modal/MaterialModal";
 
 export default function MaterialsList() {
 
-  const reorderLevelUnits = {
-    "Kilogram": "Kg",
-    "Litre": "lt",
-    "Gram": "gm",
-    "Pcs": "pcs"
-  }
+  // const reorderLevelUnits = {
+  //   "Kilogram": "Kg",
+  //   "Litre": "lt",
+  //   "Gram": "gm",
+  //   "Pcs": "pcs"
+  // }
   const [page, setPage] = useState(1);
 
 
@@ -37,7 +37,21 @@ export default function MaterialsList() {
     setPage(page - 1);
   }
 
-
+   const handleSingleMaterialView = (Material_Name) => {
+    //  const year = currentDate.getFullYear();
+    //  const month = currentDate.getMonth();
+    //  const dateStr = formatDate(year, month, day);
+     
+    //  console.log("Selected date:", dateStr);
+     
+   // Clear leads immediately when a new date is selected
+     // dispatch(clearSelectedLeads());
+     //setSelectedDate(dateStr);
+     //navigate(`/day-wise-report/${dateStr}`);
+     console.log("MaterialName", Material_Name);
+    window.open(`/material/material-view/${Material_Name}`,"_blank");
+     // Remove the manual fetchLeadsByDate call - let the query handle it
+   };
 
 
   console.log("materials", materials, materials?.materials);
@@ -135,94 +149,7 @@ export default function MaterialsList() {
                     <div className="grid grid-cols-1 gap-4">
                       {/* Left side (material List) */}
                       <div className="p-2 border-r border-gray-300 overflow-x-auto ">
-                        {/* <table className="w-full ">
-                          <thead>
-                            <tr>
-                              <th className="text-left">Sl.No</th>
-                              <th className="text-left">Added At</th>
-
-                              <th className="text-left">Material Name</th>
-
-
-
-                          
-                              <th className="text-left">Current Stock</th>
-                              <th className="text-left">Reorder Level</th>
-                              <th className="text-left">Shelf Life (Days)</th>
-
-                              <th className="text-left">View</th>
-                              <th className="text-left">Edit</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {materials &&
-                              materials?.materials?.length > 0 &&
-                              materials?.materials?.map((material, idx) => (
-                                <tr
-                                  key={material.Material_Id}
-
-                                >
-                                  <td>
-                                    {(materials?.currentPage - 1) * 10 + (idx + 1)}.
-                                  </td>
-                                  <td>
-                                    {new Date(material?.created_at).toLocaleDateString("en-IN", {
-                                      day: "numeric",
-                                      month: "numeric",
-                                      year: "numeric",
-                                    })}
-                                  </td>
-                                  <td>{material?.name ?? "N/A"}</td>
-                                  {/* <td
-                                   
-                                  >
-                                    {material?.unit ?? "N/A"}
-                                  </td> 
-                                     <td>
-                                      {material?.current_stock
-                                      ? `${material?.current_stock} ${reorderLevelUnits[material?.current_stock_unit] || ""}`
-                                      : "N/A"}
-                                  </td>
-                                  <td>
-                                    {material?.reorder_level
-                                      ? `${material?.reorder_level} ${reorderLevelUnits[material?.reorder_level_unit] || ""}`
-                                      : "N/A"}
-                                  </td>
-
-                                  <td>{material?.shelf_life_days ?? "N/A"}</td>
-
-
-                                  <td>
-                                    {/* <NavLink
-                                                                            to={`/material/material-sales-purchases-details/${material?.Item_Id}`}
-                                                                            state={{ from: "material-details" }}
-                                                                        > 
-                                    <Eye
-                                      style={{
-                                        cursor: "pointer",
-                                        backgroundColor: "transparent",
-                                        color: "#4CA1AF",
-                                      }}
-                                    />
-                                    {/* </NavLink> 
-                                  </td>
-                                  <td>
-                                    <SquarePen
-                                      onClick={() => {
-                                          setSelectedMaterial(material);     // ← STORE PARTY CLICKED
-                                          setShowMaterialModalForEdit(true);
-                                      }}
-                                      style={{
-                                        cursor: "pointer",
-                                        backgroundColor: "transparent",
-                                        color: "#4CA1AF"
-                                      }} />
-
-                                  </td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table> */}
+                        
                         <table className="w-full ">
   <thead>
     <tr>
@@ -261,28 +188,34 @@ export default function MaterialsList() {
           <td>{material?.name ?? "N/A"}</td>
 
           {/* ➤ CURRENT STOCK (LOW STOCK = RED) */}
-          <td
+          {/* <td
             className={
               Number(material?.current_stock) < Number(material?.reorder_level)
                 ? "text-red-600 font-bold"
                 : ""
             }
           >
-            {material?.current_stock
-              ? `${material?.current_stock} ${
-                  reorderLevelUnits[material?.current_stock_unit] || ""
-                }`
+            {material?.formatted_current_stock
+              ? `${material?.formatted_current_stock}`
               : "N/A"}
 
            
-          </td>
+          </td> */}
+          <td
+  className={
+    Number(material?.current_stock) < Number(material?.reorder_level)
+      ? "text-red-600 font-bold"
+      : ""
+  }
+>
+  {material?.formatted_current_stock || "N/A"}
+</td>
+
 
           {/* ➤ REORDER LEVEL */}
           <td>
-            {material?.reorder_level
-              ? `${material?.reorder_level} ${
-                  reorderLevelUnits[material?.reorder_level_unit] || ""
-                }`
+            {material?.formatted_reorder_level
+              ? `${material?.formatted_reorder_level}`
               : "N/A"}
           </td>
 
@@ -292,6 +225,7 @@ export default function MaterialsList() {
           {/* ➤ VIEW */}
           <td>
             <Eye
+            onClick={()=>handleSingleMaterialView(material?.name)}
               style={{
                 cursor: "pointer",
                 backgroundColor: "transparent",

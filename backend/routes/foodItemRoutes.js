@@ -1,5 +1,5 @@
 import express from "express";
-import { addFoodItem, editSingleFoodItem, getAllFoodItems } from "../controllers/foodItemController.js";
+import { addFoodItem, editSingleFoodItem, getAllFoodItems, toggleFoodItemAvailability } from "../controllers/foodItemController.js";
 import { foodUpload } from "../utils/multer_food_item.js";
 
 const router = express.Router();
@@ -19,5 +19,6 @@ router.patch(
   editSingleFoodItem
 );
 
+router.patch("/toggle-food-item-status/:Item_Id",userAuth,  toggleFoodItemAvailability);
 
 export default router;

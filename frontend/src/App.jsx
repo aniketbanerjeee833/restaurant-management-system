@@ -9,20 +9,6 @@ import Spinner from './components/Layout/Spinner';
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // 🧩 Lazy imports
 const Header = lazy(() => import('./components/Header/Header'));
 const Login = lazy(() => import('./pages/User/Login/Login'));
@@ -38,7 +24,7 @@ const AddCategory = lazy(() => import('./pages/Items/AddCategories'));
 const AddMaterial = lazy(() => import('./pages/Materials/AddMaterial'));
 const MaterialsList = lazy(() => import('./pages/Materials/MaterialsList'));
 const MaterialsRelease = lazy(() => import('./pages/Materials/MaterialsRelease'));
-
+const EachMaterialReport = lazy(() => import('./pages/Materials/EachMaterialReport'));
 
 const PartyAdd = lazy(() => import('./pages/Party/PartyAdd'));
 const AllPartiesList = lazy(() => import('./pages/Party/AllPartiesList'));
@@ -71,7 +57,7 @@ const AllOrdersTakeawayDateRange = lazy(() => import('./pages/Orders/AllOrdersTa
 const AddStaff = lazy(() => import('./pages/Settings/AddStaff'));
 const StaffList = lazy(() => import('./pages/Settings/StaffList'));
 
-
+const FinancialYear = lazy(() => import('./pages/Settings/FinancialYear'));
 // const StaffTables=lazy(()=>import('./staff/pages/Tables/StaffTables'))
 // const StaffTablesList=lazy(()=>import('./staff/pages/Tables/StaffTablesList'))
 
@@ -85,6 +71,12 @@ const Orders=lazy(()=>import('./StaffPanel/pages/Orders'))
 const OrdersTakeAway=lazy(()=>import('./StaffPanel/pages/OrdersTakeAway'))
 const OrderDetails=lazy(()=>import('./StaffPanel/pages/OrderDetails'))
 const TableOrderDetails=lazy(()=>import('./StaffPanel/pages/TableOrderDetails'))
+
+// ==========================================
+// Kitchen Staff PAnel Routes
+// ==========================================
+const KitchenStaff=lazy(()=>import('./KitchenStaffPanel/pages/KitchenStaff'))
+
 
 // ==========================================
 // 🔒 Auth Route Guards
@@ -129,7 +121,10 @@ function RouterWrapper({ userRole }) {
   console.log(location, userRole);
   const hideHeader = location.pathname === "/login" || 
   location.pathname.startsWith("/day-wise-report") ||
-  location.pathname.startsWith("/date-range-report");
+  location.pathname.startsWith("/date-range-report") ||
+  location.pathname.startsWith("/material/material-view")||
+  location.pathname.startsWith("/order/day-wise-invoices-order-report")||
+  location.pathname.startsWith("/party/party-sales-purchases-details");
 
   return (
     <>
@@ -242,7 +237,14 @@ function RouterWrapper({ userRole }) {
                 </Layout>
               }
             />
-
+  <Route
+              path="/material/material-view/:Material_Name"
+              element={
+             
+                  <EachMaterialReport/>
+             
+              }
+            />
             
               <Route
               path="/new/food-items/add"
@@ -387,31 +389,40 @@ function RouterWrapper({ userRole }) {
             element={<DateRangeReport/>} 
             />
 
-            
+                   <Route
+              path="/financial-year/add"
+              element={
+                <Layout>
+                  <FinancialYear/>
+                </Layout>
+              }
+            />
 
           </Route>
           </>
         
         )}
 
+        
+
         { userRole==="staff" && (
           <>
-          <Route
+          {/* <Route
               path="/staff/table/items-add"
               element={
                 <Layout>
                   <StaffTables/>
                 </Layout>
               }
-            />
-              <Route
+            /> */}
+              {/* <Route
               path="/staff/table/all-tables"
               element={
                 <Layout>
                   <StaffTablesList/>
                 </Layout>
               }
-            />
+            /> */}
               <Route
               path="/staff/orders/add"
               element={
@@ -445,8 +456,54 @@ function RouterWrapper({ userRole }) {
               }
             />
 
+              <Route path="/order/all-orders" element={
+              <Layout>
+                <AllOrdersDashboard />
+              </Layout>
+            } />
+
+               <Route
+              path="/order/day-wise-invoices-order-report/:date"
+              element={
+                
+                  <AllOrdersDayWise/>
+              
+              }
+            />
+            {/* /order/date-range-orders-takaway-report */}
+               <Route
+              path="/order/date-range-orders-takaway-report/:fromDate/:toDate"
+              element={
+                
+                  <AllOrdersTakeawayDateRange/>
+              
+              }
+            />
+
+
           </>
         )}
+
+       {userRole==="kitchen-staff" && (
+          <>
+            <Route
+              path="/kitchen-staff/orders/all-orders"
+              element={
+                
+                  <KitchenStaff/>
+               
+              }
+            />
+                <Route
+              path="/new/all-new-food-items"
+              element={
+              
+                  <AllFoodItemsList/>
+              
+              }
+            />
+            </>
+              )}
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />

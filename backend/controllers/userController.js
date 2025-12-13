@@ -130,14 +130,124 @@ const cleanValue = (value) => {
 //      next(err);
 //   }
 // };
+// const registerUser = async (req, res, next) => {
+//   let connection;
+//   try {
+//     connection = await db.getConnection();
+//     await connection.beginTransaction();
+
+//     console.log("Auth middleware - user ID:", req.user.User_Id);
+//     // ⛔ Make sure req.user exists (userAuth middleware must run)
+//     if (!req.user || !req.user.User_Id) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Unauthorized. Please login again.",
+//       });
+//     }
+
+//     const { User_Id } = req.user;
+//     console.log("Auth middleware - user ID:", User_Id);
+//     // Check if logged-in user is admin
+//     const [users] = await connection.query(
+//       `SELECT * FROM users WHERE User_Id=?`,
+//       [User_Id]
+//     );
+
+//     if (users.length === 0 || users[0].role !== "admin") {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Only an admin can register new users.",
+//       });
+//     }
+
+//     // Sanitize + validate inputs
+//     const cleanData = sanitizeObject(req.body);
+//     const parsed = registerSchema.safeParse(cleanData);
+
+//     if (!parsed.success) {
+//       const errors = parsed.error.errors.map((e) => e.message);
+//       return res.status(400).json({ success: false, errors });
+//     }
+
+//     const { name, phone, email, username, password, address, pincode, city, role } =
+//       parsed.data;
+
+//     // Check duplicates: email OR phone OR username
+//     const [existing] = await connection.query(
+//       `SELECT * FROM users WHERE email = ? OR phone = ? OR username = ?`,
+//       [email, phone, username]
+//     );
+
+//     if (existing.length > 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "User already exists (duplicate email, phone or username).",
+//       });
+//     }
+
+//     // Generate User_Id incrementally
+//     const [last] = await connection.query(
+//       `SELECT User_Id FROM users ORDER BY id DESC LIMIT 1`
+//     );
+
+//     let userId = "USR001";
+//     if (last.length > 0) {
+//       const num = parseInt(last[0].User_Id.replace("USR", ""), 10) + 1;
+//       userId = "USR" + num.toString().padStart(3, "0");
+//     }
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     const cleanValue = (v) =>
+//       v !== undefined && v !== null && String(v).trim() !== "" ? v : null;
+
+//     // Insert new user
+//     const [result] = await connection.query(
+//       `INSERT INTO users 
+//        (User_Id, name, phone, email, username, password, address, pincode, city, admin_id, role, created_at, updated_at)
+//        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+//       [
+//         userId,
+//         name,
+//         phone,
+//         email,
+//         username,
+//         hashedPassword,
+//         address,
+//         cleanValue(pincode),
+//         cleanValue(city),
+//         User_Id, // admin_id → originally created by which admin
+//         "staff",
+//       ]
+//     );
+
+//     await connection.commit();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "User registered successfully.",
+//       userId,
+//       dbId: result.insertId,
+//       role: role || "user",
+//     });
+//   } catch (err) {
+//     if (connection) await connection.rollback();
+//     console.error("Register Error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
 const registerUser = async (req, res, next) => {
   let connection;
+
   try {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    console.log("Auth middleware - user ID:", req.user.User_Id);
-    // ⛔ Make sure req.user exists (userAuth middleware must run)
+    // ===============================
+    // 🔐 AUTH CHECK
+    // ===============================
     if (!req.user || !req.user.User_Id) {
       return res.status(401).json({
         success: false,
@@ -145,66 +255,86 @@ const registerUser = async (req, res, next) => {
       });
     }
 
-    const { User_Id } = req.user;
-    console.log("Auth middleware - user ID:", User_Id);
-    // Check if logged-in user is admin
-    const [users] = await connection.query(
-      `SELECT * FROM users WHERE User_Id=?`,
-      [User_Id]
+    const adminId = req.user.User_Id;
+
+    const [adminRows] = await connection.query(
+      `SELECT role FROM users WHERE User_Id = ?`,
+      [adminId]
     );
 
-    if (users.length === 0 || users[0].role !== "admin") {
+    if (!adminRows.length || adminRows[0].role !== "admin") {
+      await connection.rollback();
       return res.status(403).json({
         success: false,
-        message: "Only an admin can register new users.",
+        message: "Only admin can register users",
       });
     }
 
-    // Sanitize + validate inputs
+    // ===============================
+    // 🧼 SANITIZE & VALIDATE
+    // ===============================
     const cleanData = sanitizeObject(req.body);
     const parsed = registerSchema.safeParse(cleanData);
 
     if (!parsed.success) {
-      const errors = parsed.error.errors.map((e) => e.message);
-      return res.status(400).json({ success: false, errors });
-    }
-
-    const { name, phone, email, username, password, address, pincode, city, role } =
-      parsed.data;
-
-    // Check duplicates: email OR phone OR username
-    const [existing] = await connection.query(
-      `SELECT * FROM users WHERE email = ? OR phone = ? OR username = ?`,
-      [email, phone, username]
-    );
-
-    if (existing.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "User already exists (duplicate email, phone or username).",
+        errors: parsed.error.errors.map(e => e.message),
       });
     }
 
-    // Generate User_Id incrementally
-    const [last] = await connection.query(
+    const {
+      name,
+      phone,
+      email,
+      username,
+      password,
+      address,
+      pincode,
+      city,
+      role,
+      categories = [],
+    } = parsed.data;
+
+    // ===============================
+    // 🔁 DUPLICATE CHECK
+    // ===============================
+    const [existing] = await connection.query(
+      `SELECT id FROM users 
+       WHERE email = ? OR phone = ? OR username = ?`,
+      [email, phone, username]
+    );
+
+    if (existing.length) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    // ===============================
+    // 🆔 GENERATE USER ID
+    // ===============================
+    const [lastUser] = await connection.query(
       `SELECT User_Id FROM users ORDER BY id DESC LIMIT 1`
     );
 
     let userId = "USR001";
-    if (last.length > 0) {
-      const num = parseInt(last[0].User_Id.replace("USR", ""), 10) + 1;
-      userId = "USR" + num.toString().padStart(3, "0");
+    if (lastUser.length) {
+      const num = parseInt(lastUser[0].User_Id.replace("USR", ""), 10) + 1;
+      userId = "USR" + String(num).padStart(3, "0");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const cleanValue = (v) =>
-      v !== undefined && v !== null && String(v).trim() !== "" ? v : null;
-
-    // Insert new user
-    const [result] = await connection.query(
-      `INSERT INTO users 
-       (User_Id, name, phone, email, username, password, address, pincode, city, admin_id, role, created_at, updated_at)
+    // ===============================
+    // 👤 INSERT USER
+    // ===============================
+    await connection.query(
+      `INSERT INTO users
+       (User_Id, name, phone, email, username, password,
+        address, pincode, city, admin_id, role, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         userId,
@@ -213,23 +343,87 @@ const registerUser = async (req, res, next) => {
         email,
         username,
         hashedPassword,
-        address,
-        cleanValue(pincode),
-        cleanValue(city),
-        User_Id, // admin_id → originally created by which admin
-        "staff",
+        address || null,
+        pincode || null,
+        city || null,
+        adminId,
+        role,
       ]
     );
 
+    // ===============================
+    // 🍳 KITCHEN STAFF CATEGORY LOGIC
+    // ===============================
+    if (role === "kitchen-staff") {
+
+      if (!Array.isArray(categories) || categories.length === 0) {
+        await connection.rollback();
+        return res.status(400).json({
+          success: false,
+          message: "Kitchen staff must have at least one category",
+        });
+      }
+
+      // ✅ Validate categories
+      const [validCats] = await connection.query(
+        `SELECT Item_Category 
+         FROM add_category 
+         WHERE Item_Category IN (?)`,
+        [categories]
+      );
+
+      if (validCats.length !== categories.length) {
+        const found = validCats.map(c => c.Item_Category);
+        const missing = categories.filter(c => !found.includes(c));
+
+        await connection.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Invalid categories: ${missing.join(", ")}`,
+        });
+      }
+
+      // 🆔 Generate Staff_Category_Id
+      const [lastCat] = await connection.query(
+        `SELECT Staff_Category_Id 
+         FROM kitchen_staff_categories 
+         ORDER BY id DESC LIMIT 1`
+      );
+
+      let staffCategoryId = "KSC001";
+      if (lastCat.length) {
+        const num = parseInt(
+          lastCat[0].Staff_Category_Id.replace("KSC", ""),
+          10
+        ) + 1;
+        staffCategoryId = "KSC" + String(num).padStart(5, "0");
+      }
+
+      // 📌 Insert category mapping
+      await connection.query(
+        `INSERT INTO kitchen_staff_categories
+         (Staff_Category_Id, User_Id, Category_Names, created_at, updated_at)
+         VALUES (?, ?, ?, NOW(), NOW())`,
+        [
+          staffCategoryId,
+          userId,
+          categories.join(","), // 👈 IMPORTANT
+        ]
+      );
+    }
+
+    // ===============================
+    // ✅ COMMIT
+    // ===============================
     await connection.commit();
 
     return res.status(201).json({
       success: true,
-      message: "User registered successfully.",
-      userId,
-      dbId: result.insertId,
-      role: role || "user",
+      message: "User registered successfully",
+      User_Id: userId,
+      role,
     });
+
   } catch (err) {
     if (connection) await connection.rollback();
     console.error("Register Error:", err);

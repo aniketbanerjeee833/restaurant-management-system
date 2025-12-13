@@ -195,20 +195,20 @@ export default function MaterialsRelease() {
     //const itemsValues = watch("items"); // watch all rows
 
 
-    const handleSelect = (rowIndex, categoryName) => {
-        setRows((prev) => {
-            const updated = [...prev];
-            updated[rowIndex] = {
-                ...updated[rowIndex],
-                Item_Category: categoryName,
-                CategoryOpen: false,
-                isExistingItem: false,   // user-typed, so still editable
-            };
-            return updated;
-        });
+    // const handleSelect = (rowIndex, categoryName) => {
+    //     setRows((prev) => {
+    //         const updated = [...prev];
+    //         updated[rowIndex] = {
+    //             ...updated[rowIndex],
+    //             Item_Category: categoryName,
+    //             CategoryOpen: false,
+    //             isExistingItem: false,   // user-typed, so still editable
+    //         };
+    //         return updated;
+    //     });
 
-        setValue(`items.${rowIndex}.Item_Category`, categoryName, { shouldValidate: true });
-    };
+    //     setValue(`items.${rowIndex}.Item_Category`, categoryName, { shouldValidate: true });
+    // };
 
 
 
@@ -699,16 +699,16 @@ export default function MaterialsRelease() {
 
                                             </div>
                                             <div></div>
-                                            <div style={{ width: "100%" }}
+                                            {/* <div style={{ width: "100%" }}
                                                 className="grid grid-rows-1 px-4 gap-2 w-full sm:w-1/2 lg:w-1/3 ml-auto mr-2 sale-right">
 
                                                 <div style={{ width: "100%" }}
                                                     className="flex justify-between items-start gap-6 w-full mr-4">
-
+                                                */}
 
                                                     <div style={{ width: "100%" }}
-                                                        className="flex flex-col gap-4 mt-3 w-full">
-
+                                                        // className="flex flex-col gap-4 mt-3 w-full"> 
+                                                        className="flex flex-col px-2  w-full">
 
 
 
@@ -730,10 +730,12 @@ export default function MaterialsRelease() {
                                                             </button>
 
                                                         </div>
-                                                    </div>
+                                                        </div>
+                                                    {/*
+                                                     
 
                                                 </div>
-                                            </div>
+                                            </div> */}
 
 
 

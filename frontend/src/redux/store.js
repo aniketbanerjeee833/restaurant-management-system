@@ -16,6 +16,8 @@ import { tableApi } from "./api/tableApi";
 import { foodItemApi } from "./api/foodItemApi";
 import { materialApi } from "./api/materialApi";
 import { orderApi } from "./api/Staff/orderApi";
+import { settingsApi } from "./api/settingsApi";
+import { kitchenStaffApi } from "./api/KitchenStaff/kitchenStaffApi";
 
 
 
@@ -33,10 +35,13 @@ const rootReducer = combineReducers({
   [userApi.reducerPath]: userApi.reducer,
  
   [reportApi.reducerPath]: reportApi.reducer,
+   [settingsApi.reducerPath]: settingsApi.reducer,
   [staffApi.reducerPath]: staffApi.reducer,
   [foodItemApi.reducerPath]: foodItemApi.reducer,
 
   [orderApi.reducerPath]: orderApi.reducer,
+
+  [kitchenStaffApi.reducerPath]: kitchenStaffApi.reducer,
 
  
 });
@@ -67,9 +72,11 @@ const store = configureStore({
       userApi.middleware,
       
       reportApi.middleware,
+      settingsApi.middleware,
       staffApi.middleware,
       foodItemApi.middleware,
-      orderApi.middleware
+      orderApi.middleware,
+      kitchenStaffApi.middleware
       
      
     ),

@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form';
 import { useSelector } from 'react-redux';
 
 import { useGetAllCategoriesQuery } from '../../redux/api/itemApi';
+import { useEffect } from 'react';
 
 
 
@@ -31,6 +32,7 @@ console.log(selectedStaff,"selectedStaff");
     handleSubmit,
     watch,
     setValue,
+    reset,
     
     formState: { errors },
   } =  useForm({
@@ -49,6 +51,32 @@ const selectedRole = watch("role");
 const {user}=useSelector((state) => state.user);
 console.log(user);
 
+
+useEffect(() => {
+  if (!selectedStaff) return;
+
+  const normalizedCategories =
+    selectedStaff.role === "kitchen-staff"
+      ? Array.isArray(selectedStaff.categories)
+        ? selectedStaff.categories
+        : typeof selectedStaff.categories === "string"
+        ? selectedStaff.categories.split(",").map(c => c.trim())
+        : []
+      : [];
+
+  reset({
+    name: selectedStaff.name || "",
+    email: selectedStaff.email || "",
+    phone: selectedStaff.phone || "",
+    username: selectedStaff.username || "",
+    city: selectedStaff.city || "",
+    address: selectedStaff.address || "",
+    pincode: selectedStaff.pincode || "",
+    role: selectedStaff.role || "",
+    categories: normalizedCategories,
+  });
+
+}, [selectedStaff, reset]);
 
 const onSubmit = async (data) => {
   console.log("Raw Form Data (from RHF):", data);
@@ -209,7 +237,7 @@ try {
                   <div className="row flex gap-4">
                   
                     {renderInput('username', 'text', 'Username')}
-                        {renderInput('password', 'password', 'Password')}
+                        {/* {renderInput('password', 'password', 'Password')} */}
                       {renderInput('city', 'text', 'City')}
                   </div>
 

@@ -16,7 +16,9 @@ export default function OrderDetails() {
   const [searchTerm, setSearchTerm] = useState('');
 //   const [tables, setTables] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
-const [kotNotifications, setKotNotifications] = useState([]);
+  const [kotNotifications, setKotNotifications] = useState({});
+
+// const [kotNotifications, setKotNotifications] = useState([]);
 const { data: tableHavingOrders, refetch } = useGetTablesHavingOrdersQuery();
 // const [displayOrders, setDisplayOrders] = useState([]);
 
@@ -50,6 +52,7 @@ useEffect(() => {
 }, []);
 useEffect(() => {
   const handleKotUpdate = (data) => {
+       if (data.orderType !== "takeaway") return; // 🔒 ignore dine-in
     console.log("📢 Frontend received KOT update:", data);
 
     const orderId = data.Order_Id; // <-- This connects to the correct takeaway card
@@ -97,67 +100,23 @@ useEffect(() => {
 
   return () => socket.off("frontend_kot_update", handleKotUpdate);
 }, []);
-// useEffect(() => {
-//   if (!tableHavingOrders) return;
-
-//   const rawTables = tableHavingOrders.tableHavingOrders ?? [];
-//   const takeawayTables = tableHavingOrders.takeawayOrders ?? [];
-
-//   // Group dine-in orders
-//   const grouped = Object.values(
-//     rawTables.reduce((acc, row) => {
-//       if (!acc[row.Order_Id]) {
-//         acc[row.Order_Id] = {
-//           Order_Id: row.Order_Id,
-//           Amount: row.Amount,
-//           Status: row.Status,
-//           User_Id: row.User_Id,
-//           Sub_Total: row.Sub_Total,
-//           Payment_Status: row.Payment_Status,
-//           orderType: row.orderType,
-//           Tables: [],
-//           TableIds: [],
-//           Table_Start_Time: row.Table_Start_Time,
-//         };
-//       }
-
-//       acc[row.Order_Id].Tables.push(row.Table_Name);
-//       acc[row.Order_Id].TableIds.push(row.Table_Id);
-//       return acc;
-//     }, {})
-//   );
-
-//   // Add orderType for takeaway
-//   const formattedTakeaways = takeawayTables.map(t => ({
-//     ...t,
-//     orderType: "takeaway"
-//   }));
-
-//   const combined = [...grouped, ...formattedTakeaways];
-
-//   setDisplayOrders(combined);
-
-// }, [JSON.stringify(tableHavingOrders)]);
 useEffect(() => {
   if (!tableHavingOrders) return;
 
-  const dineKots = (tableHavingOrders.tableHavingOrders ?? []).map(
-    (o) => `order_${o.KOT_Id}`
-  );
+  const allOrders = [
+    ...(tableHavingOrders.tableHavingOrders ?? []),
+    ...(tableHavingOrders.takeawayOrders ?? [])
+  ];
 
-  const takeawayKots = (tableHavingOrders.takeawayOrders ?? []).map(
-    (o) => `order_${o.KOT_Id}`
-  );
-
-  const allRooms = [...dineKots, ...takeawayKots];
-
-  allRooms.forEach((room) => {
-    if (room) {
-      socket.emit("join_kot_room", room);
-      console.log("📡 Joined room:", room);
+  allOrders.forEach((o) => {
+    if (o.KOT_Id) {
+      socket.emit("join_order_room", o.KOT_Id);
+      console.log("📡 Joined order room:", o.KOT_Id);
     }
   });
 }, [tableHavingOrders]);
+
+
 
   
   useEffect(() => {
@@ -502,18 +461,33 @@ console.log("KOT Notifications:", kotNotifications);
     const kotItems = kotNotifications[order.Takeaway_Order_Id] || [];
 
     // ✅ Merge backend items with socket updates
-    const mergedItems = order.items.map((backendItem) => {
-      const updated = kotItems.find(
-        (it) =>
-          String(it.KOT_Item_Id) === String(backendItem.KOT_Item_Id)
-      );
+    const mergedItems = order.items
+  .map((backendItem) => {
+    const updated = kotItems.find(
+      (it) =>
+        String(it.KOT_Item_Id) === String(backendItem.KOT_Item_Id)
+    );
 
-      return {
-        KOT_Item_Id: backendItem.KOT_Item_Id,
-        itemName: updated?.itemName || backendItem.Item_Name,
-        status: updated?.status || backendItem.Item_Status,
-      };
-    });
+    return {
+      KOT_Item_Id: backendItem.KOT_Item_Id,
+      itemName: updated?.itemName || backendItem.Item_Name,
+      status: updated?.status || backendItem.Item_Status,
+    };
+  })
+  
+
+    // const mergedItems = order.items.map((backendItem) => {
+    //   const updated = kotItems.find(
+    //     (it) =>
+    //       String(it.KOT_Item_Id) === String(backendItem.KOT_Item_Id)
+    //   );
+
+    //   return {
+    //     KOT_Item_Id: backendItem.KOT_Item_Id,
+    //     itemName: updated?.itemName || backendItem.Item_Name,
+    //     status: updated?.status || backendItem.Item_Status,
+    //   };
+    // });
 
     return (
       <div

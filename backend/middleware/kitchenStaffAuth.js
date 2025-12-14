@@ -7,6 +7,7 @@ const kitchenStaffAuth = (req, res, next) => {
 
   // Attach adminId for convenience
   req.kitchenStaffId = req.user.id;
+  req.categories=req.user.categories
   // console.log("Admin authenticated:", req.user.username);
 
   next();

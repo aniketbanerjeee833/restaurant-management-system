@@ -23,6 +23,7 @@ import { useGetTableOrderDetailsQuery, useUpdateOrderMutation } from "../../redu
 import OrderDetailsModal from "../../components/Modal/OrderDetailsModal";
 import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
 import { useDispatch } from "react-redux";
+import { kitchenStaffApi } from "../../redux/api/KitchenStaff/kitchenStaffApi";
 
 const socket = io("http://localhost:4000", {
   transports: ["websocket"],
@@ -146,50 +147,9 @@ useEffect(() => {
 
 }, [tableOrderDetails]);
 
-// 2️⃣ Listen for socket updates and UPDATE existing item instead of pushing new
-// useEffect(() => {
-//   const handleKotUpdate = (data) => {
-//     console.log("📢 Frontend received KOT update:", data);
-//     toast.info(`${data.itemName} → ${data.status}`);
-
-//     setKotNotifications((prev) => {
-//       const idx = prev.findIndex(
-//         (n) => n.KOT_Item_Id === data.KOT_Item_Id
-//       );
-
-//       // If item already exists → update its status + time
-//       if (idx !== -1) {
-//         const copy = [...prev];
-//         copy[idx] = {
-//           ...copy[idx],
-//           status: data.status,
-//           time: data.time,
-//         };
-//         return copy;
-//       }
-
-//       // Fallback: if not found, add as new (rare but safe)
-//       return [
-//         ...prev,
-//         {
-//           KOT_Id: data.KOT_Id,
-//           KOT_Item_Id: data.KOT_Item_Id,
-//           itemName: data.itemName,
-//           status: data.status,
-//           time: data.time,
-//         },
-//       ];
-//     });
-//   };
-
-//   socket.on("frontend_kot_update", handleKotUpdate);
-
-//   return () => {
-//     socket.off("frontend_kot_update", handleKotUpdate);
-//   };
-// }, []);
 useEffect(() => {
   const handleKotUpdate = (data) => {
+   
     console.log("📢 Frontend received KOT update:", data);
     toast.info(`${data.itemName} → ${data.status}`);
 
@@ -285,44 +245,6 @@ console.log(kotNotifications,"kotNotifications");
 
 
 
-//     useEffect(() => {
-//   if (!tableOrderDetails) return;
-
-//   const prefilledItems = tableOrderDetails?.orderItems?.map((item) => ({
-//     Item_Name: item?.Item_Name,
-//     Item_Price: item?.Price, 
-//     Item_Quantity: item?.Quantity,
-//     // Item_Image: item?.Item_Image,
-//     Amount: item?.Amount,
-//     // Food_Item_Price: item?.Food_Item_Price,
-//     id: item?.id
-//   }));
-//  setSelectedTables(tableOrderDetails?.tables.map((t) => t?.Table_Name));
-
-//   reset({
-//     items: prefilledItems,
-//     Sub_Total: tableOrderDetails?.order?.Sub_Total,
-//     Amount: tableOrderDetails?.order?.Amount,
-//     Table_Names: tableOrderDetails?.tables?.map((t) => t?.Table_Name),
-//   });
-
-//   // 🔥 Build mapping: menuItemId → rowIndex
-//   const map = {};
-//   tableOrderDetails?.orderItems.forEach((it, idx) => {
-//     map[it.id] = idx; // or item.id if that is the menu item ID
-//   });
-
-//   itemRowMap.current = map;
-
-//   // 🔥 Also sync cart with existing quantities
-//   const initialCart = {};
-//   tableOrderDetails?.orderItems.forEach((it) => {
-//     initialCart[it.id] = it.Quantity;
-//   });
-
-//   setCart(initialCart);
-
-// }, [tableOrderDetails, reset]);
 
 useEffect(() => {
   if (!tableOrderDetails) return;
@@ -518,6 +440,7 @@ useEffect(() => {
             }
 
             toast.success("Order updated Successfully!");
+            dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
             //dispatch(tableApi.util.invalidateTags(["Table"]));
             navigate("/staff/orders/all-orders");
 
@@ -1980,3 +1903,6 @@ console.log(itemsValues,cart);
 //     );
 //   }
 // }, [tableOrderDetails]);
+
+
+

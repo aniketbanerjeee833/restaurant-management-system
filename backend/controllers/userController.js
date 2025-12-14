@@ -641,6 +641,19 @@ console.log(userAgent);
         ...(isProduction && { domain: ".ancoinnovation.com" }),
     });
 
+let categories = [];
+
+if (user.role === "kitchen-staff") {
+  const [rows] = await db.query(
+    `SELECT Category_Names
+     FROM kitchen_staff_categories
+     WHERE User_Id = ?`,
+    [user.User_Id]
+  );
+
+  categories = rows.map((r) => r.Category_Names);
+}
+
     // 🔹 Respond success
     return res.status(200).json({
       success: true,
@@ -652,6 +665,7 @@ console.log(userAgent);
         email: user.email,
         username: user.username,
         role: user.role,
+        categories
       },
     });
   } catch (err) {

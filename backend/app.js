@@ -187,10 +187,33 @@ io.on("connection", (socket) => {
     console.log(`👤 User ${socket.id} left room order_${KOT_Id}`);
     socket.leave(`order_${KOT_Id}`);
   });
-    socket.on("join_kot_room", (room) => {
-    socket.join(room);
-    console.log("Client joined:", room);
+  //   socket.on("join_kot_room", (room) => {
+  //   socket.join(room);
+  //   console.log("Client joined:", room);
+  // });
+socket.on("join_kitchen_categories", (categories = []) => {
+    categories.forEach((cat) => {
+      const room = `category_${cat}`;
+      socket.join(room);
+      console.log(`🍳 Staff joined ${room}`);
+    });
   });
+
+  socket.on("leave_kitchen_categories", (categories = []) => {
+    categories.forEach((cat) => {
+      socket.leave(`category_${cat}`);
+      console.log(`🍳 Staff left category_${cat}`);
+    });
+  });
+  //  socket.on("join_kitchen_staff", (User_Id) => {
+  //   socket.join(User_Id); // room name = User_Id
+  //   console.log(`🍳 Kitchen staff ${User_Id} joined personal room`);
+  // });
+
+  // socket.on("leave_kitchen_staff", (User_Id) => {
+  //   socket.leave(User_Id);
+  //   console.log(`🍳 Kitchen staff ${User_Id} left personal room`);
+  // });
 
   // On disconnect
   socket.on("disconnect", () => {

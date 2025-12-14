@@ -6,84 +6,187 @@ import { io } from "socket.io-client";
 import { ChefHat, Clock, Package, CheckCircle, AlertCircle, Flame } from "lucide-react";
 import { kitchenStaffApi, useGetKitchenOrdersQuery, useUpdateKitchenItemStatusMutation } from "../../redux/api/KitchenStaff/kitchenStaffApi";
 import { toast } from "react-toastify";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { orderApi } from "../../redux/api/Staff/orderApi";
 const socket = io("http://localhost:4000", {
   transports: ["websocket"],
 });
 
 export default function KitchenStaff() {
+//     const { user } = useSelector((state) => state.user);
+//   const [orders, setOrders] = useState([]);
+//     const {data:kitchenOrders}=useGetKitchenOrdersQuery();
+//     console.log("Kitchen Orders from API:", kitchenOrders);
+   const dispatch=useDispatch()
+
+const { user } = useSelector((state) => state.user);
+console.log(user);
   const [orders, setOrders] = useState([]);
-    const {data:kitchenOrders}=useGetKitchenOrdersQuery();
-    console.log("Kitchen Orders from API:", kitchenOrders);
-  const dispatch=useDispatch()
-    const[updateKitchenItemStatus]=useUpdateKitchenItemStatusMutation()
-    useEffect(() => {
-  if (Array.isArray(kitchenOrders?.orders)) {
-    const pendingOrders = kitchenOrders.orders.filter(
-      (order) => order.Status === "pending"
-    );
-    setOrders(pendingOrders);
-  }
+
+  const { data: kitchenOrders } = useGetKitchenOrdersQuery();
+  console.log("Kitchen Orders from API:", kitchenOrders);
+  const [updateKitchenItemStatus] = useUpdateKitchenItemStatusMutation();
+
+  /* ---------------- JOIN CATEGORY ROOMS ---------------- */
+  useEffect(() => {
+    if (user?.role === "kitchen-staff" && Array.isArray(user.categories)) {
+      socket.emit("join_kitchen_categories", user.categories);
+      console.log("🍳 Joined categories:", user.categories);
+    }
+
+    return () => {
+      if (user?.categories) {
+        socket.emit("leave_kitchen_categories", user.categories);
+      }
+    };
+  }, [user]);
+
+
+useEffect(() => {
+  if (!Array.isArray(kitchenOrders?.orders)) return;
+
+  // API is already category-filtered
+  const pendingOrders = kitchenOrders.orders.filter(
+    (o) => o.Status === "pending"
+  );
+
+  setOrders(pendingOrders);
 }, [kitchenOrders]);
 
+/* ---------------- SOCKET LISTENERS ---------------- */
+  useEffect(() => {
+    if (!socket) return;
 
-useEffect(() => {
-  console.log("📡 Connected to kitchen socket:", socket.id);
+    // 🔒 DEDUPLICATE ITEMS BY KOT_Item_Id
+    const mergeItems = (oldItems = [], newItems = []) => {
+      const map = new Map();
+      [...oldItems, ...newItems].forEach((item) => {
+        map.set(item.KOT_Item_Id, item);
+      });
+      return Array.from(map.values());
+    };
 
-  // 🔥 NEW ORDER RECEIVED
-  socket.on("new_kitchen_order", (data) => {
-    console.log("🔥 New Order Received in Kitchen:", data);
+    const onNewOrder = (data) => {
+      setOrders((prev) => {
+        const existing = prev.find((o) => o.KOT_Id === data.KOT_Id);
 
-    setOrders((prev) => {
-      // Prevent duplicates
-      if (prev.some((o) => o.KOT_Id === data.KOT_Id)) return prev;
-      return [...prev, data];
-    });
-  });
+        if (existing) {
+          return prev.map((o) =>
+            o.KOT_Id === data.KOT_Id
+              ? {
+                  ...o,
+                  items: mergeItems(o.items, data.items),
+                }
+              : o
+          );
+        }
 
-  // 🔄 UPDATED ORDER RECEIVED
-  // socket.on("kitchen_order_updated", (updated) => {
-  //   console.log("♻️ Kitchen Order Updated:", updated);
+         return [data, ...prev];
+      });
+    };
+// const onOrderUpdated = (updated) => {
+//   setOrders((prev) =>
+//     prev
+//       .map((order) => {
+//         if (order.KOT_Id !== updated.KOT_Id) return order;
 
-  //   setOrders((prev) =>
-  //     prev.map((o) =>
-  //       o.KOT_Id === updated.KOT_Id ? { ...o, ...updated } : o
-  //     )
-  //   );
-  // });
-  socket.on("kitchen_order_updated", (updated) => {
-  console.log("♻️ Kitchen Order Updated:", updated);
+//         // 🟦 TAKEAWAY → remove READY items immediately
+//         if (updated.Order_Type === "takeaway") {
+//           const remainingItems = updated.items.filter(
+//             (item) => item.Item_Status !== "ready"
+//           );
 
+//           // ❌ If no items left for this staff → remove order card
+//           if (remainingItems.length === 0) {
+//             return null;
+//           }
+
+//           return {
+//             ...order,
+//             items: remainingItems,
+//           };
+//         }
+
+//         // 🟩 DINE-IN → keep everything
+//         return {
+//           ...order,
+//           items: updated.items,
+//         };
+//       })
+//       .filter(Boolean) // remove null orders
+//   );
+// };
+
+    // const onOrderUpdated = (updated) => {
+    //   setOrders((prev) =>
+    //     prev.map((o) =>
+    //       o.KOT_Id === updated.KOT_Id
+    //         ? {
+    //             ...o,
+    //             items: updated.items, // already category-safe
+    //             Status: updated.Status ?? o.Status,
+    //           }
+    //         : o
+    //     )
+    //   );
+    // };
+const onOrderUpdated = (updated) => {
   setOrders((prev) =>
-    prev.map((o) =>
-      o.KOT_Id === updated.KOT_Id
-        ? {
-            ...o,
-            items: updated.items,
-            Status: updated.Status ?? o.Status, // keep correct status
+    prev
+      .map((order) => {
+        if (order.KOT_Id !== updated.KOT_Id) return order;
+
+        // 🔥 REMOVE ORDER IMMEDIATELY WHEN BACKEND SAYS SO
+        if (updated.removeOrder) {
+          return ;
+        }
+
+        // 🟦 TAKEAWAY → keep only non-ready items
+        if (updated.Order_Type === "takeaway") {
+          const remainingItems = updated.items.filter(
+            (item) => item.Item_Status !== "ready"
+          );
+
+          if (remainingItems.length === 0) {
+            return null;
           }
-        : o
-    )
+
+          return {
+            ...order,
+            items: remainingItems,
+          };
+        }
+
+        // 🟩 DINE-IN → keep all items
+        return {
+          ...order,
+          items: updated.items,
+        };
+      })
+      .filter(Boolean)
   );
-});
+};
+
+    const onOrderRemoved = ({ KOT_Id }) => {
+      setOrders((prev) => prev.filter((o) => o.KOT_Id !== KOT_Id));
+      toast.info(`Order ${KOT_Id} closed`);
+    };
+
+    socket.on("new_kitchen_order", onNewOrder);
+    socket.on("kitchen_order_updated", onOrderUpdated);
+    socket.on("kitchen_order_removed", onOrderRemoved);
+
+    return () => {
+      socket.off("new_kitchen_order", onNewOrder);
+      socket.off("kitchen_order_updated", onOrderUpdated);
+      socket.off("kitchen_order_removed", onOrderRemoved);
+    };
+  }, [socket]);
 
 
-  return () => {
-    socket.off("new_kitchen_order");
-    socket.off("kitchen_order_updated");
-  };
-}, []);
-useEffect(() => {
-  socket.on("kitchen_order_removed", ({ KOT_Id }) => {
-    setOrders((prev) => prev.filter(o => o.KOT_Id !== KOT_Id));
 
-    toast.info(`Order ${KOT_Id} closed — bill generated`);
-  });
+  console.log("🍽 Kitchen Orders:", orders);
 
-  return () => socket.off("kitchen_order_removed");
-}, []);
-
-  console.log("Kitchen Orders:", orders);
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -118,6 +221,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
 
     toast.success(`Item marked as ${newStatus}`);
     dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+    dispatch(orderApi.util.invalidateTags(["Order","Takeaway-Order","Customer"]));
   } catch (err) {
     console.error("❌ Error updating item status:", err);
     toast.error(err?.data?.message || "Failed to update status");
@@ -210,121 +314,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
             </div>
           </div>
         ) : (
-//           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-//            {orders.map((order, index) => (
-//   <div
-//     key={index}
-//     className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border-2 border-gray-100 overflow-hidden"
-//   >
-//     {/* ===== HEADER - THEME GRADIENT ===== */}
-//     <div className="bg-gradient-to-r from-[#4CA1AF] to-[#6CCBCD] text-white p-4">
-//       <div className="flex items-center justify-between mb-2">
-//         <div className="flex items-center gap-2">
-//           <Package className="w-5 h-5 text-white" />
-//           <span className="font-bold text-lg">KOT #{order.KOT_Id}</span>
-//         </div>
 
-//         <div
-//           className={`px-3 py-1 rounded-full text-xs font-semibold border-2 flex items-center gap-1 ${getStatusColor(
-//             order?.status
-//           )}`}
-//         >
-//           {getStatusIcon(order?.status)}
-//           {order.status}
-//         </div>
-//       </div>
-
-//       <div className="text-sm opacity-90">
-//         Order ID: <span className="font-semibold">{order.Order_Id}</span>
-//       </div>
-//     </div>
-
-//     {/* ===== BODY ===== */}
-//     <div className="p-5">
-//       <div className="mb-4">
-//         <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
-//           <ChefHat className="w-4 h-4 text-[#4CA1AF]" />
-//           Order Items
-//         </h3>
-
-//         {/* ITEMS LIST */}
-//         <div className="space-y-2">
-//           {order.items.map((item, i) => (
-//             <div
-//               key={i}
-//               className="flex items-center justify-between bg-[#4CA1AF10] 
-//                          p-3 rounded-lg border border-[#4CA1AF33] 
-//                          hover:bg-[#4CA1AF15] transition-colors"
-//             >
-//               <div className="flex items-center gap-2">
-//                 <div className="w-2 h-2 bg-[#4CA1AF] rounded-full"></div>
-//                 <span className="font-medium text-gray-800">
-//                   {item.Item_Name}
-//                 </span>
-//               </div>
-
-//               <div className="bg-[#6CCBCD33] text-[#3A8C98] px-3 py-1 rounded-full text-sm font-bold">
-//                 × {item.Quantity}
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-//       </div>
-
-//       {/* ===== ACTION BUTTONS ===== */}
-//       <div className="space-y-2 pt-4 border-t border-gray-200">
-//         <div className="grid grid-cols-2 gap-2">
-//           {/* PREPARING */}
-//           <button
-//             onClick={() => updateOrderStatus(index, "preparing")}
-//             className="bg-[#4CA1AF] hover:bg-[#3A8C98] text-white px-4 py-2 
-//                        rounded-lg font-semibold text-sm transition-colors 
-//                        flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-//           >
-//             <Flame className="w-4 h-4" />
-//             Start Cooking
-//           </button>
-
-//           {/* READY */}
-//           <button
-//             onClick={() => updateOrderStatus(index, "ready")}
-//             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 
-//                        rounded-lg font-semibold text-sm transition-colors 
-//                        flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-//           >
-//             <CheckCircle className="w-4 h-4" />
-//             Mark Ready
-//           </button>
-//         </div>
-
-//         {/* COMPLETE ORDER */}
-//         {/* <button
-//           onClick={() => updateOrderStatus(index, "completed")}
-//           className="w-full bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 
-//                      rounded-lg font-semibold text-sm transition-colors 
-//                      shadow-md hover:shadow-lg"
-//         >
-//           Complete Order
-//         </button> */}
-//       </div>
-//     </div>
-
-//     {/* ===== FOOTER ===== */}
-//     <div className="bg-[#4CA1AF10] px-5 py-3 flex items-center justify-between 
-//                     text-xs text-gray-600 border-t border-[#4CA1AF22]">
-//       <div className="flex items-center gap-1">
-//         <Clock className="w-3 h-3 text-[#4CA1AF]" />
-//         <span>Received just now</span>
-//       </div>
-
-//       <div className="font-semibold text-[#3A8C98]">
-//         {order.items?.reduce((acc, item) => acc + item.Quantity, 0)} items
-//       </div>
-//     </div>
-//   </div>
-// ))}
-
-//           </div>
 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
 {orders.map((order, index) => (
   <div
@@ -507,3 +497,293 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
   //     return order;
   //   })
   // );
+  //   useEffect(() => {
+//   const onNewOrder = (data) => {
+//     setOrders((prev) => {
+//       const exists = prev.find(o => o.KOT_Id === data.KOT_Id);
+//       if (exists) return prev;
+//       return [...prev, data];
+//     });
+//   };
+
+//   const onOrderUpdated = (updated) => {
+//     setOrders((prev) =>
+//       prev.map((o) =>
+//         o.KOT_Id === updated.KOT_Id
+//           ? {
+//               ...o,
+//               items: updated.items,   // already category-safe
+//               Status: updated.Status ?? o.Status,
+//             }
+//           : o
+//       )
+//     );
+//   };
+
+//   const onOrderRemoved = ({ KOT_Id }) => {
+//     setOrders((prev) => prev.filter((o) => o.KOT_Id !== KOT_Id));
+//     toast.info(`Order ${KOT_Id} closed`);
+//   };
+
+//   socket.on("new_kitchen_order", onNewOrder);
+//   socket.on("kitchen_order_updated", onOrderUpdated);
+//   socket.on("kitchen_order_removed", onOrderRemoved);
+
+//   return () => {
+//     socket.off("new_kitchen_order", onNewOrder);
+//     socket.off("kitchen_order_updated", onOrderUpdated);
+//     socket.off("kitchen_order_removed", onOrderRemoved);
+//   };
+// }, []);
+
+  // useEffect(() => {
+  //   const onNewOrder = (data) => {
+  //     console.log("🔥 New Kitchen Order:", data);
+
+  //     setOrders((prev) => {
+  //       if (prev.some((o) => o.KOT_Id === data.KOT_Id)) return prev;
+  //       return [...prev, data];
+  //     });
+  //   };
+
+  //   const onOrderUpdated = (updated) => {
+  //     console.log("♻️ Kitchen Order Updated:", updated);
+
+  //     setOrders((prev) =>
+  //       prev.map((o) =>
+  //         o.KOT_Id === updated.KOT_Id
+  //           ? { ...o, items: updated.items, Status: updated.Status ?? o.Status }
+  //           : o
+  //       )
+  //     );
+  //   };
+
+  //   const onOrderRemoved = ({ KOT_Id }) => {
+  //     setOrders((prev) => prev.filter((o) => o.KOT_Id !== KOT_Id));
+  //     toast.info(`Order ${KOT_Id} closed — bill generated`);
+  //   };
+
+  //   socket.on("new_kitchen_order", onNewOrder);
+  //   socket.on("kitchen_order_updated", onOrderUpdated);
+  //   socket.on("kitchen_order_removed", onOrderRemoved);
+
+  //   return () => {
+  //     socket.off("new_kitchen_order", onNewOrder);
+  //     socket.off("kitchen_order_updated", onOrderUpdated);
+  //     socket.off("kitchen_order_removed", onOrderRemoved);
+  //   };
+  // }, []);
+
+  //           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+//            {orders.map((order, index) => (
+//   <div
+//     key={index}
+//     className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border-2 border-gray-100 overflow-hidden"
+//   >
+//     {/* ===== HEADER - THEME GRADIENT ===== */}
+//     <div className="bg-gradient-to-r from-[#4CA1AF] to-[#6CCBCD] text-white p-4">
+//       <div className="flex items-center justify-between mb-2">
+//         <div className="flex items-center gap-2">
+//           <Package className="w-5 h-5 text-white" />
+//           <span className="font-bold text-lg">KOT #{order.KOT_Id}</span>
+//         </div>
+
+//         <div
+//           className={`px-3 py-1 rounded-full text-xs font-semibold border-2 flex items-center gap-1 ${getStatusColor(
+//             order?.status
+//           )}`}
+//         >
+//           {getStatusIcon(order?.status)}
+//           {order.status}
+//         </div>
+//       </div>
+
+//       <div className="text-sm opacity-90">
+//         Order ID: <span className="font-semibold">{order.Order_Id}</span>
+//       </div>
+//     </div>
+
+//     {/* ===== BODY ===== */}
+//     <div className="p-5">
+//       <div className="mb-4">
+//         <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+//           <ChefHat className="w-4 h-4 text-[#4CA1AF]" />
+//           Order Items
+//         </h3>
+
+//         {/* ITEMS LIST */}
+//         <div className="space-y-2">
+//           {order.items.map((item, i) => (
+//             <div
+//               key={i}
+//               className="flex items-center justify-between bg-[#4CA1AF10] 
+//                          p-3 rounded-lg border border-[#4CA1AF33] 
+//                          hover:bg-[#4CA1AF15] transition-colors"
+//             >
+//               <div className="flex items-center gap-2">
+//                 <div className="w-2 h-2 bg-[#4CA1AF] rounded-full"></div>
+//                 <span className="font-medium text-gray-800">
+//                   {item.Item_Name}
+//                 </span>
+//               </div>
+
+//               <div className="bg-[#6CCBCD33] text-[#3A8C98] px-3 py-1 rounded-full text-sm font-bold">
+//                 × {item.Quantity}
+//               </div>
+//             </div>
+//           ))}
+//         </div>
+//       </div>
+
+//       {/* ===== ACTION BUTTONS ===== */}
+//       <div className="space-y-2 pt-4 border-t border-gray-200">
+//         <div className="grid grid-cols-2 gap-2">
+//           {/* PREPARING */}
+//           <button
+//             onClick={() => updateOrderStatus(index, "preparing")}
+//             className="bg-[#4CA1AF] hover:bg-[#3A8C98] text-white px-4 py-2 
+//                        rounded-lg font-semibold text-sm transition-colors 
+//                        flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+//           >
+//             <Flame className="w-4 h-4" />
+//             Start Cooking
+//           </button>
+
+//           {/* READY */}
+//           <button
+//             onClick={() => updateOrderStatus(index, "ready")}
+//             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 
+//                        rounded-lg font-semibold text-sm transition-colors 
+//                        flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+//           >
+//             <CheckCircle className="w-4 h-4" />
+//             Mark Ready
+//           </button>
+//         </div>
+
+//         {/* COMPLETE ORDER */}
+//         {/* <button
+//           onClick={() => updateOrderStatus(index, "completed")}
+//           className="w-full bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 
+//                      rounded-lg font-semibold text-sm transition-colors 
+//                      shadow-md hover:shadow-lg"
+//         >
+//           Complete Order
+//         </button> */}
+//       </div>
+//     </div>
+
+//     {/* ===== FOOTER ===== */}
+//     <div className="bg-[#4CA1AF10] px-5 py-3 flex items-center justify-between 
+//                     text-xs text-gray-600 border-t border-[#4CA1AF22]">
+//       <div className="flex items-center gap-1">
+//         <Clock className="w-3 h-3 text-[#4CA1AF]" />
+//         <span>Received just now</span>
+//       </div>
+
+//       <div className="font-semibold text-[#3A8C98]">
+//         {order.items?.reduce((acc, item) => acc + item.Quantity, 0)} items
+//       </div>
+//     </div>
+//   </div>
+// ))}
+
+//           </div>
+  /* ---------------- LOAD INITIAL ORDERS (API) ---------------- */
+  // useEffect(() => {
+  //   if (Array.isArray(kitchenOrders?.orders)) {
+  //     setOrders((prev) => {
+  //       const existingIds = new Set(prev.map((o) => o.KOT_Id));
+
+  //       const pendingFromApi = kitchenOrders.orders.filter(
+  //         (o) => o.Status === "pending" && !existingIds.has(o.KOT_Id)
+  //       );
+
+  //       return [...prev, ...pendingFromApi];
+  //     });
+  //   }
+  // }, [kitchenOrders]);
+// useEffect(() => {
+//   if (!Array.isArray(kitchenOrders?.orders)) return;
+
+//   // API already category-filtered ✅
+//   const pendingOrders = kitchenOrders.orders.filter(
+//     (o) => o.Status === "pending"
+//   );
+
+//   setOrders(pendingOrders);
+// }, [kitchenOrders]);
+//     const[updateKitchenItemStatus]=useUpdateKitchenItemStatusMutation()
+
+
+//   useEffect(() => {
+//     if (user?.role === "kitchen-staff" && Array.isArray(user.categories)) {
+//       socket.emit("join_kitchen_categories", user.categories);
+//       console.log("🍳 Joined categories:", user.categories);
+//     }
+
+//     return () => {
+//       if (user?.categories) {
+//         socket.emit("leave_kitchen_categories", user.categories);
+//       }
+//     };
+//   }, [user]);
+
+//     useEffect(() => {
+//   if (Array.isArray(kitchenOrders?.orders)) {
+//     const pendingOrders = kitchenOrders.orders.filter(
+//       (order) => order.Status === "pending"
+//     );
+//     setOrders(pendingOrders);
+//   }
+// }, [kitchenOrders]);
+
+
+// useEffect(() => {
+//   console.log("📡 Connected to kitchen socket:", socket.id);
+
+//   // 🔥 NEW ORDER RECEIVED
+//   socket.on("new_kitchen_order", (data) => {
+//     console.log("🔥 New Order Received in Kitchen:", data);
+
+//     setOrders((prev) => {
+//       // Prevent duplicates
+//       if (prev.some((o) => o.KOT_Id === data.KOT_Id)) return prev;
+//       return [...prev, data];
+//     });
+//   });
+
+
+//   socket.on("kitchen_order_updated", (updated) => {
+//   console.log("♻️ Kitchen Order Updated:", updated);
+
+//   setOrders((prev) =>
+//     prev.map((o) =>
+//       o.KOT_Id === updated.KOT_Id
+//         ? {
+//             ...o,
+//             items: updated.items,
+//             Status: updated.Status ?? o.Status, // keep correct status
+//           }
+//         : o
+//     )
+//   );
+// });
+
+
+//   return () => {
+//     socket.off("new_kitchen_order");
+//     socket.off("kitchen_order_updated");
+//   };
+// }, []);
+// useEffect(() => {
+//   socket.on("kitchen_order_removed", ({ KOT_Id }) => {
+//     setOrders((prev) => prev.filter(o => o.KOT_Id !== KOT_Id));
+
+//     toast.info(`Order ${KOT_Id} closed — bill generated`);
+//   });
+
+//   return () => socket.off("kitchen_order_removed");
+// }, []);
+
+//   console.log("Kitchen Orders:", orders);

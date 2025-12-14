@@ -53,7 +53,31 @@ if (activeSessions[0].cnt > 1) {
     .json({ success: false, message: "You are already logged in on another device. Please log out there to continue." });
 }
     // ✅ Attach user details to request
-    req.user = results[0];
+     let categories = [];
+
+    if (results[0].role === "kitchen-staff") {
+      const [rows] = await db.query(
+        `SELECT Category_Names
+         FROM kitchen_staff_categories
+         WHERE User_Id = ?`,
+        [results[0].User_Id]
+      );
+
+      categories = rows.flatMap(r =>
+        r.Category_Names
+          ?.split(",")
+          .map(c => c.trim())
+      );
+    }
+
+    req.user = {
+      User_Id: results[0].User_Id,
+      name: results[0].name,
+      email: results[0].email,
+      username: results[0].username,
+      role: results[0].role,
+      categories
+    };
     console.log(
       `✅ Authenticated user: ${req.user.username} (${req.user.User_Id}) | Role: ${req.user.role}`
     );

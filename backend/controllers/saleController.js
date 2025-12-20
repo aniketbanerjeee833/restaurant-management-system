@@ -2722,20 +2722,20 @@ const getTotalSalesEachDay = async (req, res, next) => {
   try {
     connection = await db.getConnection();
 
-    // 1️⃣ Get active financial year
-    // const [fy] = await connection.query(
-    //   `SELECT Financial_Year 
-    //    FROM financial_year 
-    //    WHERE Current_Financial_Year = 1
-    //    LIMIT 1`
-    // );
+    //1️⃣ Get active financial year
+    const [fy] = await connection.query(
+      `SELECT Financial_Year 
+       FROM financial_year 
+       WHERE Current_Financial_Year = 1
+       LIMIT 1`
+    );
 
-    // if (!fy.length) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "No active financial year found.",
-    //   });
-    // }
+    if (!fy.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No active financial year found.",
+      });
+    }
 
     const activeFY = fy[0].Financial_Year;
 

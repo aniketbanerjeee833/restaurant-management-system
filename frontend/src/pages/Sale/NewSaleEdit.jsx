@@ -689,7 +689,7 @@ console.log(itemsValues,"itemsValues");
                                                 style={{
                                                     outline: "none",
                                                     boxShadow: "none",
-                                                    backgroundColor: "#4CA1AF"
+                                                    backgroundColor: "#ff0000"
                                                  
                                                 }}
                                                 className=" text-white px-4 py-2 rounded-md"
@@ -728,7 +728,7 @@ console.log(itemsValues,"itemsValues");
         type="button"
         onClick={() => navigate("/home")}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         Back
       </button>
@@ -737,7 +737,7 @@ console.log(itemsValues,"itemsValues");
         type="button"
         onClick={() => navigate("/sale/all-new-sales")}
         className="text-white py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         All Sales
       </button>
@@ -821,7 +821,7 @@ console.log(itemsValues,"itemsValues");
     <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
       <span
         onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
       >
         + Add Party
       </span>
@@ -1597,7 +1597,7 @@ handleRowChange(i,"CategoryOpen",false);
         type="button"
         onClick={handleAddRow}
        className=" text-white font-bold py-2 px-4 w-1/2 rounded "
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         + Add Row
       </button>
@@ -1764,7 +1764,7 @@ handleRowChange(i,"CategoryOpen",false);
                 
                     onClick={() => navigate("/sale/all-new-sales")}
                     className=" text-white font-bold py-2 px-4 rounded"
-                    style={{ backgroundColor: "#4CA1AF" }}
+                    style={{ backgroundColor: "#ff0000" }}
                   >
                     Cancel
                   </button>
@@ -1772,7 +1772,7 @@ handleRowChange(i,"CategoryOpen",false);
                     type="submit"
                     disabled={formValues.errorCount > 0 ||isEditingSale}
                     className=" text-white font-bold py-2 px-4 rounded"
-                    style={{ backgroundColor: "#4CA1AF" }}
+                    style={{ backgroundColor: "#ff0000" }}
                   >
                      {isEditingSale ? "Updating..." : "Update Sale"}
                   </button>

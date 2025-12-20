@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { orderApi, useNextInvoiceNumberQuery, useTakeawayAddOrdersAndGenerateInvoicesMutation } from "../../redux/api/Staff/orderApi";
+import { useGenerateSmsForTakeawayMutation,  useNextInvoiceNumberQuery, useTakeawayAddOrdersAndGenerateInvoicesMutation } from "../../redux/api/Staff/orderApi";
 import { toast } from "react-toastify";
 
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+
+import { kitchenStaffApi } from "../../redux/api/KitchenStaff/kitchenStaffApi";
 
 
 
@@ -18,7 +20,7 @@ export default function OrderTakeawayModal({ onClose, orderDetails }) {
         {isLoading:istakeawayAddOrdersAndGenerateInvoicesLoading}] = useTakeawayAddOrdersAndGenerateInvoicesMutation();
     const dispatch=useDispatch();
     const navigate=useNavigate();
-
+const [generateSmsForTakeaway, { isLoading:isGenerateSmsLoading }] = useGenerateSmsForTakeawayMutation();
         // const[customerDetails,setCustomerDetails]=useState({})
     
 
@@ -69,252 +71,741 @@ const calculateGrandTotal = () => {
         Customer_Phone: orderDetails?.Customer_Phone ,
       }));
     }, [orderDetails]);
-const handleConfirmBillAndGenerateInvoice = async () => {
-  try {
-    //const finalAmount = calculateGrandTotal();
+// const handleConfirmBillAndGenerateInvoice = async () => {
+//   try {
 
-    // const payload = {
-    //   Customer_Name: invoiceDetails.Customer_Name,
-    //   Customer_Phone: invoiceDetails.Customer_Phone,
-    //   Discount: invoiceDetails.Discount,
-    //   Discount_Type: invoiceDetails.Discount_Type ?? "percentage",
-      
-    //   Payment_Type: invoiceDetails.Payment_Type,
-    //   Final_Amount: invoiceDetails.Final_Amount,
-    //   items:orderDetails?.items
-    // };
-const payload = {
-      userId: user?.User_Id,
+// const payload = {
+//       userId: user?.User_Id,
+//       items: orderDetails?.items,
+//       Sub_Total: orderDetails?.Sub_Total,
+//       Amount: orderDetails?.Sub_Total,      // You can modify if tax applied
+//       Final_Amount: invoiceDetails?.Final_Amount,
+
+//       Customer_Name: invoiceDetails.Customer_Name,
+//       Customer_Phone: invoiceDetails.Customer_Phone,
+//       Discount: invoiceDetails.Discount,
+//       Discount_Type: invoiceDetails.Discount_Type,
+//       Payment_Type: invoiceDetails.Payment_Type,
+//     };
+//     console.log(payload,"payload");
+//     await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
+
+//     toast.success("Invoice Generated & Bill Paid!");
+//     dispatch(orderApi.util.invalidateTags(["Order"]));
+//     printInvoiceWindow();
+//     navigate("/staff/orders/all-orders")
+//     onClose();
+//   } catch (error) {
+//     console.error("❌ Error confirming bill and generating invoice:", error);
+//     toast.error(error?.data?.message || "Failed to process payment");
+//   }
+// };
+const handleShareSMS = async () => {
+  try {
+    const payload = {
+            userId: user?.User_Id,
       items: orderDetails?.items,
       Sub_Total: orderDetails?.Sub_Total,
-      Amount: orderDetails?.Sub_Total,      // You can modify if tax applied
+      Amount: orderDetails?.Sub_Total,
       Final_Amount: invoiceDetails?.Final_Amount,
-
       Customer_Name: invoiceDetails.Customer_Name,
       Customer_Phone: invoiceDetails.Customer_Phone,
       Discount: invoiceDetails.Discount,
       Discount_Type: invoiceDetails.Discount_Type,
       Payment_Type: invoiceDetails.Payment_Type,
+      // Customer_Name: invoiceDetails?.Customer_Name,
+      // Customer_Phone: invoiceDetails?.Customer_Phone,
+      // Discount_Type: invoiceDetails?.Discount_Type,
+      // Discount: invoiceDetails?.Discount,
+      // Service_Charge: invoiceDetails?.Service_Charge,
+      // Payment_Type: invoiceDetails?.Payment_Type,
+      // Final_Amount: invoiceDetails?.Final_Amount,
     };
     console.log(payload,"payload");
-    await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
 
-    toast.success("Invoice Generated & Bill Paid!");
-    dispatch(orderApi.util.invalidateTags(["Order"]));
-    printInvoiceWindow();
-    navigate("/staff/orders/all-orders")
+     const response=await generateSmsForTakeaway({
+     
+      payload,
+    }).unwrap();
+
+    toast.success("📩 Bill sent via SMS successfully");
+    console.log(response,"response");
+    //    if (response?.success === true) {
+    //   toast.success("📩 Bill sent via SMS successfully");
+    // }
+     
+    dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
     onClose();
-  } catch (error) {
-    console.error("❌ Error confirming bill and generating invoice:", error);
-    toast.error(error?.data?.message || "Failed to process payment");
+  navigate("/staff/orders/all-orders");
+  } catch (err) {
+    console.error(err);
+    toast.error(err?.data?.message || "Failed to send SMS");
   }
 };
- const printInvoiceWindow = () => {
-// Format: DD/MM/YYYY
-const getCurrentDate = () => {
-  return new Date().toLocaleDateString("en-GB");
+// const handleConfirmBillAndGenerateInvoice = async () => {
+//   // ✅ MUST OPEN FIRST — browser rule
+//   const printWindow = window.open("", "_blank", "width=320,height=600");
+
+//   if (!printWindow) {
+//     toast.error("Please allow pop-ups to print invoice");
+//     return;
+//   }
+
+//   try {
+//     const payload = {
+//       userId: user?.User_Id,
+//       items: orderDetails?.items,
+//       Sub_Total: orderDetails?.Sub_Total,
+//       Amount: orderDetails?.Sub_Total,
+//       Final_Amount: invoiceDetails?.Final_Amount,
+//       Customer_Name: invoiceDetails.Customer_Name,
+//       Customer_Phone: invoiceDetails.Customer_Phone,
+//       Discount: invoiceDetails.Discount,
+//       Discount_Type: invoiceDetails.Discount_Type,
+//       Payment_Type: invoiceDetails.Payment_Type,
+//     };
+
+//     await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
+
+//     toast.success("Invoice Generated & Bill Paid!");
+//     dispatch(orderApi.util.invalidateTags(["Order"]));
+
+//     // ✅ Now render into already-opened window
+//     // renderInvoiceHTML(printWindow);
+//    renderInvoiceHTML(printWindow);
+
+//     // ✅ WAIT for DOM paint
+//     setTimeout(() => {
+//       printWindow.focus();
+//       printWindow.print();
+//     }, 500);
+
+//     // ✅ navigate AFTER print
+//     setTimeout(() => {
+//       onClose();
+//       navigate("/staff/orders/all-orders");
+//     }, 1000);
+//     navigate("/staff/orders/all-orders");
+//     onClose();
+
+//   } catch (error) {
+//     onClose();
+//     console.error(error);
+//     toast.error(error?.data?.message || "Failed to generate invoice");
+//   }
+// };
+
+const handleConfirmBillAndGenerateInvoice = async () => {
+  // const printWindow = window.open("", "_blank", "width=320,height=600");
+
+  // if (!printWindow) {
+  //   toast.error("Please allow pop-ups to print invoice");
+  //   return;
+  // }
+
+  try {
+    const payload = {
+      userId: user?.User_Id,
+      items: orderDetails?.items,
+      Sub_Total: orderDetails?.Sub_Total,
+      Final_Amount: invoiceDetails?.Final_Amount,
+      Customer_Name: invoiceDetails?.Customer_Name,
+      Customer_Phone: invoiceDetails?.Customer_Phone,
+      Discount: invoiceDetails?.Discount,
+      Discount_Type: invoiceDetails?.Discount_Type,
+      Payment_Type: invoiceDetails?.Payment_Type,
+    };
+
+    await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
+
+    // renderInvoiceHTML(printWindow);
+    printInvoiceWindow();
+    onClose();
+    navigate("/staff/orders/all-orders");
+
+  } catch (err) {
+   
+    toast.error("Failed to generate invoice");
+  }
 };
 
-// Format: HH:MM AM/PM (no seconds)
-const getCurrentTime = () => {
-  return new Date().toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-};
+
+//  const renderInvoiceHTML = (w) => {
+//   const getCurrentDate = () => new Date().toLocaleDateString("en-GB");
+//   const getCurrentTime = () =>
+//     new Date().toLocaleTimeString("en-US", {
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       hour12: true,
+//     });
+
+//   const total = calculateGrandTotal();
+
+// const html = `
+//     <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+//         <meta charset="UTF-8">
+//         <style>
+//           * {
+//             margin: 0;
+//             padding: 0;
+//             box-sizing: border-box;
+//           }
+          
+//           body { 
+//             font-family: 'Courier New', Courier, monospace;
+//             font-size: 11px;
+//             line-height: 1.3;
+//             color: #000;
+//             width: 2.5in;
+//             margin: 0 auto;
+//             padding: 0;
+//           }
+          
+//           .invoice {
+//             width: 2.5in;
+//             padding: 8px;
+//           }
+
+//           /* CENTER HEADER */
+//           .header-center { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+          
+//           .logo { 
+//             width: 60px; 
+//             height: auto; 
+//             margin-bottom: 4px;
+//             background-color: black;
+//           }
+          
+//           .brand { 
+//             font-size: 16px; 
+//             font-weight: bold; 
+//             text-transform: uppercase;
+//             letter-spacing: 1px;
+//             margin-bottom: 2px;
+//           }
+          
+//           .line { 
+//             border-top: 1px dashed #000; 
+//             margin: 6px 0;
+//           }
+          
+//           .line-solid {
+//             border-top: 1px solid #000;
+//             margin: 6px 0;
+//           }
+
+//           /* INFO SECTION */
+//           .info-row {
+//             display: flex;
+//             justify-content: space-between;
+//             margin: 2px 0;
+//             font-size: 10px;
+//           }
+          
+//           .info-label {
+//             font-weight: bold;
+//           }
+
+//           /* ITEMS TABLE */
+//           .items-header {
+//             display: flex;
+//             justify-content: space-between;
+//             font-weight: bold;
+//             border-bottom: 1px solid #000;
+//             padding: 4px 0;
+//             font-size: 10px;
+//           }
+          
+//           .item-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//             border-bottom: 1px dashed #ddd;
+//             font-size: 10px;
+//           }
+          
+//           .item-name {
+//             flex: 1;
+//             padding-right: 8px;
+//             word-wrap: break-word;
+//           }
+          
+//           .item-qty {
+//             width: 30px;
+//             text-align: center;
+//           }
+          
+//           .item-price {
+//             width: 50px;
+//             text-align: right;
+//           }
+          
+//           .item-amount {
+//             width: 55px;
+//             text-align: right;
+//             font-weight: bold;
+//           }
+
+//           /* SUMMARY */
+//           .summary {
+//             margin-top: 8px;
+//             font-size: 11px;
+//           }
+          
+//           .summary-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//           }
+          
+//           .summary-row.total {
+//             font-size: 13px;
+//             font-weight: bold;
+//             border-top: 1px solid #000;
+//             border-bottom: 2px solid #000;
+//             margin-top: 4px;
+//             padding: 5px 0;
+//           }
+
+//           /* FOOTER */
+//           .footer {
+//             text-align: center;
+//             margin-top: 10px;
+//             padding-top: 8px;
+//             border-top: 1px dashed #000;
+//             font-size: 10px;
+//           }
+          
+//           .footer-title {
+//             font-weight: bold;
+//             margin-bottom: 4px;
+//             font-size: 11px;
+//           }
+
+//           /* PRINT STYLES */
+//           @media print {
+//             body {
+//               width: 2.5in;
+//               margin: 0;
+//               padding: 0;
+//             }
+            
+//             .invoice {
+//               width: 2.5in;
+//               padding: 8px;
+//             }
+            
+//             @page {
+//               size: 2.5in auto;
+//               margin: 0;
+//             }
+            
+//             .no-print {
+//               display: none !important;
+//             }
+//           }
+//         </style>
+//       </head>
+//       <body>
+//         <div class="invoice">
+
+//           <!-- HEADER -->
+//           <div class="header-center">
+//             <img  src="${"http://localhost:5173"}/assets/images/restaurant-logo.png" 
+//              class="logo" alt="Logo" />
+//             <div class="brand">HELLO GUYS</div>
+//           </div>
+
+//           <!-- CUSTOMER INFO -->
+//           <div class="info-row">
+//             <span><span class="info-label">Customer:</span> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</span>
+//           </div>
+//           ${invoiceDetails?.Customer_Phone ? `
+//           <div class="info-row">
+//             <span><span class="info-label">Phone:</span> ${invoiceDetails.Customer_Phone}</span>
+//           </div>
+//           ` : ''}
+          
+//           <div class="line"></div>
+
+//           <!-- DATE & TIME -->
+//           <div class="info-row">
+//             <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+//             <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+//           </div>
+//           <div class="info-row">
+//             <span><span class="info-label">Invoice:</span> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</span>
+//           </div>
+
+//           <div class="line-solid"></div>
+
+//           <!-- ITEMS HEADER -->
+//           <div class="items-header">
+//             <div style="width: 30px;">#</div>
+//             <div class="item-name">ITEM</div>
+//             <div class="item-qty">QTY</div>
+//             <div class="item-amount">AMOUNT</div>
+//           </div>
+
+//           <!-- ITEMS LIST -->
+//           ${
+//             (orderDetails?.items || []).map((it, i) => `
+//               <div class="item-row">
+//                 <div style="width: 30px;">${i + 1}</div>
+//                 <div class="item-name">${it.Item_Name ?? "-"}</div>
+//                 <div class="item-qty">${it.Item_Quantity ?? 1}</div>
+//                 <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
+//               </div>
+//             `).join("")
+//           }
+
+//           <div class="line-solid"></div>
+
+//           <!-- SUMMARY -->
+//           <div class="summary">
+//             <div class="summary-row">
+//               <span>Subtotal</span>
+//               <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
+//             </div>
+//             ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
+//             <div class="summary-row">
+//               <span>Service Charge</span>
+//               <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
+//             </div>
+//             ` : ''}
+//             ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
+//             <div class="summary-row">
+//               <span>Discount</span>
+//               <span>${
+//                 invoiceDetails.Discount_Type === "percentage"
+//                   ? `${invoiceDetails.Discount}%`
+//                   : `₹${invoiceDetails.Discount}`
+//               }</span>
+//             </div>
+//             ` : ''}
+//             <div class="summary-row total">
+//               <span>TOTAL</span>
+//               <span>₹${Number(total).toFixed(2)}</span>
+//             </div>
+//           </div>
+
+//           <!-- FOOTER -->
+//           <div class="footer">
+//             <div class="footer-title">THANK YOU!</div>
+//             <div>Please Visit Again</div>
+//           </div>
+
+//         </div>
+//       </body>
+//     </html>
+//   `;
+
+//   w.document.open();
+//   w.document.write(html);
+//   w.document.close();
+// };
+
+const printInvoiceWindow = () => {
+  const getCurrentDate = () =>
+    new Date().toLocaleDateString("en-GB");
+
+  const getCurrentTime = () =>
+    new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
 
   const total = calculateGrandTotal();
 
-  const html = `
+const html = `
+    <!DOCTYPE html>
     <html>
       <head>
         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="UTF-8">
         <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; 
-            color:#111; margin:0; padding:12px;
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
           }
-          .invoice { max-width: 700px; margin: 0 auto; }
+          
+          body { 
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            line-height: 1.3;
+            color: #000;
+            width: 2.5in;
+            margin: 0 auto;
+            padding: 0;
+          }
+          
+          .invoice {
+            width: 2.5in;
+            padding: 8px;
+          }
 
           /* CENTER HEADER */
-          .header-center { text-align:center; margin-bottom:10px; }
-          .logo { width:80px; height:auto; margin-bottom:6px; }
-          .brand { font-size:22px; font-weight:700; letter-spacing:0.5px; }
-          .line { border-top:1px solid #ddd; margin:10px 0; }
+          .header-center { 
+            text-align: center; 
+            margin-bottom: 8px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 8px;
+          }
+          
+          .logo { 
+            width: 60px; 
+            height: auto; 
+            margin-bottom: 4px;
+            padding: 5px;
+            background-color: black;
+          }
+          
+          .brand { 
+            font-size: 16px; 
+            font-weight: bold; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+          }
+          
+          .line { 
+            border-top: 1px dashed #000; 
+            margin: 6px 0;
+          }
+          
+          .line-solid {
+            border-top: 1px solid #000;
+            margin: 6px 0;
+          }
 
-          /* CUSTOMER + DATE ROW */
-          .top-info { display:flex; justify-content:space-between; margin: 8px 0; }
-          .left, .right { font-size:14px; }
-          .right { text-align:right; }
+          /* INFO SECTION */
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            font-size: 10px;
+          }
+          
+          .info-label {
+            font-weight: bold;
+          }
 
           /* ITEMS TABLE */
-          table { width:100%; border-collapse:collapse; margin-top:10px; }
-          th, td { padding:8px 6px; border:1px solid #e5e5e5; font-size:14px; }
-          th { background:#f2f2f2; text-align:left; font-weight:600; }
-          .text-right { text-align:right; }
-
-          /* SUMMARY BOX */
-          .summary { 
-            width:100%;
-            display:flex;
-            justify-content:center;
-            align-items:center; 
-            
+          .items-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            padding: 4px 0;
+            font-size: 10px;
           }
-            .center {
-               width:100%;
-            display:flex;
-            flex-direction:column;
-            justify-content:center;
-            align-items:center; 
-            }
-          .summary table td { padding:6px; font-size:14px; }
-          .total { font-size:17px; font-weight:700; }
+          
+          .item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px dashed #ddd;
+            font-size: 10px;
+          }
+          
+          .item-name {
+            flex: 1;
+            padding-right: 8px;
+            word-wrap: break-word;
+          }
+          
+          .item-qty {
+            width: 30px;
+            text-align: center;
+          }
+          
+          .item-price {
+            width: 50px;
+            text-align: right;
+          }
+          
+          .item-amount {
+            width: 55px;
+            text-align: right;
+            font-weight: bold;
+          }
 
-          /* PRINT MODE */
+          /* SUMMARY */
+          .summary {
+            margin-top: 8px;
+            font-size: 11px;
+          }
+          
+          .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+          }
+          
+          .summary-row.total {
+            font-size: 13px;
+            font-weight: bold;
+            border-top: 1px solid #000;
+            border-bottom: 2px solid #000;
+            margin-top: 4px;
+            padding: 5px 0;
+          }
+
+          /* FOOTER */
+          .footer {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed #000;
+            font-size: 10px;
+          }
+          
+          .footer-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 11px;
+          }
+
+          /* PRINT STYLES */
           @media print {
-            body { padding: 6mm; }
-            @page { size: auto; margin: 6mm; }
+            body {
+              width: 2.5in;
+              margin: 0;
+              padding: 0;
+            }
+            
+            .invoice {
+              width: 2.5in;
+              padding: 8px;
+            }
+            
+            @page {
+              size: 2.5in auto;
+              margin: 0;
+            }
+            
+            .no-print {
+              display: none !important;
+            }
           }
         </style>
       </head>
       <body>
         <div class="invoice">
 
-          <!-- ===== TOP CENTER LOGO & NAME ===== -->
+          <!-- HEADER -->
           <div class="header-center">
-            <img src="/logo.png" class="logo" />
-            <div class="brand">${invoiceDetails?.Store_Name ?? "Restaurant"}</div>
+            <img  src="${"http://localhost:5173"}/assets/images/restaurant-logo.png" 
+             class="logo" alt="Logo" />
+            <div class="brand">HELLO GUYS</div>
           </div>
 
+          <!-- CUSTOMER INFO -->
+          <div class="info-row">
+            <span><span class="info-label">Customer:</span> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</span>
+          </div>
+          ${invoiceDetails?.Customer_Phone ? `
+          <div class="info-row">
+            <span><span class="info-label">Phone:</span> ${invoiceDetails.Customer_Phone}</span>
+          </div>
+          ` : ''}
+          
           <div class="line"></div>
 
-          <!-- ===== CUSTOMER + DATE BLOCK ===== -->
-          <div class="top-info">
-            <div class="left">
-              <div><strong>Customer:</strong> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</div>
-              <div><strong>Phone:</strong> ${invoiceDetails?.Customer_Phone ?? "-"}</div>
-            </div>
-
-    <div class="right">
-  <div><strong>Date:</strong> ${getCurrentDate()}</div>
-  <div><strong>Time:</strong> ${getCurrentTime()}</div>
-  <div><strong>Invoice No:</strong> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</div>
-</div>
-
-
+          <!-- DATE & TIME -->
+          <div class="info-row">
+            <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+            <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+          </div>
+          <div class="info-row">
+            <span><span class="info-label">Invoice:</span> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</span>
           </div>
 
-          <div class="line"></div>
+          <div class="line-solid"></div>
 
-          <!-- ===== ITEMS TABLE ===== -->
-          <table>
-            <thead>
-              <tr>
-                <th style="width:8%;">Sl.No</th>
-                <th style="width:48%;">Item</th>
-                <th style="width:14%;">Qty</th>
-                <th style="width:15%;">Price</th>
-                <th style="width:15%;" class="text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${
-                (orderDetails?.items || []).map((it, i) => `
-                  <tr>
-                    <td>${i + 1}</td>
-                    <td>${it.Item_Name ??  "-"}</td>
-                    <td>${it.Item_Quantity  ?? 1}</td>
-                    <td>${Number(it.Amount??  0).toFixed(2)}</td>
-                    <td class="text-right">${Number(it.Amount ?? 0).toFixed(2)}</td>
-                  </tr>
-                `).join("")
-              }
-            </tbody>
-          </table>
+          <!-- ITEMS HEADER -->
+          <div class="items-header">
+            <div style="width: 30px;">#</div>
+            <div class="item-name">ITEM</div>
+            <div class="item-qty">QTY</div>
+            <div class="item-amount">AMOUNT</div>
+          </div>
 
-          <!-- ===== SUMMARY (CENTERED) ===== -->
+          <!-- ITEMS LIST -->
+          ${
+            (orderDetails?.items || []).map((it, i) => `
+              <div class="item-row">
+                <div style="width: 30px;">${i + 1}</div>
+                <div class="item-name">${it.Item_Name ?? "-"}</div>
+                <div class="item-qty">${it.Item_Quantity ?? 1}</div>
+                <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
+              </div>
+            `).join("")
+          }
+
+          <div class="line-solid"></div>
+
+          <!-- SUMMARY -->
           <div class="summary">
-            <table style="width:100%;">
-              <tr>
-                <td>Subtotal</td>
-                <td class="text-right">₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td>Service Charge</td>
-                <td class="text-right">₹${Number(invoiceDetails?.Service_Charge ?? 0).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td>Discount</td>
-                <td class="text-right">
-                  ${
-                    invoiceDetails?.Discount_Type === "percentage"
-                      ? `${invoiceDetails.Discount}%`
-                      : `₹${invoiceDetails.Discount ?? 0}`
-                  }
-                </td>
-              </tr>
-              <tr>
-                <td class="total">Total</td>
-                <td class="text-right total">₹${Number(total).toFixed(2)}</td>
-              </tr>
-            </table>
+            <div class="summary-row">
+              <span>Subtotal</span>
+              <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
+            </div>
+            ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
+            <div class="summary-row">
+              <span>Service Charge</span>
+              <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
+            </div>
+            ` : ''}
+            ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
+            <div class="summary-row">
+              <span>Discount</span>
+              <span>${
+                invoiceDetails.Discount_Type === "percentage"
+                  ? `${invoiceDetails.Discount}%`
+                  : `₹${invoiceDetails.Discount}`
+              }</span>
+            </div>
+            ` : ''}
+            <div class="summary-row total">
+              <span>TOTAL</span>
+              <span>₹${Number(total).toFixed(2)}</span>
+            </div>
           </div>
 
-          <div class="line"></div>
-          <div class="center muted">
-          <h4>Terms & Conditions</h4>
-          <span>Thank you. Please Visit again.</span>
+          <!-- FOOTER -->
+          <div class="footer">
+            <div class="footer-title">THANK YOU!</div>
+            <div>Please Visit Again</div>
           </div>
 
         </div>
       </body>
     </html>
   `;
+  const w = window.open("", "_blank", "width=320,height=600");
 
-  const w = window.open(
-  "",
-  "_blank",
-  `toolbar=0,location=0,menubar=0,
-   width=${window.screen.availWidth},
-   height=${window.screen.availHeight},
-   left=0,top=0`
-);
+  if (!w) {
+    alert("Please allow pop-ups to print the invoice.");
+    return;
+  }
 
-if (!w) return alert("Allow pop-ups to print the invoice.");
+  w.document.write(html);
+  w.document.close();
+};
 
-w.document.write(html);
 
-// Add Print Button inside the new window
-w.document.write(`
-  <button onclick="window.print()" 
-    style="position:fixed;top:10px;right:10px;padding:8px 12px;
-            background:#4CA1AF;color:white;border:none;border-radius:4px;
-           font-size:14px;cursor:pointer;z-index:9999;">
-      Print
-  </button>
-`);
-
-w.document.close();
- }
-
-//   const w = window.open(
-//   "",
-//   "_blank",
-//   `toolbar=0,location=0,menubar=0,
-//    width=${window.screen.availWidth},
-//    height=${window.screen.availHeight},
-//    left=0,top=0`
-// );
-//   if (!w) return alert("Allow pop-ups to print the invoice.");
-//   w.document.write(html);
-//   w.document.close();
-
-//   setTimeout(() => { w.print(); }, 300);
 // };
-
   return (
  <div
   style={{
@@ -494,51 +985,7 @@ className="input-field col s6 flex flex-col gap-1">
   </div>
 </div>
 
-{/* 
-  <div  style={{width:"100%",marginTop:"16px"}}
-  className="input-field col s6 ">
-      <span className="active">
-          Service Charge
-          
-      </span>
 
-      <input
-  type="text"
-  id="Service_Charge"
-  value={invoiceDetails?.Service_Charge}
-//   value={dailyExpense?.Amount}
-   onChange={(e) => {
-    
-      let val = e.target.value;
-
-  // ✅ allow digits and one dot
-  val = val.replace(/[^0-9.]/g, "");
-
-  // ✅ if more than one dot, keep only the first
-  const parts = val.split(".");
-  if (parts.length > 2) {
-    val = parts[0] + "." + parts.slice(1).join(""); // collapse extra dots
-  }
-
-  // ✅ limit to 2 decimal places
-  if (val.includes(".")) {
-    const [int, dec] = val.split(".");
-    val = int + "." + dec.slice(0, 2);
-  }
-
-  e.target.value = val;
-
-      setInvoiceDetails({ ...invoiceDetails, Service_Charge: val }); // update parent state
-    
-  }}
-  placeholder="0.00"
-  className="w-full outline-none border-b-2 text-gray-900"
-//  
-/>
-
-      
-     
-  </div> */}
   
 
     
@@ -580,21 +1027,12 @@ className="input-field col s6 flex flex-col gap-1">
                  
   
                    <div className="flex justify-end mt-4 gap-4">
-                       {/* <button
-                      type="button"
-    //               onClick={handleSave}
-    //   disabled={isLoading}
-                      className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
-                    >
-                        Next 
-                       
-                    </button> */}
+    
                     <button
   type="button"
   onClick={() => setActiveTab("Invoice Details")}
   className="text-white font-bold py-2 px-4 rounded"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "#ff0000" }}
 >
   Next
 </button>
@@ -603,66 +1041,13 @@ className="input-field col s6 flex flex-col gap-1">
                       type="button"
                       
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       Print
                     </button>  */}
                   </div> 
     </div>} 
-    {/* {activeTab === "Invoice Details" && (
-  <div className="flex flex-col">
-
-        <div className="flex justify-center items-center">
-    <h4 className="text-xl flex font-bold mb-4 mt-4 ">Invoice Preview</h4>
-    </div>
-
-    <div className="border p-4 flex flex-col rounded bg-gray-50 items-center justify-center">
-
-      <p><strong>Customer:</strong> {invoiceDetails.Customer_Name}</p>
-      <p><strong>Phone:</strong> {invoiceDetails.Customer_Phone}</p>
-
-      <hr className="my-3" />
-
-      <p><strong>Subtotal:</strong> ₹{invoiceDetails.Sub_Total}</p>
-      {/* <p><strong>Tax:</strong> ₹{invoiceDetails.Tax_Amount}</p> 
-      {/* <p><strong>Service Charge:</strong> ₹{invoiceDetails?.Service_Charge}</p> 
-      <p><strong>Discount:</strong> {invoiceDetails.Discount_Type === "percentage"
-          ? `${invoiceDetails.Discount}%`
-          : `₹${invoiceDetails.Discount}`}</p>
-
-      {/* Calculate Grand Total dynamically 
-      <p className="text-xl font-bold mt-3">
-        Total: ₹{calculateGrandTotal()}
-      </p>
-
-      <hr className="my-4" />
-
-        <div className="flex ">
-      {/* <button
-      type="button"
-      disabled
-      
-        // onClick={() => setActiveTab()}
-        className="px-4 py-2 bg-gray-300 rounded mr-2"
-      >
-       Close
-      </button> 
-
-      <button
-      type="button"
-      disabled={istakeawayAddOrdersAndGenerateInvoicesLoading}
-         onClick={()=>handleConfirmBillAndGenerateInvoice()}
-        className="px-4 py-2 bg-green-600 text-white rounded"
-      >
-        {istakeawayAddOrdersAndGenerateInvoicesLoading ? "Generating ..." : "Generate Bill & Invoice"}
-      </button>
-       </div>
-    </div>
-
-  </div>
-
-)} */}
-
+    
 {activeTab === "Invoice Details" && (
   <div className="flex flex-col w-full items-center">
 
@@ -673,11 +1058,34 @@ className="input-field col s6 flex flex-col gap-1">
                     max-h-[70vh] overflow-y-auto">
 
       {/* HEADER */}
-      <div className="flex flex-col items-center mb-4">
+      {/* <div className="flex flex-col items-center mb-4">
         <img src="/logo.png" alt="logo" className="w-16 h-auto mb-2" />
         <h2 className="text-xl font-bold">{invoiceDetails.Store_Name ?? "Restaurant"}</h2>
-      </div>
+      </div> */}
+      <div className="relative flex items-center justify-center mb-4">
+  {/* LOGO CENTER */}
+  <img
+  style={{backgroundColor:"black",padding:"5px"}}
+    src="/assets/images/restaurant-logo.png"
+    alt="logo"
+    className="w-16 h-auto "
+  />
 
+  {/* SHARE BUTTON TOP-RIGHT */}
+  <button
+    type="button"
+    disabled={isGenerateSmsLoading}
+     onClick={() => handleShareSMS()}
+    className="absolute right-0 top-0 px-4 py-2 bg-green-600 text-white 
+               rounded-lg shadow hover:bg-green-700 transition"
+  >
+    {isGenerateSmsLoading ? "Sharing..." : "Share"}
+  </button>
+</div>
+{/* STORE NAME */}
+<h2 className="text-xl font-bold text-center">
+  {invoiceDetails.Store_Name ?? "HELLO GUYS"}
+</h2>
       <div className="border-t my-3"></div>
 
       {/* CUSTOMER INFO */}
@@ -755,7 +1163,8 @@ className="input-field col s6 flex flex-col gap-1">
           type="button"
            disabled={istakeawayAddOrdersAndGenerateInvoicesLoading}
          onClick={()=>handleConfirmBillAndGenerateInvoice()}
-          className="px-5 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+          className="px-5 py-2 bg-green-600 text-white rounded-lg
+           shadow hover:bg-green-700 transition"
         >
           {istakeawayAddOrdersAndGenerateInvoicesLoading ? "Generating ..." : "Generate Bill & Invoice"}
         </button>
@@ -770,3 +1179,953 @@ className="input-field col s6 flex flex-col gap-1">
 );
 
 }
+
+//  const printInvoiceWindow = () => {
+// // Format: DD/MM/YYYY
+// const getCurrentDate = () => {
+//   return new Date().toLocaleDateString("en-GB");
+// };
+
+// // Format: HH:MM AM/PM (no seconds)
+// const getCurrentTime = () => {
+//   return new Date().toLocaleTimeString("en-US", {
+//     hour: "2-digit",
+//     minute: "2-digit",
+//     hour12: true,
+//   });
+// };
+
+//   const total = calculateGrandTotal();
+
+//   const html = `
+//     <html>
+//       <head>
+//         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+//         <meta name="viewport" content="width=device-width, initial-scale=1" />
+//         <style>
+//           body { 
+//             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; 
+//             color:#111; margin:0; padding:12px;
+//           }
+//           .invoice { max-width: 700px; margin: 0 auto; }
+
+//           /* CENTER HEADER */
+//           .header-center { text-align:center; margin-bottom:10px; }
+//           .logo { width:80px; height:auto; margin-bottom:6px; }
+//           .brand { font-size:22px; font-weight:700; letter-spacing:0.5px; }
+//           .line { border-top:1px solid #ddd; margin:10px 0; }
+
+//           /* CUSTOMER + DATE ROW */
+//           .top-info { display:flex; justify-content:space-between; margin: 8px 0; }
+//           .left, .right { font-size:14px; }
+//           .right { text-align:right; }
+
+//           /* ITEMS TABLE */
+//           table { width:100%; border-collapse:collapse; margin-top:10px; }
+//           th, td { padding:8px 6px; border:1px solid #e5e5e5; font-size:14px; }
+//           th { background:#f2f2f2; text-align:left; font-weight:600; }
+//           .text-right { text-align:right; }
+
+//           /* SUMMARY BOX */
+//           .summary { 
+//             width:100%;
+//             display:flex;
+//             justify-content:center;
+//             align-items:center; 
+            
+//           }
+//             .center {
+//                width:100%;
+//             display:flex;
+//             flex-direction:column;
+//             justify-content:center;
+//             align-items:center; 
+//             }
+//           .summary table td { padding:6px; font-size:14px; }
+//           .total { font-size:17px; font-weight:700; }
+
+//           /* PRINT MODE */
+//           @media print {
+//             body { padding: 6mm; }
+//             @page { size: auto; margin: 6mm; }
+//           }
+//         </style>
+//       </head>
+//       <body>
+//         <div class="invoice">
+
+//           <!-- ===== TOP CENTER LOGO & NAME ===== -->
+//           <div class="header-center">
+//             <img src="/logo.png" class="logo" />
+//             <div class="brand">${invoiceDetails?.Store_Name ?? "Restaurant"}</div>
+//           </div>
+
+//           <div class="line"></div>
+
+//           <!-- ===== CUSTOMER + DATE BLOCK ===== -->
+//           <div class="top-info">
+//             <div class="left">
+//               <div><strong>Customer:</strong> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</div>
+//               <div><strong>Phone:</strong> ${invoiceDetails?.Customer_Phone ?? "-"}</div>
+//             </div>
+
+//     <div class="right">
+//   <div><strong>Date:</strong> ${getCurrentDate()}</div>
+//   <div><strong>Time:</strong> ${getCurrentTime()}</div>
+//   <div><strong>Invoice No:</strong> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</div>
+// </div>
+
+
+//           </div>
+
+//           <div class="line"></div>
+
+//           <!-- ===== ITEMS TABLE ===== -->
+//           <table>
+//             <thead>
+//               <tr>
+//                 <th style="width:8%;">Sl.No</th>
+//                 <th style="width:48%;">Item</th>
+//                 <th style="width:14%;">Qty</th>
+//                 <th style="width:15%;">Price</th>
+//                 <th style="width:15%;" class="text-right">Amount</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               ${
+//                 (orderDetails?.items || []).map((it, i) => `
+//                   <tr>
+//                     <td>${i + 1}</td>
+//                     <td>${it.Item_Name ??  "-"}</td>
+//                     <td>${it.Item_Quantity  ?? 1}</td>
+//                     <td>${Number(it.Amount??  0).toFixed(2)}</td>
+//                     <td class="text-right">${Number(it.Amount ?? 0).toFixed(2)}</td>
+//                   </tr>
+//                 `).join("")
+//               }
+//             </tbody>
+//           </table>
+
+//           <!-- ===== SUMMARY (CENTERED) ===== -->
+//           <div class="summary">
+//             <table style="width:100%;">
+//               <tr>
+//                 <td>Subtotal</td>
+//                 <td class="text-right">₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</td>
+//               </tr>
+//               <tr>
+//                 <td>Service Charge</td>
+//                 <td class="text-right">₹${Number(invoiceDetails?.Service_Charge ?? 0).toFixed(2)}</td>
+//               </tr>
+//               <tr>
+//                 <td>Discount</td>
+//                 <td class="text-right">
+//                   ${
+//                     invoiceDetails?.Discount_Type === "percentage"
+//                       ? `${invoiceDetails.Discount}%`
+//                       : `₹${invoiceDetails.Discount ?? 0}`
+//                   }
+//                 </td>
+//               </tr>
+//               <tr>
+//                 <td class="total">Total</td>
+//                 <td class="text-right total">₹${Number(total).toFixed(2)}</td>
+//               </tr>
+//             </table>
+//           </div>
+
+//           <div class="line"></div>
+//           <div class="center muted">
+//           <h4>Terms & Conditions</h4>
+//           <span>Thank you. Please Visit again.</span>
+//           </div>
+
+//         </div>
+//       </body>
+//     </html>
+//   `;
+
+//   const w = window.open(
+//   "",
+//   "_blank",
+//   `toolbar=0,location=0,menubar=0,
+//    width=${window.screen.availWidth},
+//    height=${window.screen.availHeight},
+//    left=0,top=0`
+// );
+
+// if (!w) return alert("Allow pop-ups to print the invoice.");
+
+// w.document.write(html);
+
+// // Add Print Button inside the new window
+// w.document.write(`
+//   <button onclick="window.print()" 
+//     style="position:fixed;top:10px;right:10px;padding:8px 12px;
+//             background:#ff0000;color:white;border:none;border-radius:4px;
+//            font-size:14px;cursor:pointer;z-index:9999;">
+//       Print
+//   </button>
+// `);
+
+// w.document.close();
+//  }
+
+//   const w = window.open(
+//   "",
+//   "_blank",
+//   `toolbar=0,location=0,menubar=0,
+//    width=${window.screen.availWidth},
+//    height=${window.screen.availHeight},
+//    left=0,top=0`
+// );
+//   if (!w) return alert("Allow pop-ups to print the invoice.");
+//   w.document.write(html);
+//   w.document.close();
+
+//   setTimeout(() => { w.print(); }, 300);
+// };
+
+// const handleConfirmBillAndGenerateInvoice = async () => {
+//   // ✅ MUST open first (browser rule)
+//   // const printWindow = window.open("", "_blank", "width=320,height=600");
+
+//   // if (!printWindow) {
+//   //   toast.error("Please allow pop-ups to print invoice");
+//   //   return;
+//   // }
+
+//   try {
+//     const payload = {
+//       userId: user?.User_Id,
+//       items: orderDetails?.items,
+//       Sub_Total: orderDetails?.Sub_Total,
+//       Amount: orderDetails?.Sub_Total,
+//       Final_Amount: invoiceDetails?.Final_Amount,
+//       Customer_Name: invoiceDetails.Customer_Name,
+//       Customer_Phone: invoiceDetails.Customer_Phone,
+//       Discount: invoiceDetails.Discount,
+//       Discount_Type: invoiceDetails.Discount_Type,
+//       Payment_Type: invoiceDetails.Payment_Type,
+//     };
+
+//     await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
+
+//     toast.success("Invoice Generated & Bill Paid!");
+//     dispatch(orderApi.util.invalidateTags(["Order"]));
+
+//     // ✅ CRITICAL: allow React state to settle
+//     setTimeout(() => {
+//       renderInvoiceHTML(printWindow);
+//       printWindow.focus();
+//     }, 0);
+
+//     // ✅ NAVIGATE AFTER RENDER (important)
+//     setTimeout(() => {
+//       navigate("/staff/orders/all-orders");
+//       onClose();
+//     }, 300);
+
+//   } catch (error) {
+//     printWindow.close();
+//     console.error(error);
+//     toast.error(error?.data?.message || "Failed to process payment");
+//   }
+// };
+// const renderInvoiceHTML = (w) => {
+//   const getCurrentDate = () =>
+//     new Date().toLocaleDateString("en-GB");
+
+//   const getCurrentTime = () =>
+//     new Date().toLocaleTimeString("en-US", {
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       hour12: true,
+//     });
+
+//   const total = calculateGrandTotal();
+
+//   const html = `
+// <!DOCTYPE html>
+// <html>
+// <head>
+//   <title>Invoice</title>
+//   <meta charset="UTF-8" />
+//   <style>
+//     * { margin:0; padding:0; box-sizing:border-box; }
+//     body {
+//       font-family:'Courier New', Courier, monospace;
+//       font-size:11px;
+//       width:2.5in;
+//       margin:0 auto;
+//     }
+//     .invoice { padding:8px; }
+//     .header-center { text-align:center; border-bottom:1px dashed #000; padding-bottom:8px; }
+//     .logo { width:60px; margin-bottom:4px; }
+//     .brand { font-size:16px; font-weight:bold; }
+//     .line { border-top:1px dashed #000; margin:6px 0; }
+//     .items-header, .item-row {
+//       display:flex; justify-content:space-between; font-size:10px;
+//     }
+//     .summary-row { display:flex; justify-content:space-between; }
+//     .summary-row.total { font-size:13px; font-weight:bold; border-top:1px solid #000; }
+//     .footer { text-align:center; margin-top:10px; font-size:10px; }
+//     @media print {
+//       button { display:none; }
+//       @page { size:2.5in auto; margin:0; }
+//     }
+//   </style>
+// </head>
+
+// <body>
+//   <div class="invoice">
+
+//     <div class="header-center">
+//       <img src="http://localhost:5173/assets/images/restaurant-logo.png" class="logo"/>
+//       <div class="brand">HELLO GUYS</div>
+//     </div>
+
+//     <div><b>Customer:</b> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</div>
+//     ${invoiceDetails?.Customer_Phone ? `<div><b>Phone:</b> ${invoiceDetails.Customer_Phone}</div>` : ""}
+
+//     <div class="line"></div>
+
+//     <div><b>Date:</b> ${getCurrentDate()}</div>
+//     <div><b>Time:</b> ${getCurrentTime()}</div>
+
+//     <div class="line"></div>
+
+//     ${
+//       (orderDetails?.items || []).map((it, i) => `
+//         <div class="item-row">
+//           <span>${i+1}. ${it.Item_Name}</span>
+//           <span>₹${Number(it.Amount).toFixed(2)}</span>
+//         </div>
+//       `).join("")
+//     }
+
+//     <div class="line"></div>
+
+//     <div class="summary-row total">
+//       <span>TOTAL</span>
+//       <span>₹${Number(total).toFixed(2)}</span>
+//     </div>
+
+//     <div class="footer">
+//       THANK YOU!<br/>Please Visit Again
+//     </div>
+
+//     <button onclick="window.print()"
+//       style="margin-top:10px;width:100%;padding:8px;background:#ff0000;color:white;border:none;">
+//       Print
+//     </button>
+
+//   </div>
+// </body>
+// </html>
+// `;
+
+//   // ✅ CORRECT ORDER
+//   w.document.open();
+//   w.document.write(html);
+//   w.document.close();
+// };
+
+// const renderInvoiceHTML = (w) => {
+//   const getCurrentDate = () =>
+//     new Date().toLocaleDateString("en-GB");
+
+//   const getCurrentTime = () =>
+//     new Date().toLocaleTimeString("en-US", {
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       hour12: true,
+//     });
+
+//   const total = calculateGrandTotal();
+// const html = `
+//     <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+//         <meta charset="UTF-8">
+//         <style>
+//           * {
+//             margin: 0;
+//             padding: 0;
+//             box-sizing: border-box;
+//           }
+          
+//           body { 
+//             font-family: 'Courier New', Courier, monospace;
+//             font-size: 11px;
+//             line-height: 1.3;
+//             color: #000;
+//             width: 2.5in;
+//             margin: 0 auto;
+//             padding: 0;
+//           }
+          
+//           .invoice {
+//             width: 2.5in;
+//             padding: 8px;
+//           }
+
+//           /* CENTER HEADER */
+//           .header-center { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+          
+//           .logo { 
+//             width: 60px; 
+//             height: auto; 
+//             margin-bottom: 4px;
+//               background-color: black;
+//           }
+          
+//           .brand { 
+//             font-size: 16px; 
+//             font-weight: bold; 
+//             text-transform: uppercase;
+//             letter-spacing: 1px;
+//             margin-bottom: 2px;
+//           }
+          
+//           .line { 
+//             border-top: 1px dashed #000; 
+//             margin: 6px 0;
+//           }
+          
+//           .line-solid {
+//             border-top: 1px solid #000;
+//             margin: 6px 0;
+//           }
+
+//           /* INFO SECTION */
+//           .info-row {
+//             display: flex;
+//             justify-content: space-between;
+//             margin: 2px 0;
+//             font-size: 10px;
+//           }
+          
+//           .info-label {
+//             font-weight: bold;
+//           }
+
+//           /* ITEMS TABLE */
+//           .items-header {
+//             display: flex;
+//             justify-content: space-between;
+//             font-weight: bold;
+//             border-bottom: 1px solid #000;
+//             padding: 4px 0;
+//             font-size: 10px;
+//           }
+          
+//           .item-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//             border-bottom: 1px dashed #ddd;
+//             font-size: 10px;
+//           }
+          
+//           .item-name {
+//             flex: 1;
+//             padding-right: 8px;
+//             word-wrap: break-word;
+//           }
+          
+//           .item-qty {
+//             width: 30px;
+//             text-align: center;
+//           }
+          
+//           .item-price {
+//             width: 50px;
+//             text-align: right;
+//           }
+          
+//           .item-amount {
+//             width: 55px;
+//             text-align: right;
+//             font-weight: bold;
+//           }
+
+//           /* SUMMARY */
+//           .summary {
+//             margin-top: 8px;
+//             font-size: 11px;
+//           }
+          
+//           .summary-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//           }
+          
+//           .summary-row.total {
+//             font-size: 13px;
+//             font-weight: bold;
+//             border-top: 1px solid #000;
+//             border-bottom: 2px solid #000;
+//             margin-top: 4px;
+//             padding: 5px 0;
+//           }
+
+//           /* FOOTER */
+//           .footer {
+//             text-align: center;
+//             margin-top: 10px;
+//             padding-top: 8px;
+//             border-top: 1px dashed #000;
+//             font-size: 10px;
+//           }
+          
+//           .footer-title {
+//             font-weight: bold;
+//             margin-bottom: 4px;
+//             font-size: 11px;
+//           }
+
+//           /* PRINT STYLES */
+//           @media print {
+//             body {
+//               width: 2.5in;
+//               margin: 0;
+//               padding: 0;
+//             }
+            
+//             .invoice {
+//               width: 2.5in;
+//               padding: 8px;
+//             }
+            
+//             @page {
+//               size: 2.5in auto;
+//               margin: 0;
+//             }
+            
+//             .no-print {
+//               display: none !important;
+//             }
+//           }
+//         </style>
+//       </head>
+//       <body>
+//         <div class="invoice">
+
+//           <!-- HEADER -->
+//           <div class="header-center">
+//             <img  src="${"http://localhost:5173"}/assets/images/restaurant-logo.png" 
+//              class="logo" alt="Logo" />
+//             <div class="brand">HELLO GUYS</div>
+//           </div>
+
+//           <!-- CUSTOMER INFO -->
+//           <div class="info-row">
+//             <span><span class="info-label">Customer:</span> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</span>
+//           </div>
+//           ${invoiceDetails?.Customer_Phone ? `
+//           <div class="info-row">
+//             <span><span class="info-label">Phone:</span> ${invoiceDetails.Customer_Phone}</span>
+//           </div>
+//           ` : ''}
+          
+//           <div class="line"></div>
+
+//           <!-- DATE & TIME -->
+//           <div class="info-row">
+//             <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+//             <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+//           </div>
+//           <div class="info-row">
+//             <span><span class="info-label">Invoice:</span> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</span>
+//           </div>
+
+//           <div class="line-solid"></div>
+
+//           <!-- ITEMS HEADER -->
+//           <div class="items-header">
+//             <div style="width: 30px;">#</div>
+//             <div class="item-name">ITEM</div>
+//             <div class="item-qty">QTY</div>
+//             <div class="item-amount">AMOUNT</div>
+//           </div>
+
+//           <!-- ITEMS LIST -->
+//           ${
+//             (orderDetails?.items || []).map((it, i) => `
+//               <div class="item-row">
+//                 <div style="width: 30px;">${i + 1}</div>
+//                 <div class="item-name">${it.Item_Name ?? "-"}</div>
+//                 <div class="item-qty">${it.Item_Quantity ?? 1}</div>
+//                 <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
+//               </div>
+//             `).join("")
+//           }
+
+//           <div class="line-solid"></div>
+
+//           <!-- SUMMARY -->
+//           <div class="summary">
+//             <div class="summary-row">
+//               <span>Subtotal</span>
+//               <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
+//             </div>
+//             ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
+//             <div class="summary-row">
+//               <span>Service Charge</span>
+//               <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
+//             </div>
+//             ` : ''}
+//             ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
+//             <div class="summary-row">
+//               <span>Discount</span>
+//               <span>${
+//                 invoiceDetails.Discount_Type === "percentage"
+//                   ? `${invoiceDetails.Discount}%`
+//                   : `₹${invoiceDetails.Discount}`
+//               }</span>
+//             </div>
+//             ` : ''}
+//             <div class="summary-row total">
+//               <span>TOTAL</span>
+//               <span>₹${Number(total).toFixed(2)}</span>
+//             </div>
+//           </div>
+
+//           <!-- FOOTER -->
+//           <div class="footer">
+//             <div class="footer-title">THANK YOU!</div>
+//             <div>Please Visit Again</div>
+//           </div>
+
+//         </div>
+//       </body>
+//     </html>
+//   `;
+
+// w.document.write(html);
+
+// // Add Print Button inside the new window
+// w.document.write(`
+//   <button onclick="window.print()" 
+//     style="position:fixed;top:10px;right:10px;padding:8px 12px;
+//            background:#ff0000;color:white;border:none;border-radius:4px;
+//            font-size:14px;cursor:pointer;z-index:9999;">
+//       Print
+//   </button>
+// `);
+
+//   w.document.open();
+//   w.document.write(html);
+//   w.document.close();
+// };
+
+// const printInvoiceWindow = () => {
+//   const getCurrentDate = () =>
+//     new Date().toLocaleDateString("en-GB");
+
+//   const getCurrentTime = () =>
+//     new Date().toLocaleTimeString("en-US", {
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       hour12: true,
+//     });
+
+//   const total = calculateGrandTotal();
+
+// const html = `
+//     <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+//         <meta charset="UTF-8">
+//         <style>
+//           * {
+//             margin: 0;
+//             padding: 0;
+//             box-sizing: border-box;
+//           }
+          
+//           body { 
+//             font-family: 'Courier New', Courier, monospace;
+//             font-size: 11px;
+//             line-height: 1.3;
+//             color: #000;
+//             width: 2.5in;
+//             margin: 0 auto;
+//             padding: 0;
+//           }
+          
+//           .invoice {
+//             width: 2.5in;
+//             padding: 8px;
+//           }
+
+//           /* CENTER HEADER */
+//           .header-center { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+          
+//           .logo { 
+//             width: 60px; 
+//             height: auto; 
+//             margin-bottom: 4px;
+//             padding: 5px;
+//             background-color: black;
+//           }
+          
+//           .brand { 
+//             font-size: 16px; 
+//             font-weight: bold; 
+//             text-transform: uppercase;
+//             letter-spacing: 1px;
+//             margin-bottom: 2px;
+//           }
+          
+//           .line { 
+//             border-top: 1px dashed #000; 
+//             margin: 6px 0;
+//           }
+          
+//           .line-solid {
+//             border-top: 1px solid #000;
+//             margin: 6px 0;
+//           }
+
+//           /* INFO SECTION */
+//           .info-row {
+//             display: flex;
+//             justify-content: space-between;
+//             margin: 2px 0;
+//             font-size: 10px;
+//           }
+          
+//           .info-label {
+//             font-weight: bold;
+//           }
+
+//           /* ITEMS TABLE */
+//           .items-header {
+//             display: flex;
+//             justify-content: space-between;
+//             font-weight: bold;
+//             border-bottom: 1px solid #000;
+//             padding: 4px 0;
+//             font-size: 10px;
+//           }
+          
+//           .item-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//             border-bottom: 1px dashed #ddd;
+//             font-size: 10px;
+//           }
+          
+//           .item-name {
+//             flex: 1;
+//             padding-right: 8px;
+//             word-wrap: break-word;
+//           }
+          
+//           .item-qty {
+//             width: 30px;
+//             text-align: center;
+//           }
+          
+//           .item-price {
+//             width: 50px;
+//             text-align: right;
+//           }
+          
+//           .item-amount {
+//             width: 55px;
+//             text-align: right;
+//             font-weight: bold;
+//           }
+
+//           /* SUMMARY */
+//           .summary {
+//             margin-top: 8px;
+//             font-size: 11px;
+//           }
+          
+//           .summary-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//           }
+          
+//           .summary-row.total {
+//             font-size: 13px;
+//             font-weight: bold;
+//             border-top: 1px solid #000;
+//             border-bottom: 2px solid #000;
+//             margin-top: 4px;
+//             padding: 5px 0;
+//           }
+
+//           /* FOOTER */
+//           .footer {
+//             text-align: center;
+//             margin-top: 10px;
+//             padding-top: 8px;
+//             border-top: 1px dashed #000;
+//             font-size: 10px;
+//           }
+          
+//           .footer-title {
+//             font-weight: bold;
+//             margin-bottom: 4px;
+//             font-size: 11px;
+//           }
+
+//           /* PRINT STYLES */
+//           @media print {
+//             body {
+//               width: 2.5in;
+//               margin: 0;
+//               padding: 0;
+//             }
+            
+//             .invoice {
+//               width: 2.5in;
+//               padding: 8px;
+//             }
+            
+//             @page {
+//               size: 2.5in auto;
+//               margin: 0;
+//             }
+            
+//             .no-print {
+//               display: none !important;
+//             }
+//           }
+//         </style>
+//       </head>
+//       <body>
+//         <div class="invoice">
+
+//           <!-- HEADER -->
+//           <div class="header-center">
+//             <img  src="${"http://localhost:5173"}/assets/images/restaurant-logo.png" 
+//              class="logo" alt="Logo" />
+//             <div class="brand">HELLO GUYS</div>
+//           </div>
+
+//           <!-- CUSTOMER INFO -->
+//           <div class="info-row">
+//             <span><span class="info-label">Customer:</span> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</span>
+//           </div>
+//           ${invoiceDetails?.Customer_Phone ? `
+//           <div class="info-row">
+//             <span><span class="info-label">Phone:</span> ${invoiceDetails.Customer_Phone}</span>
+//           </div>
+//           ` : ''}
+          
+//           <div class="line"></div>
+
+//           <!-- DATE & TIME -->
+//           <div class="info-row">
+//             <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+//             <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+//           </div>
+//           <div class="info-row">
+//             <span><span class="info-label">Invoice:</span> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</span>
+//           </div>
+
+//           <div class="line-solid"></div>
+
+//           <!-- ITEMS HEADER -->
+//           <div class="items-header">
+//             <div style="width: 30px;">#</div>
+//             <div class="item-name">ITEM</div>
+//             <div class="item-qty">QTY</div>
+//             <div class="item-amount">AMOUNT</div>
+//           </div>
+
+//           <!-- ITEMS LIST -->
+//           ${
+//             (orderDetails?.items || []).map((it, i) => `
+//               <div class="item-row">
+//                 <div style="width: 30px;">${i + 1}</div>
+//                 <div class="item-name">${it.Item_Name ?? "-"}</div>
+//                 <div class="item-qty">${it.Item_Quantity ?? 1}</div>
+//                 <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
+//               </div>
+//             `).join("")
+//           }
+
+//           <div class="line-solid"></div>
+
+//           <!-- SUMMARY -->
+//           <div class="summary">
+//             <div class="summary-row">
+//               <span>Subtotal</span>
+//               <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
+//             </div>
+//             ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
+//             <div class="summary-row">
+//               <span>Service Charge</span>
+//               <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
+//             </div>
+//             ` : ''}
+//             ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
+//             <div class="summary-row">
+//               <span>Discount</span>
+//               <span>${
+//                 invoiceDetails.Discount_Type === "percentage"
+//                   ? `${invoiceDetails.Discount}%`
+//                   : `₹${invoiceDetails.Discount}`
+//               }</span>
+//             </div>
+//             ` : ''}
+//             <div class="summary-row total">
+//               <span>TOTAL</span>
+//               <span>₹${Number(total).toFixed(2)}</span>
+//             </div>
+//           </div>
+
+//           <!-- FOOTER -->
+//           <div class="footer">
+//             <div class="footer-title">THANK YOU!</div>
+//             <div>Please Visit Again</div>
+//           </div>
+
+//         </div>
+//       </body>
+//     </html>
+//   `;
+//   const w = window.open("", "_blank", "width=320,height=600");
+
+//   if (!w) {
+//     alert("Please allow pop-ups to print the invoice.");
+//     return;
+//   }
+// w.document.write(html);
+
+// // Add Print Button inside the new window
+// w.document.write(`
+//   <button onclick="window.print()" 
+//     style="position:fixed;top:10px;right:10px;padding:8px 12px;
+//            background:#ff0000;color:white;border:none;border-radius:4px;
+//            font-size:14px;cursor:pointer;z-index:9999;">
+//       Print
+//   </button>
+// `);
+
+// w.document.close();
+//   // w.document.open();
+//   // w.document.write(html);
+//   // w.document.close();

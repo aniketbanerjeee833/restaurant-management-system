@@ -103,7 +103,7 @@ export default function AllSaleList() {
                                         style={{
                                             outline: "none",
                                             boxShadow: "none",
-                                            backgroundColor:"#4CA1AF"
+                                            backgroundColor:"#ff0000"
                                             // backgroundColor: "#7346ff",
                                         }}
                                         className=" text-white px-4 py-2 rounded-md"
@@ -174,7 +174,7 @@ export default function AllSaleList() {
           style={{
             outline: "none",
             boxShadow: "none",
-            backgroundColor: "#4CA1AF",
+            backgroundColor: "#ff0000",
           }}
           className="text-white px-4 py-2 rounded-md w-full sm:w-auto"
             onClick={() => navigate("/sale/add")}
@@ -201,7 +201,7 @@ export default function AllSaleList() {
                       style={{
                         outline: "none",
                         boxShadow: "none",
-                        backgroundColor: "#4CA1AF",
+                        backgroundColor: "#ff0000",
                       }}
                       className="text-white px-4 py-2 rounded-md sm:hidden"
                       onClick={() => navigate("/sale/add")}
@@ -262,7 +262,7 @@ export default function AllSaleList() {
                         style={{
                           outline: "none",
                           boxShadow: "none",
-                          backgroundColor: "#4CA1AF",
+                          backgroundColor: "#ff0000",
                         }}
                         className="hidden sm:block text-white px-4 py-2 rounded-md sm:w-auto"
                         onClick={() => navigate("/sale/add")}
@@ -277,7 +277,7 @@ export default function AllSaleList() {
           style={{
             outline: "none",
             boxShadow: "none",
-            backgroundColor: "#4CA1AF",
+            backgroundColor: "#ff0000",
           }}
           className="text-white px-4 py-2 rounded-md w-full sm:w-auto"
           onClick={() => navigate("/sale/add")}
@@ -298,7 +298,7 @@ export default function AllSaleList() {
         style={{
           outline: "none",
           boxShadow: "none",
-          backgroundColor: "#4CA1AF",
+          backgroundColor: "#ff0000",
         }}
         className="hidden sm:block text-white px-4 py-2 rounded-md sm:w-auto"
         onClick={() => navigate("/sale/add")}
@@ -366,7 +366,7 @@ export default function AllSaleList() {
                                     style={{
                                       cursor: "pointer",
                                       backgroundColor: "transparent",
-                                      color: "#4CA1AF"
+                                      color: "#ff0000"
                                     }} />
                                 </NavLink>
                                 {/* <i
@@ -388,7 +388,7 @@ export default function AllSaleList() {
                                     style={{
                                       cursor: "pointer",
                                       backgroundColor: "transparent",
-                                      color: "#4CA1AF"
+                                      color: "#ff0000"
                                     }} />
                                 </NavLink>
 
@@ -435,7 +435,7 @@ export default function AllSaleList() {
                     // className={`px-3 py-1 rounded ${page === index + 1 ? 'bg-[#7346ff] text-white' : 'bg-gray-200 hover:bg-gray-300'
                     //   }`}
                     className={
-                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                         'bg-gray-200 hover:bg-gray-300'
                       }`}
                   >

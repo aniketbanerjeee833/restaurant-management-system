@@ -29,8 +29,10 @@ export const kitchenStaffApi = createApi({
             }),
             invalidatesTags: ["Kitchen-Staff"],
         }),
+   
     }),
 });
 
 export const {
-   useGetKitchenOrdersQuery ,useUpdateKitchenItemStatusMutation} = kitchenStaffApi
+   useGetKitchenOrdersQuery ,useUpdateKitchenItemStatusMutation,
+   } = kitchenStaffApi

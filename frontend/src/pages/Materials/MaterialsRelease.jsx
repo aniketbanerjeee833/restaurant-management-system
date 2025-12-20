@@ -297,26 +297,23 @@ export default function MaterialsRelease() {
     return (
         <>
 
-
+{/* 
             <div className="sb2-2-2">
                 <ul>
                     <li>
-                        {/* <NavLink to="/">
-                                <i className="fa fa-home mr-2" aria-hidden="true"></i>
-                                Dashboard
-                            </NavLink> */}
+                       
                         <NavLink style={{ display: "flex", flexDirection: "row" }}
                             to="/home"
 
                         >
                             <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-                            {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+                           
                             Dashboard
                         </NavLink>
                     </li>
 
                 </ul>
-            </div>
+            </div> */}
 
             {/* Main Content */}
             <div className="sb2-2-3" >
@@ -351,7 +348,7 @@ export default function MaterialsRelease() {
                                             type="button"
                                             onClick={() => navigate("/staff/orders/all-orders")}
                                             className="text-white font-bold py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "#ff0000" }}
                                         >
                                             Back
                                         </button> */}
@@ -360,7 +357,7 @@ export default function MaterialsRelease() {
                                             type="button"
                                             onClick={() => navigate("/staff/orders/all-orders")}
                                             className="text-white py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "#ff0000" }}
                                         >
                                             All Orders
                                         </button> */}
@@ -691,7 +688,7 @@ export default function MaterialsRelease() {
                                                     type="button"
                                                     onClick={handleAddRow}
                                                     className=" text-white font-bold py-2 px-4 w-1/2 rounded "
-                                                    style={{ backgroundColor: "#4CA1AF" }}
+                                                    style={{ backgroundColor: "#ff0000" }}
                                                 >
                                                     + Add Row
                                                 </button>
@@ -724,7 +721,7 @@ export default function MaterialsRelease() {
                                                                 disabled={formValues.errorCount > 0 ||isAddingReleaseMaterial}
                                                                 // onClick={() => navigate("/staff/orders/all-orders")}
                                                                 className=" text-white font-bold py-2 px-4 rounded"
-                                                                style={{ backgroundColor: "#4CA1AF" }}
+                                                                style={{ backgroundColor: "#ff0000" }}
                                                             >
                                                                {isAddingReleaseMaterial ? "Saving..." : "Save"}
                                                             </button>

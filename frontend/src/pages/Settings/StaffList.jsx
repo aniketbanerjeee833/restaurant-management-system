@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setPage } from "../../redux/reducer/userReducer";
 
 import { useGetAllStaffsQuery } from "../../redux/api/staffApi";
-import { Eye, SquarePen } from "lucide-react";
+import { Eye, LayoutDashboard, SquarePen } from "lucide-react";
 import { useState } from "react";
 import EditStaffModal from "../../components/Modal/EditStaffModal";
 
@@ -66,7 +66,21 @@ const[selectedStaff,setSelectedStaff]=useState(null)
  
      
       <>
-      
+         {/* <div className="sb2-2-2">
+        <ul>
+           <li >
+                    <NavLink style={{display:"flex" ,flexDirection:"row"}}
+                      to="/home"
+          
+                    >
+                      <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
+                    
+                      Dashboard
+                    </NavLink>
+                  </li>
+       
+        </ul>
+      </div> */}
         {/* Main Content */}
         <div className="sb2-2-3">
           <div className="row">
@@ -112,7 +126,7 @@ const[selectedStaff,setSelectedStaff]=useState(null)
                               <td>
                                  <Eye style={{ cursor: "pointer",
                                   backgroundColor: "transparent",
-                                                                      color: "#4CA1AF"
+                                                                      color: "#ff0000"
                                                                     }} />
                                 {/* <Link to={`/staff/view/${user.id}`}>
                                   <i className="fa fa-eye" aria-hidden="true"></i>
@@ -126,7 +140,7 @@ const[selectedStaff,setSelectedStaff]=useState(null)
                                                                     style={{
                                                                       cursor: "pointer",
                                                                       backgroundColor: "transparent",
-                                                                      color: "#4CA1AF"
+                                                                      color: "#ff0000"
                                                                     }} />
                                 {/* <Link to={`/staff/update/${user.id}`}>
                                   <i className="fa fa-pencil-square-o" aria-hidden="true"></i>
@@ -176,7 +190,7 @@ const[selectedStaff,setSelectedStaff]=useState(null)
                                         //         'bg-gray-200 hover:bg-gray-300'
                                         //     }`}
                                         className={
-                                            `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                                            `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                                                 'bg-gray-200 hover:bg-gray-300'
                                             }`}
                                     >

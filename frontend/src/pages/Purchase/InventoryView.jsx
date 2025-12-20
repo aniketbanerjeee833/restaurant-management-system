@@ -88,7 +88,7 @@ return (
         type="button"
         onClick={() => navigate("/home")}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         Back
       </button> */}
@@ -104,7 +104,7 @@ return (
     }
   }}
   className="text-white font-bold py-2 px-4 rounded"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "#ff0000" }}
 >
   Back
 </button> */}
@@ -122,7 +122,7 @@ return (
     }
   }}
   className="text-white font-bold py-2 px-4 rounded"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "black" }}
 >
   Back
 </button>
@@ -131,7 +131,7 @@ return (
         type="button"
         onClick={() => navigate("/inventory/all-inventories")}
         className="text-white py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         All Purchases
       </button>
@@ -447,7 +447,7 @@ return (
     }
   }}
   className="text-white font-bold py-2 px-4 rounded"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "black" }}
 >
   Cancel
 </button>

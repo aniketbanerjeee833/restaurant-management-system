@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 
+
 export const orderApi = createApi({
   reducerPath: "orderApi",
   baseQuery: fetchBaseQuery({
@@ -14,7 +15,7 @@ export const orderApi = createApi({
     addNewCustomer: builder.mutation({
       query: (payload) => ({
         url: `order/add-new-customer`,
-        method: "POST",
+        method: "PUT",
         body: payload,
       }),
       invalidatesTags: ["Customer"],
@@ -124,7 +125,29 @@ nextInvoiceNumber: builder.query({
   query: () => `order/next-invoice-number`,
   providesTags: ["Order"],
 }),
+  generateSms: builder.mutation({
+      query: ({ Order_Id, payload }) => ({
+        url: `/order/generate-sms/${Order_Id}`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
 
+    generateSmsForTakeaway: builder.mutation({
+      query: ({ payload }) => ({
+        url: `/order/generate-sms-for-takeaway`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
+    cancelTakeawayOrder: builder.mutation({
+      query: (Takeaway_Order_Id) => ({
+        url: `/order/cancel-takeaway-order/${Takeaway_Order_Id}`,
+        method: "PATCH",
+        
+      }),
+    }),
 
 
 })
@@ -137,4 +160,5 @@ useConfirmOrderBillPaidAndInvoiceGeneratedMutation,
 useTotalInvoicesEachDayQuery,
 useGetAllInvoicesAndOrdersEachDayQuery,
 useGetAllInvoicesOfOrdersAndTakeawaysInDateRangeQuery,
-useTakeawayAddOrdersAndGenerateInvoicesMutation,useNextInvoiceNumberQuery} = orderApi
+useTakeawayAddOrdersAndGenerateInvoicesMutation,useNextInvoiceNumberQuery,
+useGenerateSmsMutation,useGenerateSmsForTakeawayMutation,useCancelTakeawayOrderMutation} = orderApi

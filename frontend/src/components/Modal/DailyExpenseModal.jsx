@@ -299,7 +299,7 @@ export default function DailyExpenseModal({ onClose,dailyExpense,  setDailyExpen
                   onClick={handleSave}
       disabled={isLoading}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                            {isLoading ? "Saving..." : "Save"}
                     </button>}
@@ -307,7 +307,7 @@ export default function DailyExpenseModal({ onClose,dailyExpense,  setDailyExpen
                       type="button"
                       
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       Print
                     </button>} */}

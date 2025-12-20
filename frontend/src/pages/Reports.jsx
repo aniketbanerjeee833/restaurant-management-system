@@ -244,15 +244,7 @@ console.log(
     {/* Main content */}
    
       {/* Breadcrumb / Nav */}
-      <div className="sb2-2-2">
-        <ul className="flex flex-wrap gap-2">
-          <li>
-            <NavLink to={"/home"}>
-              <i className="fa fa-home" aria-hidden="true"></i> Home
-            </NavLink>
-          </li>
-        </ul>
-      </div>
+   
 
       {/* Calendar & Leads */}
       <div className="sb2-2-3">
@@ -277,7 +269,7 @@ console.log(
                 >
                   ← Previous
                 </button>
-                      <button  style={{ backgroundColor: "#4CA1AF" }}
+                      <button  style={{ backgroundColor: "#ff0000" }}
                 onClick={() => setShowRangeModal(true)}
                 className="px-4 py-2 bg-blue-600  text-white rounded-lg transition text-sm sm:text-base  flex items-center gap-2"
               >
@@ -391,7 +383,7 @@ console.log(
                 </button>
                 <button
                   onClick={handleDateRangeSubmit}
-                  style={{ backgroundColor: "#4CA1AF" }}
+                  style={{ backgroundColor: "#ff0000" }}
                   className="flex-1 px-4 py-2 
                   text-white rounded-lg  font-medium"
                 >

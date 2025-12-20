@@ -79,7 +79,7 @@ const{user}=useSelector((state) => state.user);
 
   return (
     <>
-
+{/* 
       {user?.role === "admin" && <div className="sb2-2-2">
         <ul >
           <li>
@@ -89,13 +89,13 @@ const{user}=useSelector((state) => state.user);
 
             >
               <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-              {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+             
               Dashboard
             </NavLink>
           </li>
 
         </ul>
-      </div>}
+      </div>} */}
       {user?.role === "admin" && <div  className="sb2-2-3 ">
         <div className="row">
           <div className="col-md-12">
@@ -117,7 +117,7 @@ const{user}=useSelector((state) => state.user);
                       style={{
                         outline: "none",
                         boxShadow: "none",
-                        backgroundColor: "#4CA1AF",
+                        backgroundColor: "#ff0000",
                       }}
                       className="text-white px-4 py-2 rounded-md sm:hidden"
                       onClick={() => navigate("/new/food-items/add")}
@@ -156,7 +156,7 @@ const{user}=useSelector((state) => state.user);
                         style={{
                           outline: "none",
                           boxShadow: "none",
-                          backgroundColor: "#4CA1AF",
+                          backgroundColor: "#ff0000",
                         }}
                         className="hidden sm:block text-white px-4 py-2 rounded-md sm:w-auto"
                         onClick={() => navigate("/new/food-items/add")}
@@ -259,7 +259,7 @@ const{user}=useSelector((state) => state.user);
                                     style={{
                                       cursor: "pointer",
                                       backgroundColor: "transparent",
-                                      color: "#4CA1AF"
+                                      color: "#ff0000"
                                     }} />
                                
                                 
@@ -280,7 +280,7 @@ const{user}=useSelector((state) => state.user);
                                     style={{
                                       cursor: "pointer",
                                       backgroundColor: "transparent",
-                                      color: "#4CA1AF"
+                                      color: "#ff0000"
                                     }} />
                                
 
@@ -343,7 +343,7 @@ const{user}=useSelector((state) => state.user);
                     // className={`px-3 py-1 rounded ${page === index + 1 ? 'bg-[#7346ff] text-white' : 'bg-gray-200 hover:bg-gray-300'
                     //   }`}
                     className={
-                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                         'bg-gray-200 hover:bg-gray-300'
                       }`}
                   >
@@ -416,7 +416,7 @@ const{user}=useSelector((state) => state.user);
                         style={{
                           outline: "none",
                           boxShadow: "none",
-                          backgroundColor: "#4CA1AF",
+                          backgroundColor: "#ff0000",
                         }}
                         className="hidden sm:block text-white px-4 py-2 rounded-md sm:w-auto"
                         onClick={() => navigate("/new/food-items/add")}
@@ -565,7 +565,7 @@ const{user}=useSelector((state) => state.user);
                                     style={{
                                       cursor: "pointer",
                                       backgroundColor: "transparent",
-                                      color: "#4CA1AF"
+                                      color: "#ff0000"
                                     }} />
                                
                                 
@@ -586,7 +586,7 @@ const{user}=useSelector((state) => state.user);
                                     style={{
                                       cursor: "pointer",
                                       backgroundColor: "transparent",
-                                      color: "#4CA1AF"
+                                      color: "#ff0000"
                                     }} />
                                
 
@@ -649,7 +649,7 @@ const{user}=useSelector((state) => state.user);
                     // className={`px-3 py-1 rounded ${page === index + 1 ? 'bg-[#7346ff] text-white' : 'bg-gray-200 hover:bg-gray-300'
                     //   }`}
                     className={
-                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                         'bg-gray-200 hover:bg-gray-300'
                       }`}
                   >

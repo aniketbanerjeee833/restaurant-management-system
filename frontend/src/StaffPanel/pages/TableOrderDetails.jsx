@@ -4,7 +4,7 @@ import { foodItemApi, useGetAllFoodItemsQuery } from "../../redux/api/foodItemAp
 
 
 
-import { useState } from "react";
+import {  useState } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 
 import { useFieldArray, useForm } from "react-hook-form";
@@ -19,7 +19,7 @@ import { toast } from "react-toastify";
 
 
 import { LayoutDashboard, Minus, Plus, ShoppingCart } from "lucide-react";
-import { useGetTableOrderDetailsQuery, useUpdateOrderMutation } from "../../redux/api/Staff/orderApi";
+import { orderApi, useGetTableOrderDetailsQuery, useUpdateOrderMutation } from "../../redux/api/Staff/orderApi";
 import OrderDetailsModal from "../../components/Modal/OrderDetailsModal";
 import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
 import { useDispatch } from "react-redux";
@@ -35,6 +35,15 @@ const socket = io("http://localhost:4000", {
 
 
 export default function TableOrderDetails() {
+const formatTime = (time) => {
+  if (!time) return "--";
+  const d = new Date(time);
+  d.setSeconds(0);
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
     const {Order_Id}=useParams();
     const dispatch = useDispatch();
@@ -43,6 +52,7 @@ export default function TableOrderDetails() {
     const {data:tableOrderDetails}=useGetTableOrderDetailsQuery(Order_Id);
     console.log(tableOrderDetails,"tableOrderDetails");
     const TAX_RATES = {
+        "None": 0,
         "GST0": 0,
         "GST0.25": 0.25,
         "GST3": 3,
@@ -70,14 +80,7 @@ export default function TableOrderDetails() {
  
    
     const [selectedTables, setSelectedTables] = useState([]);
-    //const [addOrder, { isLoading: isAddingOrder }] = useAddOrderMutation();
-    // const itemUnits = {
 
-    //     "pcs": "Pcs",
-    //     "plates": "Plates",
-    //     "btl": "Bottle",
-
-    // }
  
     const { data: menuItems } = useGetAllFoodItemsQuery({});
     //console.log(tables, isLoading, "tables", menuItems, isMenuItemsLoading);
@@ -139,8 +142,9 @@ useEffect(() => {
     KOT_Id: tableOrderDetails.KOT_Id,
     KOT_Item_Id: it.KOT_Item_Id,
     itemName: it.Item_Name,
-    status: it.Item_Status || "pending",
-    time: null,
+    status: it.Item_Status,
+     time: it.updated_at ,
+    // time: null,
   }));
 
   setKotNotifications(fresh);
@@ -166,6 +170,8 @@ useEffect(() => {
         updated[index] = {
           ...updated[index],
           status: data.status,
+        time: data.updated_at, // ✅ FIXED
+
           // time: data.time,
         };
         return updated;
@@ -179,11 +185,13 @@ useEffect(() => {
           KOT_Item_Id: data.KOT_Item_Id,
           itemName: data.itemName,
           status: data.status,
+          time: data.updated_at,
           // time: data.time,
         }
       ];
     });
   };
+  dispatch(orderApi.util.invalidateTags(["Order"]));
 
   socket.on("frontend_kot_update", handleKotUpdate);
 
@@ -285,7 +293,7 @@ useEffect(() => {
 
 
 
-    const { fields, append } = useFieldArray({
+    const { fields, append,remove } = useFieldArray({
         control,
         name: "items",
     });
@@ -321,37 +329,106 @@ const updateTotals = () => {
     setValue("Amount", subTotal.toFixed(2));
 };
 
+// const minQuantityOfItems=tableOrderDetails?.kitchenItems?.reduce((acc, item) => {
+//     acc[item.Item_Id] = item.Quantity;
+//     return acc;
+// })
+const minQuantityOfItems=new Map();
 
+tableOrderDetails?.kitchenItems?.forEach((item) => {
+  if(!minQuantityOfItems.has(item.Item_Id))
+    minQuantityOfItems.set(item.Item_Id, item.Quantity);
+  else{
+    minQuantityOfItems.set(item.Item_Id, minQuantityOfItems.get(item.Item_Id)+item.Quantity);
+  }
+})
+
+// const minQty = minQuantityOfItems.get(Item_Id) || 0;
+// const currentQty = Number(cart[Item_Id] || 0);
+// const disableMinus =
+//   unavailable || currentQty <= minQty;
+
+console.log(minQuantityOfItems,"minQuantityOfItems")
+// const updateCart = (itemId, delta, index, itemName, itemAmount) => {
+//   const amount = parseFloat(itemAmount || 0);
+
+//   setCart(prev => {
+//     const newQty = Math.max(0, (prev[itemId] || 0) + delta);
+
+//     // Does this menu item already exist inside RHF form?
+//     let rowIndex = itemRowMap.current[itemId];
+
+//     // ⭐ NEW menu item → create a new row
+//     if (rowIndex === undefined) {
+//       rowIndex = fields.length;
+//       itemRowMap.current[itemId] = rowIndex;
+
+//       append({
+//         Item_Name: itemName,
+//         Item_Price: amount,
+//         Item_Quantity: newQty,
+//         Amount: (amount * newQty).toFixed(2),
+//         id: itemId
+//       });
+//     }
+
+//     // ⭐ Update existing row
+//     setValue(`items.${rowIndex}.Item_Name`, itemName);
+//     setValue(`items.${rowIndex}.Item_Price`, amount);
+//     setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+//     setValue(`items.${rowIndex}.Amount`, (amount * newQty).toFixed(2));
+
+//     // Recalculate totals
+//     setTimeout(updateTotals, 0);
+
+//     return { ...prev, [itemId]: newQty };
+//   });
+// };
 const updateCart = (itemId, delta, index, itemName, itemAmount) => {
-  const amount = parseFloat(itemAmount || 0);
+  const price = Number(itemAmount || 0);
 
-  setCart(prev => {
-    const newQty = Math.max(0, (prev[itemId] || 0) + delta);
+  setCart((prev) => {
+    const currentQty = Number(prev[itemId] || 0);
+    const newQty = currentQty + delta;
 
-    // Does this menu item already exist inside RHF form?
-    let rowIndex = itemRowMap.current[itemId];
+    const rowIndex = itemRowMap.current[itemId];
 
-    // ⭐ NEW menu item → create a new row
-    if (rowIndex === undefined) {
-      rowIndex = fields.length;
-      itemRowMap.current[itemId] = rowIndex;
+    // ❌ REMOVE ITEM COMPLETELY WHEN QTY = 0
+    if (newQty <= 0) {
+      if (rowIndex !== undefined) {
+        remove(rowIndex); // 🔥 remove from RHF form
+        delete itemRowMap.current[itemId]; // 🔥 clean mapping
+      }
+
+      const updatedCart = { ...prev };
+      delete updatedCart[itemId]; // 🔥 remove from cart
+
+      setTimeout(updateTotals, 0);
+      return updatedCart;
+    }
+
+    // ✅ ADD NEW ROW IF NOT EXISTS
+    let finalRowIndex = rowIndex;
+    if (finalRowIndex === undefined) {
+      finalRowIndex = fields.length;
+      itemRowMap.current[itemId] = finalRowIndex;
 
       append({
         Item_Name: itemName,
-        Item_Price: amount,
+        Item_Price: price,
         Item_Quantity: newQty,
-        Amount: (amount * newQty).toFixed(2),
-        id: itemId
+        Amount: (price * newQty).toFixed(2),
+        id: itemId,
       });
+    } else {
+      // ✅ UPDATE EXISTING ROW
+      setValue(`items.${finalRowIndex}.Item_Quantity`, newQty);
+      setValue(
+        `items.${finalRowIndex}.Amount`,
+        (price * newQty).toFixed(2)
+      );
     }
 
-    // ⭐ Update existing row
-    setValue(`items.${rowIndex}.Item_Name`, itemName);
-    setValue(`items.${rowIndex}.Item_Price`, amount);
-    setValue(`items.${rowIndex}.Item_Quantity`, newQty);
-    setValue(`items.${rowIndex}.Amount`, (amount * newQty).toFixed(2));
-
-    // Recalculate totals
     setTimeout(updateTotals, 0);
 
     return { ...prev, [itemId]: newQty };
@@ -521,7 +598,7 @@ console.log(itemsValues,cart);
                                             type="button"
                                             onClick={() => navigate("/staff/orders/all-orders")}
                                             className="text-white font-bold py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                             style={{ backgroundColor: "black" }}
                                         >
                                             Back
                                         </button>
@@ -530,7 +607,7 @@ console.log(itemsValues,cart);
                                             type="button"
                                             onClick={() => navigate("/staff/orders/all-orders")}
                                             className="text-white py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "#ff0000" }}
                                         >
                                             All Orders
                                         </button>
@@ -594,7 +671,7 @@ console.log(itemsValues,cart);
             >
               <div className="flex justify-between items-start gap-2">
                 <span className="font-semibold text-gray-800 text-base leading-tight flex-1">
-                  {n.itemName}
+                  {n?.itemName}
                 </span>
 
                 <span
@@ -606,8 +683,12 @@ console.log(itemsValues,cart);
                       : "bg-gray-100 text-gray-500 border border-gray-300"
                   }`}
                 >
-                  {n.status}
+                  {n?.status}
                 </span>
+        <span className="text-xs px-3 py-1 text-gray-500">
+            {formatTime(n?.time)}
+              </span>
+
               </div>
             </div>
           ))
@@ -615,9 +696,8 @@ console.log(itemsValues,cart);
       </div>
     </div>
 
-
-                                                                                                                       <div 
-                                                style={{ backgroundColor: "#f1f1f19d"}} className=" mx-auto px-2 py-2">
+<div 
+  style={{ backgroundColor: "#f1f1f19d"}} className=" mx-auto px-2 py-2">
   <div
     className="
       flex 
@@ -640,8 +720,8 @@ console.log(itemsValues,cart);
           }
         `}
         style={{
-          backgroundColor: activeCategory === cat ? "#4CA1AF" : "",
-          borderColor: activeCategory === cat ? "#4CA1AF" : "",
+          backgroundColor: activeCategory === cat ? "#ff0000" : "",
+          borderColor: activeCategory === cat ? "#ff0000" : "",
         }}
       >
         {cat}
@@ -669,6 +749,12 @@ console.log(itemsValues,cart);
                                             
                                               const unavailable = item.is_available === 0; //  unavailable items
                                             
+  const minQty = minQuantityOfItems.get(item.Item_Id) || 0;
+  const currentQty = Number(cart[item.Item_Id] || 0);
+
+  const disableMinus =
+    unavailable || currentQty <= minQty;
+
                                               return (
                                                 <div
                                                   key={item.id ?? index}
@@ -704,20 +790,26 @@ console.log(itemsValues,cart);
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                                             
                                                     <div className="absolute top-2 right-2">
-                                                      <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#4CA1AF] shadow">
+                                                      <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#ff0000] shadow">
                                                         {item?.Item_Category}
                                                       </span>
                                                     </div>
                                             
-                                                    <div className="absolute bottom-1 left-2 right-2">
+                                                    {/* <div className="absolute bottom-1 left-2 right-2">
                                                       <h4 className="text-white text-[20px] leading-tight">
                                                         {item?.Item_Name}
                                                       </h4>
-                                                    </div>
+                                                    </div> */}
                                                   </div>
                                             
                                                   {/* ===== DETAILS SECTION ===== */}
                                                   <div className="p-2">
+                    <div className="flex  mb-2">
+          <h5 style={{color:"red"}}
+          className="text-red text-[20px] leading-tight">
+            {item?.Item_Name}
+          </h5>
+        </div>
                                             
                                                     {/* PRICE ROW */}
                                                     <div className="flex justify-between items-center mb-2">
@@ -731,7 +823,7 @@ console.log(itemsValues,cart);
                                                       </div>
                                             
                                                       <div className="text-right">
-                                                        <div className="text-sm font-bold text-[#4CA1AF]">
+                                                        <div className="text-sm font-bold text-[#ff0000]">
                                                           ₹{parseFloat(item?.Amount).toFixed(2)}
                                                         </div>
                                                         <div className="text-[10px] text-gray-500">Total</div>
@@ -753,7 +845,7 @@ console.log(itemsValues,cart);
                                                           w-7 h-7 flex items-center justify-center rounded-md shadow transition
                                                           ${unavailable
                                                             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                                            : "bg-white hover:bg-gray-100 text-[#4CA1AF]"
+                                                            : "bg-white hover:bg-gray-100 text-[#ff0000]"
                                                           }
                                                         `}
                                                       >
@@ -761,18 +853,31 @@ console.log(itemsValues,cart);
                                                       </button> */}
                                                              <button
                                                         type="button"
-                                                        disabled={unavailable || Number(cart[item.Item_Id] || 0) === 0}
-                                                        onClick={() =>
-                                                          !unavailable &&
-                                                          updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
-                                                        }
-                                                        className={`
-                                                          w-7 h-7 flex items-center justify-center rounded-md shadow transition
-                                                          ${unavailable || Number(cart[item.Item_Id] || 0) === 0
-                                                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                                            : "bg-white hover:bg-gray-100 text-[#4CA1AF]"
-                                                          }
-                                                        `}
+                                                          
+                                                 disabled={disableMinus||unavailable || Number(cart[item.Item_Id] || 0) === 0}
+                                                  onClick={() =>
+                                                                    !disableMinus &&
+                                                    updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
+                                                              }
+          
+                                                        // onClick={() =>
+                                                        //   !unavailable &&
+                                                        //   updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
+                                                        // }
+                                                         className={`
+      w-7 h-7 flex items-center justify-center rounded-md shadow transition
+      ${disableMinus
+        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+        : "bg-white hover:bg-gray-100 text-[#ff0000]"
+      }
+    `}
+                                                        // className={`
+                                                        //   w-7 h-7 flex items-center justify-center rounded-md shadow transition
+                                                        //   ${unavailable || Number(cart[item.Item_Id] || 0) === 0
+                                                        //     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                        //     : "bg-white hover:bg-gray-100 text-[#ff0000]"
+                                                        //   }
+                                                        // `}
                                                       >
                                                         <Minus className="w-3 h-3" />
                                                       </button>
@@ -784,6 +889,7 @@ console.log(itemsValues,cart);
                                             
                                                       {/* PLUS BUTTON */}
                                                       <button
+                                                      style={{backgroundColor: "#ff0000"}}
                                                         type="button"
                                                         disabled={unavailable}
                                                         onClick={() =>
@@ -794,7 +900,7 @@ console.log(itemsValues,cart);
                                                           w-7 h-7 flex items-center justify-center rounded-md shadow transition
                                                           ${unavailable
                                                             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                                            : "bg-[#4CA1AF] text-white hover:bg-[#3a8c98]"
+                                                            : "bg-[#ff0000] text-white hover:bg-[#3a8c98]"
                                                           }
                                                         `}
                                                       >
@@ -828,7 +934,7 @@ console.log(itemsValues,cart);
                                                       // disabled={formValues.errorCount > 0 || isAddingOrder}
                                                       className="relative w-full md:w-auto flex items-center justify-center gap-3 
                                                                  text-white font-bold py-3 px-6 rounded shadow"
-                                                      style={{ backgroundColor: "#4CA1AF" }}
+                                                     style={{ backgroundColor: "black" }}
                                                     >
                                                       Save & Hold
                                                       {/* {isAddingOrder ? "Saving..." : "Save & Hold"} */}
@@ -852,7 +958,7 @@ console.log(itemsValues,cart);
                                                       type="button"
                                                        onClick={()=>setOrderDetailsModalOpen(true)}
                                                       className="w-full md:w-auto text-white font-bold py-3 px-6 rounded shadow"
-                                                      style={{ backgroundColor: "#4CA1AF" }}
+                                                      style={{ backgroundColor: "#ff0000" }}
                                                     >
                                                       Save & Pay Bill
                                                     </button>
@@ -921,9 +1027,11 @@ console.log(itemsValues,cart);
                                                       <span>Total</span>
                                                       <span>₹{watch("Amount")}</span>
                                                     </div>
-                                                    <div className="flex justify-center mt-4">
-                                                      <button type="submit"
-                                                       className="w-16 h-10 flex items-center justify-center bg-[#4CA1AF] 
+                                                    <div 
+                                                    className="flex justify-center mt-4">
+                                                      <button style={{backgroundColor:"#ff0000"}}
+                                                       type="submit"
+                                                       className="w-16 h-10 flex items-center justify-center bg-[#ff0000] 
                                                           rounded-md text-white shadow hover:bg-[#3a8c98] ">
                                                           OK
                                                       </button>
@@ -1534,7 +1642,7 @@ console.log(itemsValues,cart);
     //                                                 type="button"
     //                                                 onClick={handleAddRow}
     //                                                 className=" text-white font-bold py-2 px-4 w-1/2 rounded "
-    //                                                 style={{ backgroundColor: "#4CA1AF" }}
+    //                                                 style={{ backgroundColor: "#ff0000" }}
     //                                             >
     //                                                 + Add Row
     //                                             </button>
@@ -1723,7 +1831,7 @@ console.log(itemsValues,cart);
     //                                                             disabled={formValues.errorCount > 0 }
     //                                                             // onClick={() => navigate("/staff/orders/all-orders")}
     //                                                             className=" text-white font-bold py-2 px-4 rounded"
-    //                                                             style={{ backgroundColor: "#4CA1AF" }}
+    //                                                             style={{ backgroundColor: "#ff0000" }}
     //                                                         >
     //                                                             Save and Hold
     //                                                             {/* {isAddingOrder ? "Saving..." : "Save and Hold"} */}
@@ -1732,7 +1840,7 @@ console.log(itemsValues,cart);
     //                                                             type="button"
     //                                                             onClick={()=>setOrderDetailsModalOpen(true)}
     //                                                             className=" text-white font-bold py-2 px-4 rounded"
-    //                                                             style={{ backgroundColor: "#4CA1AF" }}
+    //                                                             style={{ backgroundColor: "#ff0000" }}
     //                                                         >
                                                             
     //                                                             Save and Pay Bill

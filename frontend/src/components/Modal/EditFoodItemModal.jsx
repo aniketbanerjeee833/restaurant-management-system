@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,11 +42,11 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
         "IGST40": 40,
     };
 
-    const categoryRefs = useRef([]); // store refs for category dropdowns
-    const itemRefs = useRef([]);     // store refs for item dropdowns
+    //const categoryRefs = useRef([]); // store refs for category dropdowns
+    //const itemRefs = useRef([]);     // store refs for item dropdowns
     const categoryRef = useRef(null);
 
-    const navigate = useNavigate();
+    //const navigate = useNavigate();
     // const { data: parties } = useGetAllPartiesQuery();
     const { data: items } = useGetAllNewItemsQuery();
     console.log(items, "items");
@@ -71,13 +71,13 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
     // const [showGSTIN, setShowGSTIN] = useState("");
     //console.log(latestInvoiceNumber, "latestInvoiceNumber");
     const [editFoodItem, { isLoading: isAddingFoodItem }] = useEditSingleFoodItemMutation();
-    const itemUnits = {
+    // const itemUnits = {
 
-        "pcs": "Pcs",
-        "plates": "Plates",
-        "btl": "Bottle",
+    //     "pcs": "Pcs",
+    //     "plates": "Plates",
+    //     "btl": "Bottle",
 
-    }
+    // }
 
     const handleAddCategory = async () => {
 
@@ -187,87 +187,19 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
     });
 
 
-    //    const { fields, append, remove } = useFieldArray({
-    //   control,
-    //   name: "items",
-    // });
+    
+    //const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
 
-
-
-    // const handleAddRow = () => {
-    //   setRows((prev) => [
-    //     ...prev.map((row) => ({
-    //       ...row,
-    //       CategoryOpen: false,
-
-    //     //   itemOpen: false
-    //     })),
-    //     {
-    //     //   itemSearch: "",
-    //     //   itemOpen: false,
-    //       CategoryOpen: false,
-    //       categorySearch: "",
-
-    //     },
-    //   ]);
-
-    //   append({
-    //     Item_Name: "",
-    //     Item_Image: "",
-    //     Item_Category: "",
-    //     Item_Price: "",
-    //     Item_Quantity: "1",
-    //   });
-    // };
-
-
-    // const handleDeleteRow = (i) => {
-    //     setRows((prev) => prev.filter((_, idx) => idx !== i)); // remove UI state
-    //     remove(i); // remove from form
-    // };
-
-    //const itemsValues = watch("items");   // watch all item rows
-    //const totalPaid = watch("Total_Paid"); // watch Total_Paid
-    const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
-
-    // const calculateRowAmount = (row) => {
-    //     const price = num(row.Item_Price);
-    //     const qty = Math.max(1, num(row.Item_Quantity)); // default 1
-    //     const subtotal = price * qty;
-
-    //     // discount
-    //     // let disc = num(row.Discount_On_Sale_Price);
-    //     // if ((row.Discount_Type_On_Sale_Price || "Percentage") === "Percentage") {
-    //     //     disc = (subtotal * disc) / 100;
-    //     // }
-    //     // const afterDiscount = Math.max(0, subtotal - disc);
-
-    //     // tax
-    //     const taxPercent = TAX_RATES[row.Tax_Type] ?? 0;
-    //     const taxAmount = (subtotal * taxPercent) / 100;
-
-    //     const finalAmount = subtotal + taxAmount;
-
-
-    //     return {
-    //         ...row,
-    //         Item_Quantity: String(qty),
-    //         Tax_Amount: taxAmount.toFixed(2),
-    //         Amount: finalAmount.toFixed(2),
-    //         //Total_Amount: totalAmount.toFixed(2), // ✅ correct grand total
-
-    //     };
-    // };
-
+    
 
 
 
 
     //const itemsValues = watch("items"); // watch all rows
     const formValues = watch();
-    const price = watch("Item_Price");
-    const qty = watch("Item_Quantity");
-    const tax = watch("Tax_Type");
+    //const price = watch("Item_Price");
+    ///const qty = watch("Item_Quantity");
+    //const tax = watch("Tax_Type");
     const calculateRowAmount = ({ Item_Price, Item_Quantity, Tax_Type }) => {
         const price = Number(Item_Price) || 0;
         const qty = Number(Item_Quantity) || 1;
@@ -593,7 +525,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                                                     setShowModal(true);
                                                     // handleRowChange( "CategoryOpen", false);
                                                 }}
-                                                className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                                                className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
                                             >
                                                 + Add Category
                                             </span>
@@ -660,7 +592,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                                                 type="text"
                                                 value={newCategory}
                                                 onChange={(e) => setNewCategory(e.target.value)}
-                                                className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#4CA1AF]"
+                                                className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#ff0000]"
                                                 placeholder="Enter category name"
                                             />
                                             <div className="flex justify-end gap-3">
@@ -675,8 +607,8 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                                                 <button
                                                     type="button"
                                                     onClick={handleAddCategory}
-                                                    style={{ backgroundColor: "#4CA1AF" }}
-                                                    className="px-4 py-2 rounded-md bg-[#4CA1AF] text-white hover:bg-[#5c52d4]"
+                                                    style={{ backgroundColor: "#ff0000" }}
+                                                    className="px-4 py-2 rounded-md bg-[#ff0000] text-white hover:bg-[#5c52d4]"
                                                 >
                                                     Add
                                                 </button>
@@ -1059,7 +991,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
 
                             onClick={onClose}
                             className=" text-white font-bold py-2 px-4 rounded"
-                            style={{ backgroundColor: "#4CA1AF" }}
+                            style={{ backgroundColor: "#ff0000" }}
                         >
                             Cancel
                         </button>
@@ -1069,7 +1001,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                             onClick={() => handleEdit()}
 
                             className=" text-white font-bold py-2 px-4 rounded"
-                            style={{ backgroundColor: "#4CA1AF" }}
+                            style={{ backgroundColor: "#ff0000" }}
                         >
                             {isAddingFoodItem ? "Saving..." : "Save"}
                         </button>

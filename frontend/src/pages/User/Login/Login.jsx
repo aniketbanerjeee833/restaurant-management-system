@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+
 
 import "./Login.css"
 import { useState } from "react";
@@ -209,118 +209,63 @@ const localTime =
 
     console.log(blockedUntil, timeLeft, localTime,formValues);
     return (
-        <>
-        <div className="body">
-      <div className="container">
-    <div className="image-side">
-        <img src="/assets/images/bg-login.jpg"  style={{width:"100%", height:"100%"}} alt="Login Illustration" />
-    </div>
-    <div className="login-side">
 
-    
-    <form onSubmit={handleSubmit(onSubmit)} className="login-form">
-  {/* <h2>Admin Login</h2> */}
-  <div className="flex flex-col mb-3 gap-3 justify-center items-center">
-  <img src="/assets/images/techeasy_logo.png" className="w-50" alt="" />
-    <h3>Admin Login</h3>
-  {/* <p className="subtitle">Secure access to your accounting dashboard</p> */}
-</div>
-  {/* Username */}
-  <div className="mb-3">
-    <input
-      type="text"
-      placeholder="👤 Username"
-      {...register("username")}
-     
-      // value={username}
-      // onChange={(e) => setUsername(e.target.value)}
-      style={{
-        width: "92%",
-        padding: "7px",
-        fontSize: "16px",
-        borderRadius: "6px",
-        border: "1px solid #ccc",
-      }}
-    />
-    {errors.username && (
-      <p className="error-message ">{errors.username.message}</p>
-    )}
-  </div>
 
-  {/* Password */}
-  <div className="mb-3">
-    <input
-      type={showPassword ? "text" : "password"}
-      placeholder="🔒 Password"
-      {...register("password")}
-   
-      // value={password}
-      // onChange={(e) => setPassword(e.target.value)}
-      style={{
-        width: "92%",
-        padding: "7px",
-        fontSize: "16px",
-        borderRadius: "6px",
-        border: "1px solid #ccc",
-      }}
-    />
-        {errors.password && (
-      <p className="error-message ">{errors.password.message}</p>
-    )}
-</div>
-    {/* Show Password below input, side-by-side checkbox + text */}
-    <div
-  style={{
-    display: "flex",
-    alignItems: "center", // ✅ keeps checkbox & label perfectly centered vertically
-    gap: "8px", // ✅ consistent spacing between checkbox & text
-    marginTop: "8px",
-    flexWrap: "wrap", // ✅ ensures responsiveness on smaller screens
-  }}
->
-  <input
-    type="checkbox"
-    id="showPassword"
-    checked={showPassword}
-    onChange={() => setShowPassword(!showPassword)}
-    style={{
-      width: "16px",
-      height: "16px",
-      cursor: "pointer",
-      flexShrink: 0, // ✅ prevents checkbox from shrinking on small screens
-       // ✅ (optional) gives your theme color to checkbox
-    }}
-  />
-  <label
-    htmlFor="showPassword"
-    style={{
-      position: "relative",
-    bottom: "6px", // ✅ nudges label down to align with checkbox
-      fontSize: "14px",
-      color: "#333",
-      cursor: "pointer",
-     // ✅ aligns label perfectly with checkbox
-      userSelect: "none", // ✅ avoids accidental text selection
-      lineHeight: "1.5", // ✅ perfect alignment visually
-    }}
-  >
-    Show Password
-  </label>
-</div>
+<> 
+<video autoPlay muted loop id="bgVideo">
+    <source src="/assets/videos/back.mp4" type="video/mp4"/>
+    Your browser does not support the video tag.
+</video>
 
-  {/* Submit Button */}
-<button
-  type="submit"
-  disabled={isLoading || duplicateLoginError || countdownLeft > 0}
-  // className="login-btn"
-  style={{
-    backgroundColor: countdownLeft > 0 || isLoading || duplicateLoginError ? "#ccc" : "#4CA1AF",
-    color: countdownLeft > 0 || isLoading || duplicateLoginError ? "#444" : "#fff",
-    cursor: countdownLeft > 0 || isLoading || duplicateLoginError ? "not-allowed" : "pointer",
-    transition: "all 0.3s ease",
-  }}
->
-  {countdownLeft > 0 ? (
+<div className="container d-flex justify-content-center align-items-center" 
+style={{minHeight: "100vh"}}>
+    <div className="">
+        <div className="row login-container">
+  <form onSubmit={handleSubmit(onSubmit)} className="login-form">
+         
+            <div style={{display:"flex", justifyContent:"center", alignItems:"center"}} 
+            className="col-md-6 login-left">
+                <img src="/assets/images/logo.png" alt="Restaurant Logo"/>
+                <p>Manage | Monitor | Master Your Kitchen</p>
+            </div>
+
+            
+            <div className="col-md-6 login-right d-flex flex-column justify-content-center">
+                <div style={{display:"flex", justifyContent:"center", alignItems:"center"}}
+                className=" text-center mb-4">
+                    <p className="text-muted" style={{fontSize: "20px"}}><b>Login</b></p>
+                </div>
+
+            
+                    <div className="mb-3">
+                        <input type="text" id="username"
+                          {...register("username")}
+                         className="form-control p-1"
+                         placeholder="Username" required/>
+                    </div>
+
+                    <div className="mb-3">
+                        <input  type={showPassword ? "text" : "password"} id="password"
+                         {...register("password")}
+                         className="form-control p-1" placeholder="Password" required/>
+                    </div>
+
+                    <div className="mb-3 form-check">
+                        <input type="checkbox"
+                                   checked={showPassword}
+                                   onChange={() => setShowPassword(!showPassword)}
+                         className="form-check-input" id="showPass"/>
+                        <label className="form-check-label" htmlFor="showPass">Show Password</label>
+                    </div>
+
+                    <div 
+                    style={{width:'100%'}} className="flex w-full">
+                        <button style={{width:'100%',hover:"box-shadow: 0 0 12px red"}}
+                        type="submit"
+                           disabled={isLoading || duplicateLoginError || countdownLeft > 0}
+                          className="btn1 btn1-login">
+
+                              {countdownLeft > 0 ? (
     <>
       🔒 Please wait{" "}
       <strong>
@@ -345,8 +290,9 @@ const localTime =
   ) : (
     "Login"
   )}
-</button>
-{duplicateLoginError && (
+                          
+                          </button>
+                        {duplicateLoginError && (
   <div
     style={{
       color: "#b91c1c",
@@ -361,21 +307,189 @@ const localTime =
     ⚠️ {duplicateLoginError}
   </div>
 )}
-   <div className="bottom-text flex justify-center items-center">
-          <p>Designed & Developed by @ 
-            <NavLink to="https://techpromind.com/"
-          className="color: #4CA1AF"
-           target="_blank">Techpromind
-           </NavLink>
-           </p>
-        </div>
+                    </div>
+                
 
+                <div style={{display:"flex",flexDirection:"column", justifyContent:"center", alignItems:"center"}}
+                className="footer-text">
+                    <p style={{color:"black"}}>Designed & Developed by 
+                      <a href="https://techpromind.com/">Techpromind</a></p>
+                    <br/>
+                    Technical Support -  +91 99036 34360
+                     <br/>
+                     [Monday - Friday ( 11:00AM-6:00PM )]
+                </div>
+            </div>
 </form>
-
+        </div>
     </div>
-    </div>
-   </div>
-    </>
+</div>
+</>
     )
   
 }
+
+//         <>
+//         <div className="body">
+//       <div className="container">
+//     <div className="image-side">
+//         <img src="/assets/images/bg-login.jpg"  style={{width:"100%", height:"100%"}} alt="Login Illustration" />
+//     </div>
+//     <div className="login-side">
+
+    
+//     <form onSubmit={handleSubmit(onSubmit)} className="login-form">
+ 
+//   <div className="flex flex-col mb-3 gap-3 justify-center items-center">
+//   <img src="/assets/images/resturant_biling_logo.png" className="w-50" alt="" />
+//     <h3>Login</h3>
+
+// </div>
+
+//   <div className="mb-3">
+//     <input
+//       type="text"
+//       placeholder="👤 Username"
+//       {...register("username")}
+    
+//       style={{
+//         width: "92%",
+//         padding: "7px",
+//         fontSize: "16px",
+//         borderRadius: "6px",
+//         border: "1px solid #ccc",
+//       }}
+//     />
+//     {errors.username && (
+//       <p className="error-message ">{errors.username.message}</p>
+//     )}
+//   </div>
+
+//   {/* Password */}
+//   <div className="mb-3">
+//     <input
+//       type={showPassword ? "text" : "password"}
+//       placeholder="🔒 Password"
+//       {...register("password")}
+   
+    
+//       style={{
+//         width: "92%",
+//         padding: "7px",
+//         fontSize: "16px",
+//         borderRadius: "6px",
+//         border: "1px solid #ccc",
+//       }}
+//     />
+//         {errors.password && (
+//       <p className="error-message ">{errors.password.message}</p>
+//     )}
+// </div>
+  
+//     <div
+//   style={{
+//     display: "flex",
+//     alignItems: "center", // ✅ keeps checkbox & label perfectly centered vertically
+//     gap: "8px", // ✅ consistent spacing between checkbox & text
+//     marginTop: "8px",
+//     flexWrap: "wrap", // ✅ ensures responsiveness on smaller screens
+//   }}
+// >
+//   <input
+//     type="checkbox"
+//     id="showPassword"
+//     checked={showPassword}
+//     onChange={() => setShowPassword(!showPassword)}
+//     style={{
+//       width: "16px",
+//       height: "16px",
+//       cursor: "pointer",
+//       flexShrink: 0, // ✅ prevents checkbox from shrinking on small screens
+     
+//     }}
+//   />
+//   <label
+//     htmlFor="showPassword"
+//     style={{
+//       position: "relative",
+//     bottom: "6px", // ✅ nudges label down to align with checkbox
+//       fontSize: "14px",
+//       color: "#333",
+//       cursor: "pointer",
+//      // ✅ aligns label perfectly with checkbox
+//       userSelect: "none", // ✅ avoids accidental text selection
+//       lineHeight: "1.5", // ✅ perfect alignment visually
+//     }}
+//   >
+//     Show Password
+//   </label>
+// </div>
+
+
+// <button
+//   type="submit"
+//   disabled={isLoading || duplicateLoginError || countdownLeft > 0}
+ 
+//   style={{
+//     backgroundColor: countdownLeft > 0 || isLoading || duplicateLoginError ? "#ccc" : "#ff0000",
+//     color: countdownLeft > 0 || isLoading || duplicateLoginError ? "#444" : "#fff",
+//     cursor: countdownLeft > 0 || isLoading || duplicateLoginError ? "not-allowed" : "pointer",
+//     transition: "all 0.3s ease",
+//   }}
+// >
+//   {countdownLeft > 0 ? (
+//     <>
+//       🔒 Please wait{" "}
+//       <strong>
+//         {String(Math.floor(countdownLeft / 60)).padStart(2, "0")}m{" "}
+//         {String(countdownLeft % 60).padStart(2, "0")}s
+//       </strong>
+//       <br />
+//       <small
+//         style={{
+//           fontSize: "13px",
+//           display: "block",
+//           marginTop: "3px",
+//           color: "#333",
+//         }}
+//       >
+//         You can try again at{" "}
+//         <strong style={{ color: "#000" }}>{localTime}</strong>
+//       </small>
+//     </>
+//   ) : isLoading ? (
+//     "Logging in..."
+//   ) : (
+//     "Login"
+//   )}
+// </button>
+// {duplicateLoginError && (
+//   <div
+//     style={{
+//       color: "#b91c1c",
+//       backgroundColor: "#fee2e2",
+//       border: "1px solid #fca5a5",
+//       borderRadius: "6px",
+//       padding: "8px 12px",
+//       marginTop: "10px",
+//       fontSize: "14px",
+//     }}
+//   >
+//     ⚠️ {duplicateLoginError}
+//   </div>
+// )}
+//    <div className="bottom-text flex justify-center items-center">
+//           <p>Designed & Developed by @ 
+//             <NavLink to="https://techpromind.com/"
+//           className="color: #ff0000"
+//            target="_blank">Techpromind
+//            </NavLink>
+//            </p>
+//         </div>
+
+// </form>
+
+//     </div>
+//     </div>
+//    </div>
+//     </>

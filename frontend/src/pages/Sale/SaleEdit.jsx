@@ -683,7 +683,7 @@ useEffect(() => {
         type="button"
         onClick={() => navigate("/sale/all-sales")}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         Back
       </button>
@@ -692,7 +692,7 @@ useEffect(() => {
         type="button"
         onClick={() => navigate("/sale/all-sales")}
         className="text-white py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         All Sales
       </button>
@@ -774,7 +774,7 @@ useEffect(() => {
                         rounded-md shadow-lg max-h-48 overflow-y-auto">
                           <span
                             onClick={() => setShowPartyModal(true)}
-                            className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                            className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
                           >
                             + Add Party
                           </span>
@@ -870,7 +870,7 @@ useEffect(() => {
     <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
       <span
         onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
       >
         + Add Party
       </span>
@@ -953,7 +953,7 @@ useEffect(() => {
     <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
       <span
         onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
       >
         + Add Party
       </span>
@@ -1768,7 +1768,7 @@ onChange={(e) => {
         type="button"
         onClick={handleAddRow}
        className=" text-white font-bold py-2 px-4 w-1/2 rounded  "
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         + Add Row
       </button>
@@ -2012,7 +2012,7 @@ className="flex justify-between items-start gap-6 w-full mr-4">
 
                       onClick={() => navigate("/sale/all-sales")}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       Cancel
                     </button>
@@ -2020,7 +2020,7 @@ className="flex justify-between items-start gap-6 w-full mr-4">
                       type="submit"
                       disabled={formValues.errorCount > 0 || isEditingSale}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       {isEditingSale ? "Updating..." : "Update Sale"}
                     </button>

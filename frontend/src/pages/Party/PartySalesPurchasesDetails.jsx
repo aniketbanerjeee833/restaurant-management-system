@@ -126,7 +126,7 @@ const purchases = partyDetails?.purchases ?? [];
         type="button"
         onClick={() => navigate("/party/all-parties")}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         Back
       </button>
@@ -136,7 +136,7 @@ const purchases = partyDetails?.purchases ?? [];
         type="button"
         onClick={()=>handlePrint()}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
        {isPrintLoading?"Printing...":"Print"}
       </button>
@@ -173,7 +173,7 @@ const purchases = partyDetails?.purchases ?? [];
   style={{
     cursor: "pointer",
     backgroundColor: "transparent",
-    color: "#4CA1AF"
+    color: "#ff0000"
   }}
 />
 
@@ -404,7 +404,7 @@ const purchases = partyDetails?.purchases ?? [];
                                     // className={`px-3 py-1 rounded ${page === index + 1 ? 'bg-[#7346ff] text-white' : 'bg-gray-200 hover:bg-gray-300'
                                     //     }`}
                                     className={
-                                        `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                                        `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                                             'bg-gray-200 hover:bg-gray-300'
                                         }`}
                                 >

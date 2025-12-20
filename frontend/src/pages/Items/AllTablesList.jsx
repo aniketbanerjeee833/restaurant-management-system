@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useGetAllTablesQuery } from "../../redux/api/tableApi";
-import { Eye, LayoutDashboard, SquarePen } from "lucide-react";
+import { Eye, SquarePen } from "lucide-react";
 
 export default function AllItemsList() {
 
@@ -46,22 +46,7 @@ export default function AllItemsList() {
     return (
         <>
 
-            <div className="sb2-2-2">
-                <ul >
-                    <li>
-
-                        <NavLink style={{ display: "flex", flexDirection: "row" }}
-                            to="/home"
-
-                        >
-                            <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-                            {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
-                            Dashboard
-                        </NavLink>
-                    </li>
-
-                </ul>
-            </div>
+            
             <div className="sb2-2-3 ">
                 <div className="row">
                     <div className="col-md-12">
@@ -113,7 +98,7 @@ export default function AllItemsList() {
                                                 style={{
                                                     outline: "none",
                                                     boxShadow: "none",
-                                                    backgroundColor: "#4CA1AF",
+                                                    backgroundColor: "#ff0000",
                                                 }}
                                                 className="hidden sm:block text-white px-4 py-2 rounded-md sm:w-auto"
                                                 onClick={() => navigate("/table/add")}
@@ -180,7 +165,7 @@ export default function AllItemsList() {
                                                                                 style={{
                                                                                     cursor: "pointer",
                                                                                     backgroundColor: "transparent",
-                                                                                    color: "#4CA1AF",
+                                                                                    color: "#ff0000",
                                                                                 }}
                                                                             />
                                                                         {/* </NavLink> */}
@@ -194,7 +179,7 @@ export default function AllItemsList() {
                                                                             style={{
                                                                                 cursor: "pointer",
                                                                                 backgroundColor: "transparent",
-                                                                                color: "#4CA1AF"
+                                                                                color: "#ff0000"
                                                                             }} />
 
                                                                     </td>
@@ -233,7 +218,7 @@ export default function AllItemsList() {
                                         //         'bg-gray-200 hover:bg-gray-300'
                                         //     }`}
                                         className={
-                                            `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                                            `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                                                 'bg-gray-200 hover:bg-gray-300'
                                             }`}
                                     >

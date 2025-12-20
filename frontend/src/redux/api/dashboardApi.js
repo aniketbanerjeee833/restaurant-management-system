@@ -17,10 +17,13 @@ export const dashboardApi = createApi({
   tagTypes: ["Dashboard" ],
 
   endpoints: (builder) => ({
-      getTotalSalesPurchasesReceivablesPayablesProfit: builder.query({
-    query: () => `dashboard/total-sales-purchases-receivables-payables-profit`,
-    providesTags: ["Dashboard"],
+ getTotalSalesPurchasesReceivablesPayablesProfit: builder.query({
+  query: (date) => ({
+    url: "dashboard/total-sales-purchases-receivables-payables-profit",
+    params: { date },
   }),
+}),
+  providesTags: ["Dashboard"],
         getAllSalesAndPurchasesYearWise: builder.query({
     query: ({year}) => `dashboard/sales-purchases-profit?year=${year}`,
     providesTags: ["Dashboard"],

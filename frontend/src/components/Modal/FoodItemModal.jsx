@@ -246,7 +246,7 @@ export default function FoodItemModal({ onClose,foodItem,editingFoodItem}) {
     //               onClick={handleSave}
     //   disabled={isLoading}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                         Cancel
                            {/* {isLoading ? "Saving..." : "Save"} */}
@@ -255,7 +255,7 @@ export default function FoodItemModal({ onClose,foodItem,editingFoodItem}) {
                       type="button"
                       
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       Print
                     </button>} */}

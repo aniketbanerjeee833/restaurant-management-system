@@ -146,28 +146,22 @@ export default function AllInventoryList() {
 
                
         //         <div className="sb2-2"> */}
-      <div className="sb2-2-2">
+      {/* <div className="sb2-2-2">
         <ul >
           <li>
-            {/* <NavLink
-                            to="/"
-
-                        >
-                            <i className="fa fa-home mr-2" aria-hidden="true"></i>
-                            Dashboard
-                        </NavLink> */}
+           
             <NavLink style={{ display: "flex", flexDirection: "row" }}
               to="/home"
 
             >
               <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-              {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+             
               Dashboard
             </NavLink>
           </li>
 
         </ul>
-      </div>
+      </div> */}
       <div className="sb2-2-3 ">
         <div className="row">
           <div className="col-md-12">
@@ -190,7 +184,7 @@ export default function AllInventoryList() {
                       style={{
                         outline: "none",
                         boxShadow: "none",
-                        backgroundColor: "#4CA1AF",
+                        backgroundColor: "#ff0000",
                       }}
                       className="text-white px-4 py-2 rounded-md sm:hidden"
                       onClick={() => navigate("/inventory/add")}
@@ -250,7 +244,7 @@ export default function AllInventoryList() {
                         style={{
                           outline: "none",
                           boxShadow: "none",
-                          backgroundColor: "#4CA1AF",
+                          backgroundColor: "#ff0000",
                         }}
                         className="hidden sm:block text-white px-4 py-2 rounded-md sm:w-auto"
                         onClick={() => navigate("/inventory/add")}
@@ -320,7 +314,7 @@ export default function AllInventoryList() {
                                   style={{
                                     cursor: "pointer",
                                     backgroundColor: "transparent",
-                                    color: "#4CA1AF"
+                                    color: "#ff0000"
                                   }} />
                               </td>
                               <td
@@ -329,7 +323,7 @@ export default function AllInventoryList() {
                                   style={{
                                     cursor: "pointer",
                                     backgroundColor: "transparent",
-                                    color: "#4CA1AF"
+                                    color: "#ff0000"
                                   }} />
 
                               </td>
@@ -375,7 +369,7 @@ export default function AllInventoryList() {
                     //   className={`px-3 py-1 rounded ${page === index + 1 ? 'bg-[#7346ff] text-white' : 'bg-gray-200 hover:bg-gray-300'
                     //     }`}
                     className={
-                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                         'bg-gray-200 hover:bg-gray-300'
                       }`}
                   >

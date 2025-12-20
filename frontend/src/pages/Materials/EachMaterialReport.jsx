@@ -117,7 +117,7 @@ const handlePrint = async() => {
       disabled={isPrintEachMaterialDetailsReportLoading}
        onClick={handlePrint}
       className="text-white font-bold py-2 px-4 rounded"
-      style={{ backgroundColor: "#4CA1AF" }}
+      style={{ backgroundColor: "#ff0000" }}
     >
         {isPrintEachMaterialDetailsReportLoading ? "Printing..." : "Print"}
      

@@ -317,7 +317,7 @@ const handleEdit = async () => {
               id="Email_Id"
               {...register("Email_Id")}
               placeholder="example@email.com"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-[#4CA1AF] outline-none transition-all"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-[#ff0000] outline-none transition-all"
             /> */}
                <input
                      
@@ -362,7 +362,7 @@ const handleEdit = async () => {
 
           {/* Shipping Address Toggle */}
           <p
-            className="text-[#4CA1AF] cursor-pointer font-medium hover:underline mt-2"
+            className="text-[#ff0000] cursor-pointer font-medium hover:underline mt-2"
             onClick={() => setShippingAddress(!shippingAdress)}
           >
             {shippingAdress
@@ -403,7 +403,7 @@ const handleEdit = async () => {
           className="text-white
            font-semibold py-2 px-4
             rounded-md w-full sm:w-auto"
-          style={{ backgroundColor: "#4CA1AF" }}
+          style={{ backgroundColor: "#ff0000" }}
         >
           Cancel
         </button>
@@ -418,7 +418,7 @@ const handleEdit = async () => {
   }}
   disabled={ isLoading}
   className="text-white font-semibold py-2 px-4 rounded-md w-full sm:w-auto"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "#ff0000" }}
 >
   Save
   {/* {isLoading ? (editingParty ? "Updating..." : "Saving...") 
@@ -430,7 +430,7 @@ const handleEdit = async () => {
   onClick={editingParty ? handleEdit : handleSubmit}
   disabled={isLoading}
   className="text-white font-semibold py-2 px-4 rounded-md w-full sm:w-auto"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "#ff0000" }}
 >
   {isLoading ||isUpdating ? "Saving..." :  "Save"}
 </button> */}
@@ -440,7 +440,7 @@ const handleEdit = async () => {
           onClick={() => handleSubmit()}
           disabled={formValues.errorCount > 0|| isLoading}
           className="text-white font-semibold py-2 px-4 rounded-md w-full sm:w-auto"
-          style={{ backgroundColor: "#4CA1AF" }}
+          style={{ backgroundColor: "#ff0000" }}
         >
           {isLoading ? "Saving..." : "Save"}
         </button> */}
@@ -466,7 +466,7 @@ const handleEdit = async () => {
             setConfirmModal(false);
             handleEdit();         // ✔ Trigger update API ONLY ON YES
           }}
-          className="px-4 py-2 rounded-md bg-[#4CA1AF] text-white hover:bg-[#3b8c98]"
+          className="px-4 py-2 rounded-md bg-[#ff0000] text-white hover:bg-[#3b8c98]"
         >
         {isUpdating?"Saving...":"Yes"}
         </button>

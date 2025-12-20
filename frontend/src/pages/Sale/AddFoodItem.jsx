@@ -440,7 +440,7 @@ itemsSafe.forEach((item) => {
                                             type="button"
                                             onClick={() => navigate("/new/all-new-food-items")}
                                             className="text-white font-bold py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "black" }}
                                         >
                                             Back
                                         </button>
@@ -449,7 +449,7 @@ itemsSafe.forEach((item) => {
                                             type="button"
                                             onClick={() => navigate("/new/all-new-food-items")}
                                             className="text-white py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "#ff0000" }}
                                         >
                                             All Food Items
                                         </button>
@@ -575,7 +575,7 @@ itemsSafe.forEach((item) => {
                                                                                 setShowModal(true);
                                                                                 handleRowChange(i, "CategoryOpen", false);
                                                                             }}
-                                                                            className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                                                                            className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
                                                                         >
                                                                             + Add Category
                                                                         </span>
@@ -644,7 +644,7 @@ itemsSafe.forEach((item) => {
                                                                             type="text"
                                                                             value={newCategory}
                                                                             onChange={(e) => setNewCategory(e.target.value)}
-                                                                            className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#4CA1AF]"
+                                                                            className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#ff0000]"
                                                                             placeholder="Enter category name"
                                                                         />
                                                                         <div className="flex justify-end gap-3">
@@ -659,8 +659,8 @@ itemsSafe.forEach((item) => {
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={handleAddCategory}
-                                                                                style={{ backgroundColor: "#4CA1AF" }}
-                                                                                className="px-4 py-2 rounded-md bg-[#4CA1AF] text-white hover:bg-[#5c52d4]"
+                                                                                style={{ backgroundColor: "#ff0000" }}
+                                                                                className="px-4 py-2 rounded-md bg-[#ff0000] text-white hover:bg-[#5c52d4]"
                                                                             >
                                                                                 Add
                                                                             </button>
@@ -1044,8 +1044,8 @@ itemsSafe.forEach((item) => {
                                                 <button
                                                     type="button"
                                                     onClick={handleAddRow}
-                                                    className=" text-white font-bold py-2 px-4 w-1/2 rounded "
-                                                    style={{ backgroundColor: "#4CA1AF" }}
+                                                     className=" text-white font-bold py-1 px-2 sm:px-2 py-2 md:px-2 w-1/2" 
+                                                    style={{ backgroundColor: "#ff0000" }}
                                                 >
                                                     + Add Row
                                                 </button>
@@ -1394,7 +1394,7 @@ className="flex flex-col gap-4 mt-3 w-full">
 
                                             onClick={() => navigate("/new/all-new-food-items")}
                                             className=" text-white font-bold py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "black" }}
                                         >
                                             Cancel
                                         </button>
@@ -1402,7 +1402,7 @@ className="flex flex-col gap-4 mt-3 w-full">
                                             type="submit"
                                             disabled={formValues.errorCount > 0 || isAddingFoodItem}
                                             className=" text-white font-bold py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "#ff0000" }}
                                         >
                                             {isAddingFoodItem ? "Saving..." : "Save"}
                                         </button>
@@ -1628,7 +1628,7 @@ className="flex flex-col gap-4 mt-3 w-full">
                                                         <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
                                                             <span
                                                                 onClick={() => setShowPartyModal(true)}
-                                                                className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                                                                className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
                                                             >
                                                                 + Add Party
                                                             </span>

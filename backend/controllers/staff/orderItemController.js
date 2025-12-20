@@ -15,67 +15,173 @@ async function generateNextId(connection, prefix, column, table) {
     return prefix + num.toString().padStart(5, "0");
 }
 
-const addNewCustomer = async (req, res, next) => {
-    let connection;
-    try{
+// const addNewCustomer = async (req, res, next) => {
+//     let connection;
+//     try{
      
 
-      const { Customer_Name, Customer_Phone } = req.body;
-      if (!Customer_Name || !Customer_Phone) {
-        return res.status(400).json({
-          success: false,
-          message: "Customer name and phone number are required.",
-      })
-    }
+//       const { Customer_Name, Customer_Phone,Customer_Address,Customer_Date } = req.body;
+//       if (!Customer_Phone) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Customer phone number is required.",
+//       })
+//     }
 
   
 
-       connection = await db.getConnection();
-       await connection.beginTransaction();
+//        connection = await db.getConnection();
+//        await connection.beginTransaction();
 
-       const[customers]= await connection.query(
-        `SELECT * FROM customers WHERE Customer_Phone = ?`,
-        [Customer_Phone]
-      );
-      if(customers.length>0){
-        await connection.rollback();
-        return res.status(400).json({
-            success: false,
-            message: "Customer with this phone number already exists.",
-        })
-      }
+//        const[customers]= await connection.query(
+//         `SELECT * FROM customers WHERE Customer_Phone = ?`,
+//         [Customer_Phone]
+//       );
+//       if(customers.length>0){
+//         await connection.rollback();
+//         return res.status(400).json({
+//             success: false,
+//             message: "Customer with this phone number already exists.",
+//         })
+//       }
 
-         const Customer_Id = await generateNextId(
-    connection,
-    "CUST",
-    "Customer_Id",
-    "customers"
-  );
-        await connection.query(
-            `INSERT INTO customers (Customer_Id, Customer_Name, Customer_Phone) VALUES (?, ?, ?)`,
-            [Customer_Id, Customer_Name, Customer_Phone]
-        );
+//          const Customer_Id = await generateNextId(
+//     connection,
+//     "CUST",
+//     "Customer_Id",
+//     "customers"
+//   );
+//         await connection.query(
+//             `INSERT INTO customers (Customer_Id, Customer_Name, Customer_Phone,
+//             Customer_Address,Special_Date
+//             ) VALUES (?, ?, ?, ?, ?)`,
+//             [Customer_Id, Customer_Name, Customer_Phone,Customer_Address,Customer_Date]
+//         );
 
-          await connection.commit();
-        return res.status(201).json({
-            success: true,
-            message: "Customer added successfully.",
-            Customer_Id,
-            Customer_Name,
-            Customer_Phone,
-        });
+//           await connection.commit();
+//         return res.status(201).json({
+//             success: true,
+//             message: "Customer added successfully.",
+//             Customer_Id,
+//             Customer_Name,
+//             Customer_Phone,
+//         });
 
       
-    }catch(err){
-        console.error("❌ Error adding new customer:", err);
-        next(err);
-    }finally{
-        if(connection) connection.release();
+//     }catch(err){
+//         console.error("❌ Error adding new customer:", err);
+//         next(err);
+//     }finally{
+//         if(connection) connection.release();
+//     }
+// }
+const addNewCustomer = async (req, res, next) => {
+  let connection;
+
+  try {
+    const {
+      Customer_Name,
+      Customer_Phone,
+      Customer_Address,
+      Customer_Date,
+    } = req.body;
+
+    if (!Customer_Phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer phone number is required.",
+      });
     }
-}
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    /* ---------------------------------------------------
+       1️⃣ CHECK IF CUSTOMER EXISTS BY PHONE
+    --------------------------------------------------- */
+    const [customers] = await connection.query(
+      `SELECT Customer_Id FROM customers WHERE Customer_Phone = ? LIMIT 1`,
+      [Customer_Phone]
+    );
+
+    /* ---------------------------------------------------
+       2️⃣ IF EXISTS → UPDATE
+    --------------------------------------------------- */
+    if (customers.length > 0) {
+      const Customer_Id = customers[0].Customer_Id;
+
+      await connection.query(
+        `UPDATE customers
+         SET 
+           Customer_Name = COALESCE(?, Customer_Name),
+           Customer_Address = COALESCE(?, Customer_Address),
+           Special_Date = COALESCE(?, Special_Date),
+           updated_at = NOW()
+         WHERE Customer_Id = ?`,
+        [
+          Customer_Name,
+          Customer_Address,
+          Customer_Date,
+          Customer_Id,
+        ]
+      );
+
+      await connection.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: "Customer updated successfully.",
+        Customer_Id,
+        Customer_Name,
+        Customer_Phone,
+      });
+    }
+
+    /* ---------------------------------------------------
+       3️⃣ IF NOT EXISTS → INSERT
+    --------------------------------------------------- */
+    const Customer_Id = await generateNextId(
+      connection,
+      "CUST",
+      "Customer_Id",
+      "customers"
+    );
+
+    await connection.query(
+      `INSERT INTO customers
+       (Customer_Id, Customer_Name, Customer_Phone, Customer_Address, Special_Date)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        Customer_Id,
+        Customer_Name,
+        Customer_Phone,
+        Customer_Address,
+        Customer_Date,
+      ]
+    );
+
+    await connection.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: "Customer added successfully.",
+      Customer_Id,
+      Customer_Name,
+      Customer_Phone,
+    });
+
+  } catch (err) {
+    if (connection) await connection.rollback();
+    console.error("❌ Error adding/updating customer:", err);
+    next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+};
 
 const addOrder = async (req, res, next) => {
   let connection;
+
 
   try {
     const {
@@ -87,7 +193,9 @@ const addOrder = async (req, res, next) => {
       Sub_Total,
       Amount,
     } = req.body;
-
+const normalizedCustomerName =Customer_Name && Customer_Name.trim() !== ""
+    ? Customer_Name.trim()
+    : null;
     /* ---------------- VALIDATIONS ---------------- */
     if (!userId || !Array.isArray(Table_Names) || Table_Names.length === 0) {
       return res.status(400).json({
@@ -103,10 +211,10 @@ const addOrder = async (req, res, next) => {
       });
     }
 
-    if (!Customer_Name || !Customer_Phone) {
+    if (!Customer_Phone) {
       return res.status(400).json({
         success: false,
-        message: "Customer name and phone are required",
+        message: "Customer  phone number is required",
       });
     }
 
@@ -134,7 +242,7 @@ const addOrder = async (req, res, next) => {
       await connection.query(
         `INSERT INTO customers (Customer_Id, Customer_Name, Customer_Phone)
          VALUES (?, ?, ?)`,
-        [Customer_Id, Customer_Name, Customer_Phone]
+        [Customer_Id,   normalizedCustomerName, Customer_Phone]
       );
     }
 
@@ -233,7 +341,7 @@ const addOrder = async (req, res, next) => {
       );
 
       // one kitchen row per quantity
-      for (let i = 0; i < item.Item_Quantity; i++) {
+      // for (let i = 0; i < item.Item_Quantity; i++) {
         const KOT_Item_Id = await generateNextId(
           connection,
           "KOTITM",
@@ -244,10 +352,10 @@ const addOrder = async (req, res, next) => {
         await connection.query(
           `INSERT INTO kitchen_order_items
            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-           VALUES (?, ?, ?, ?, 1, 'pending')`,
-          [KOT_Item_Id, KOT_Id, Item_Id, item.Item_Name]
+           VALUES (?, ?, ?, ?, ?, 'pending')`,
+          [KOT_Item_Id, KOT_Id, Item_Id, item.Item_Name,item.Item_Quantity]
         );
-      }
+      //}
     }
 
     /* ---------------- FETCH FULL KOT ITEMS + CATEGORY ---------------- */
@@ -305,260 +413,31 @@ const addOrder = async (req, res, next) => {
   }
 };
 
-// const addOrder = async (req, res, next) => {
-//   let connection;
-
-//   try {
-//     const {
-//       Customer_Name,
-//       Customer_Phone,
-//       userId,
-//       Table_Names,
-//       items,
-//       Sub_Total,
-//       Amount,
-//     } = req.body;
-
-//     /* ---------------- VALIDATIONS ---------------- */
-//     if (!userId || !Array.isArray(Table_Names) || Table_Names.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "User ID and table are required",
-//       });
-//     }
-
-//     if (!Array.isArray(items) || items.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "At least one item is required",
-//       });
-//     }
-
-//     if (!Customer_Name || !Customer_Phone) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Customer name and phone are required",
-//       });
-//     }
-
-//     for (const item of items) {
-//       if (!item.Item_Name || item.Item_Quantity <= 0) {
-//         return res.status(400).json({
-//           success: false,
-//           message: `Invalid item: ${item.Item_Name}`,
-//         });
-//       }
-//     }
-
-//     /* ---------------- DB START ---------------- */
-//     connection = await db.getConnection();
-//     await connection.beginTransaction();
-
-//     /* ---------------- CUSTOMER ---------------- */
-//     let Customer_Id;
-//     const [existingCustomer] = await connection.query(
-//       `SELECT Customer_Id FROM customers WHERE Customer_Phone = ? LIMIT 1`,
-//       [Customer_Phone]
-//     );
-
-//     if (existingCustomer.length > 0) {
-//       Customer_Id = existingCustomer[0].Customer_Id;
-//     } else {
-//       Customer_Id = await generateNextId(
-//         connection,
-//         "CUST",
-//         "Customer_Id",
-//         "customers"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO customers (Customer_Id, Customer_Name, Customer_Phone)
-//          VALUES (?, ?, ?)`,
-//         [Customer_Id, Customer_Name, Customer_Phone]
-//       );
-//     }
-
-//     /* ---------------- ORDER ---------------- */
-//     const Order_Id = await generateNextId(
-//       connection,
-//       "ODR",
-//       "Order_Id",
-//       "orders"
-//     );
-
-//     await connection.query(
-//       `INSERT INTO orders
-//        (Order_Id, User_Id, Customer_Id, Status, Sub_Total, Discount, Amount, Payment_Status)
-//        VALUES (?, ?, ?, 'hold', ?, 0, ?, 'pending')`,
-//       [Order_Id, userId, Customer_Id, Sub_Total, Amount]
-//     );
-
-//     /* ---------------- TABLES ---------------- */
-//     for (const tableName of Table_Names) {
-//       const [tbl] = await connection.query(
-//         `SELECT Table_Id, Status FROM add_table WHERE Table_Name = ?`,
-//         [tableName]
-//       );
-
-//       if (!tbl.length) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           success: false,
-//           message: "Table not found",
-//         });
-//       }
-
-//       if (tbl[0].Status === "occupied") {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           success: false,
-//           message: "Table already occupied",
-//         });
-//       }
-
-//       const Order_Table_Id = await generateNextId(
-//         connection,
-//         "OTB",
-//         "Order_Table_Id",
-//         "order_tables"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO order_tables (Order_Table_Id, Order_Id, Table_Id)
-//          VALUES (?, ?, ?)`,
-//         [Order_Table_Id, Order_Id, tbl[0].Table_Id]
-//       );
-
-//       await connection.query(
-//         `UPDATE add_table SET Status='occupied', Start_Time=NOW()
-//          WHERE Table_Id = ?`,
-//         [tbl[0].Table_Id]
-//       );
-//     }
-
-//     /* ---------------- KOT ---------------- */
-//     const KOT_Id = await generateNextId(
-//       connection,
-//       "KOT",
-//       "KOT_Id",
-//       "kitchen_orders"
-//     );
-
-//     await connection.query(
-//       `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status)
-//        VALUES (?, ?, 'pending')`,
-//       [KOT_Id, Order_Id]
-//     );
-
-//     /* ---------------- ITEMS ---------------- */
-//     for (const item of items) {
-//       const [[dbItem]] = await connection.query(
-//         `SELECT Item_Id, Item_Category
-//          FROM add_food_item
-//          WHERE Item_Name = ? LIMIT 1`,
-//         [item.Item_Name]
-//       );
-
-//       if (!dbItem) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           success: false,
-//           message: `Item not found: ${item.Item_Name}`,
-//         });
-//       }
-
-//       const Item_Id = dbItem.Item_Id;
-//       const Category = dbItem.Item_Category;
-
-//       /* ---------- order_items ---------- */
-//       const Order_Item_Id = await generateNextId(
-//         connection,
-//         "ODRITM",
-//         "Order_Item_Id",
-//         "order_items"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO order_items
-//          (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
-//          VALUES (?, ?, ?, ?, ?, ?)`,
-//         [
-//           Order_Item_Id,
-//           Order_Id,
-//           Item_Id,
-//           item.Item_Quantity,
-//           item.Item_Price,
-//           item.Amount,
-//         ]
-//       );
-
-//       /* ---------- kitchen_order_items (1 row per qty) ---------- */
-//       for (let i = 0; i < item.Item_Quantity; i++) {
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
-
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, 1, 'pending')`,
-//           [
-//             KOT_Item_Id,
-//             KOT_Id,
-//             Item_Id,
-//             item.Item_Name,
-//           ]
-//         );
-//       }
-
-//       /* 🔔 SOCKET → CATEGORY STAFF ONLY */
-//       io.to(`category_${Category}`).emit("new_kitchen_order", {
-//         KOT_Id,
-//         Order_Id,
-//         Category,
-//         items: [
-//           {
-//             Item_Name: item.Item_Name,
-//             Quantity: item.Item_Quantity,
-//           },
-//         ],
-//       });
-//     }
-
-//     await connection.commit();
-
-//     return res.status(201).json({
-//       success: true,
-//       message: "Order created successfully",
-//       Order_Id,
-//       KOT_Id,
-//     });
-
-//   } catch (err) {
-//     if (connection) await connection.rollback();
-//     console.error("❌ Add Order Error:", err);
-//     next(err);
-//   } finally {
-//     if (connection) connection.release();
-//   }
-// };
 
 const getAllCustomers = async (req, res, next) => {
-    let connection;
-    try{
-        connection = await db.getConnection();
-        const [rows] = await connection.query("SELECT * FROM customers");
-        return res.status(200).json(rows);
-    }catch(err){
-        console.error("❌ Error getting all customers:", err);
-        next(err);
-    }finally{
-        if(connection) connection.release();
-    }
-}
+  let connection;
+
+  try {
+    connection = await db.getConnection();
+
+    const [rows] = await connection.query(`
+      SELECT 
+        c.Customer_Id,
+        c.Customer_Name,
+        c.Customer_Phone,
+        c.Customer_Address,
+        DATE_FORMAT(c.Special_Date, '%Y-%m-%d') AS Special_Date
+      FROM customers c
+    `);
+
+    return res.status(200).json(rows);
+  } catch (err) {
+    console.error("❌ Error getting all customers:", err);
+    next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+};
 
 
 //  const addOrder = async (req, res, next) => {
@@ -931,6 +810,7 @@ const getTablesHavingOrders = async (req, res, next) => {
     oti.Amount,
     fi.Item_Name,
     koi.Item_Status,
+    koi.updated_at,
     koi.KOT_Item_Id
 FROM order_takeaway_items oti
 JOIN add_food_item fi ON fi.Item_Id = oti.Item_Id
@@ -1262,7 +1142,8 @@ if(customerRows.length === 0){
           Item_Id,
           Item_Name,
           Quantity,
-          Item_Status
+          Item_Status,
+          updated_at
         FROM kitchen_order_items
         WHERE KOT_Id = ?
         `,
@@ -1344,17 +1225,30 @@ const updateOrder = async (req, res, next) => {
        3️⃣ FETCH EXISTING KITCHEN ITEMS (PRESERVE)
     --------------------------------------------------- */
     const [existingKitchenItems] = await connection.query(
-      `SELECT Item_Id, COUNT(*) as cnt
-       FROM kitchen_order_items
-       WHERE KOT_Id = ?
-       GROUP BY Item_Id`,
-      [KOT_Id]
-    );
+  `SELECT Item_Id, SUM(Quantity) as qty
+   FROM kitchen_order_items
+   WHERE KOT_Id = ?
+   GROUP BY Item_Id`,
+  [KOT_Id]
+);
 
-    const existingMap = {};
-    existingKitchenItems.forEach(r => {
-      existingMap[r.Item_Id] = r.cnt;
-    });
+const existingMap = {};
+existingKitchenItems.forEach(r => {
+  existingMap[r.Item_Id] = Number(r.qty) || 0;
+});
+
+    // const [existingKitchenItems] = await connection.query(
+    //   `SELECT Item_Id, COUNT(*) as cnt
+    //    FROM kitchen_order_items
+    //    WHERE KOT_Id = ?
+    //    GROUP BY Item_Id`,
+    //   [KOT_Id]
+    // );
+
+    // const existingMap = {};
+    // existingKitchenItems.forEach(r => {
+    //   existingMap[r.Item_Id] = r.cnt;
+    // });
 
     /* ---------------------------------------------------
        4️⃣ CLEAR & REINSERT FRONTDESK order_items
@@ -1369,6 +1263,12 @@ const updateOrder = async (req, res, next) => {
     /* ---------------------------------------------------
        6️⃣ PROCESS ITEMS
     --------------------------------------------------- */
+
+    /* ---------------------------------------------------
+   3️⃣ FETCH EXISTING KITCHEN ITEMS (QTY-BASED)
+--------------------------------------------------- */
+
+
     for (const item of items) {
       const { Item_Name, Item_Quantity, Item_Price, Amount: ItemAmount } = item;
 
@@ -1401,45 +1301,69 @@ const updateOrder = async (req, res, next) => {
       );
 
       /* --------- Determine NEW quantity --------- */
-      const alreadyExists = existingMap[Item_Id] || 0;
-      const toInsert = Item_Quantity - alreadyExists;
+//       const alreadyExists = existingMap[Item_Id] || 0;
+//       const toInsert = Item_Quantity - alreadyExists;
 
-      if (toInsert <= 0) continue; // nothing new for kitchen
+//       if (toInsert <= 0) continue; // nothing new for kitchen
 
-      for (let i = 0; i < toInsert; i++) {
-        const KOT_Item_Id = await generateNextId(
-          connection,
-          "KOTITM",
-          "KOT_Item_Id",
-          "kitchen_order_items"
-        );
+//       // for (let i = 0; i < toInsert; i++) {
+//         const KOT_Item_Id = await generateNextId(
+//           connection,
+//           "KOTITM",
+//           "KOT_Item_Id",
+//           "kitchen_order_items"
+//         );
 
-        await connection.query(
-          `INSERT INTO kitchen_order_items
-           (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-           VALUES (?, ?, ?, ?, 1, 'pending')`,
-          [KOT_Item_Id, KOT_Id, Item_Id, Item_Name]
-        );
+//         await connection.query(
+//           `INSERT INTO kitchen_order_items
+//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
+//            VALUES (?, ?, ?, ?, ?, 'pending')`,
+//           [KOT_Item_Id, KOT_Id, Item_Id, Item_Name,toInsert]
+//         );
 
-        if (!notifyByCategory[Category]) {
-          notifyByCategory[Category] = [];
-        }
-        notifyByCategory[Category].push({
-  KOT_Item_Id,
-  Item_Id,
-  Item_Name,
-  Item_Category: Category,
-  Quantity: 1,
-  Item_Status: "pending"
-});
+//         if (!notifyByCategory[Category]) {
+//           notifyByCategory[Category] = [];
+//         }
+//         notifyByCategory[Category].push({
+//   KOT_Item_Id,
+//   Item_Id,
+//   Item_Name,
+//   Item_Category: Category,
+//   Quantity: 1,
+//   Item_Status: "pending"
+// });
+// 🔥 KITCHEN DELTA LOGIC
+  const alreadyQty = existingMap[Item_Id] || 0;
+  const newQty = Item_Quantity - alreadyQty;
 
+  if (newQty <= 0) continue;
 
-        // notifyByCategory[Category].push({
-        //   KOT_Item_Id,
-        //   Item_Name,
-        //   Quantity: 1,
-        // });
-      }
+  const KOT_Item_Id = await generateNextId(
+    connection,
+    "KOTITM",
+    "KOT_Item_Id",
+    "kitchen_order_items"
+  );
+
+  await connection.query(
+    `INSERT INTO kitchen_order_items
+     (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
+     VALUES (?, ?, ?, ?, ?, 'pending')`,
+    [KOT_Item_Id, KOT_Id, Item_Id, Item_Name, newQty]
+  );
+
+  notifyByCategory[Category] ??= [];
+  notifyByCategory[Category].push({
+    KOT_Item_Id,
+    Item_Id,
+    Item_Name,
+    Item_Category: Category,
+    Quantity: newQty,
+    Item_Status: "pending",
+  });
+
+       
+      // }
     }
 
     /* ---------------------------------------------------
@@ -2130,14 +2054,16 @@ const confirmOrderBillPaidAndInvoiceGenerated = async (req, res, next) => {
       Payment_Type,
       Final_Amount
     } = req.body;
-
+const normalizedCustomerName =Customer_Name && Customer_Name.trim() !== ""
+    ? Customer_Name.trim()
+    : null;
     if (!Order_Id) {
       return res.status(400).json({
         success: false,
         message: "Order ID missing",
       });
     }
-if(!Customer_Name || !Customer_Phone || !Final_Amount){
+if( !Customer_Phone || !Final_Amount){
   return res.status(400).json({
     success: false,
     message: "Customer details missing",
@@ -2181,14 +2107,14 @@ if(!Customer_Name || !Customer_Phone || !Final_Amount){
     }
 
     const activeFY = fy[0].Financial_Year;
-    const[customers]= await connection.query(`SELECT * FROM customers WHERE Customer_Name = ?`,
-      [Customer_Name]);
+    const[customers]= await connection.query(`SELECT * FROM customers WHERE Customer_Phone = ?`,
+      [Customer_Phone]);
         if (customers.length === 0) {
       await connection.rollback();
       return res.status(400).json({
         success: false,
-        message: "Customer not found in database.",
-      });
+        message: "Customer not found,please add customer.",
+      })
     }
       const Customer_Id = customers[0].Customer_Id;
     // ---------------------------------------
@@ -2202,7 +2128,7 @@ if(!Customer_Name || !Customer_Phone || !Final_Amount){
        VALUES (?, ?, NOW(), ?,?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         Invoice_Id, Order_Id, activeFY,
-        Customer_Name ,
+          normalizedCustomerName,
         Customer_Phone ,
         Customer_Id,
         Discount_Type,
@@ -2298,45 +2224,117 @@ if(!Customer_Name || !Customer_Phone || !Final_Amount){
 
 
 
-const totalInvoicesEachDay= async (req, res, next) => {
-    let connection;
+// const totalInvoicesEachDay= async (req, res, next) => {
+//     let connection;
 
-    try {
+//     try {
       
-        connection = await db.getConnection();
+//         connection = await db.getConnection();
 
-        const[invoices]=await connection.query(`
-        SELECT
-      DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
-        COUNT(*) AS total_invoices
-        FROM invoices
-        GROUP BY DATE(Invoice_Date)
-        ORDER BY DATE(Invoice_Date) DESC
-        `)
+//         const[invoices]=await connection.query(`
+//         SELECT
+//       DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
+//         COUNT(*) AS total_invoices
+//         FROM invoices
+//         GROUP BY DATE(Invoice_Date)
+//         ORDER BY DATE(Invoice_Date) DESC
+//         `)
 
-        const [takeawayInvoices] = await connection.query(`
-        SELECT
-      DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
-        COUNT(*) AS total_takeaway_invoices
-        FROM takeaway_invoices
-        GROUP BY DATE(Invoice_Date)
-        ORDER BY DATE(Invoice_Date) DESC
-        `)
+//         const [takeawayInvoices] = await connection.query(`
+//         SELECT
+//       DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
+//         COUNT(*) AS total_takeaway_invoices
+//         FROM takeaway_invoices
+//         FROM takeaway_invoices
+//         JOIN orders ON takeaway_invoices.Order_Id = orders.Order_Id
+//         WHERE orders.Status NOT IN ('cancelled')
+//         GROUP BY DATE(Invoice_Date)
+//         ORDER BY DATE(Invoice_Date) DESC
+//         `)
+//           const[canceTakeawayInvoices]= await connection.query(`
+//         SELECT
+//       DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
+//         COUNT(*) AS total_takeaway_invoices
+//         FROM takeaway_invoices
+//         JOIN orders ON takeaway_invoices.Order_Id = orders.Order_Id
+//         WHERE orders.Status = 'cancelled'
+//         GROUP BY DATE(Invoice_Date)
+//         ORDER BY DATE(Invoice_Date) DESC
+//         `)
+//         return res.status(200).json({
+//             success: true,
+//             data: invoices,
+//             takeawayInvoices,
+//             canceTakeawayInvoices
+//         });
 
-        return res.status(200).json({
-            success: true,
-            data: invoices,
-            takeawayInvoices
-        });
-
-    }catch(err){
+//     }catch(err){
        
-        console.error("❌ Error fetching invoice data:", err);
-        next(err);
-    }finally{
-        if (connection) connection.release();
-    }
-}
+//         console.error("❌ Error fetching invoice data:", err);
+//         next(err);
+//     }finally{
+//         if (connection) connection.release();
+//     }
+// }
+const totalInvoicesEachDay = async (req, res, next) => {
+  let connection;
+
+  try {
+    connection = await db.getConnection();
+
+    /* ---------------- DINE-IN INVOICES ---------------- */
+    const [dineInInvoices] = await connection.query(`
+      SELECT
+        DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
+        COUNT(*) AS total_invoices
+      FROM invoices
+      GROUP BY DATE(Invoice_Date)
+      ORDER BY DATE(Invoice_Date) DESC
+    `);
+
+    /* ---------------- TAKEAWAY (NOT CANCELLED) ---------------- */
+    const [takeawayInvoices] = await connection.query(`
+      SELECT
+        DATE_FORMAT(ti.Invoice_Date, '%Y-%m-%d') AS date,
+        COUNT(*) AS total_takeaway_invoices
+      FROM takeaway_invoices ti
+      JOIN orders_takeaway ot 
+        ON ti.Takeaway_Order_Id = ot.Takeaway_Order_Id
+      WHERE ot.Status <> 'cancelled'
+      GROUP BY DATE(ti.Invoice_Date)
+      ORDER BY DATE(ti.Invoice_Date) DESC
+    `);
+
+    /* ---------------- TAKEAWAY (CANCELLED) ---------------- */
+    const [cancelledTakeawayInvoices] = await connection.query(`
+      SELECT
+        DATE_FORMAT(ti.Invoice_Date, '%Y-%m-%d') AS date,
+        COUNT(*) AS cancelled_takeaway_invoices
+      FROM takeaway_invoices ti
+      JOIN orders_takeaway ot 
+        ON ti.Takeaway_Order_Id = ot.Takeaway_Order_Id
+      WHERE ot.Status = 'cancelled'
+      GROUP BY DATE(ti.Invoice_Date)
+      ORDER BY DATE(ti.Invoice_Date) DESC
+    `);
+
+    return res.status(200).json({
+      success: true,
+      
+        data:dineInInvoices,
+        takeawayInvoices,
+        cancelledTakeawayInvoices,
+    
+    });
+
+  } catch (err) {
+    console.error("❌ Error fetching invoice data:", err);
+    next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
 const getAllInvoicesAndOrdersEachDay = async (req, res, next) => {
   let connection;
 
@@ -3643,16 +3641,18 @@ const takeawayAddOrdersAndGenerateInvoices = async (req, res, next) => {
       Payment_Type,
       Final_Amount
     } = req.body;
-
+const normalizedCustomerName =Customer_Name && Customer_Name.trim() !== ""
+    ? Customer_Name.trim()
+    : null;
     // --------------------------------------------
     // VALIDATION
     // --------------------------------------------
     if (!userId)
       return res.status(400).json({ success: false, message: "User ID is required." });
-  if(!Customer_Name || !Customer_Phone){
+  if( !Customer_Phone){
             return res.status(400).json({
                 success: false,
-                message: "Customer name and phone number are required.",
+                message: "Customer phone number is required.",
             })
         }
     if (!items?.length)
@@ -3689,7 +3689,7 @@ let Customer_Id;
       await connection.query(
         `INSERT INTO customers (Customer_Id, Customer_Name, Customer_Phone)
          VALUES (?, ?, ?)`,
-        [Customer_Id, Customer_Name, Customer_Phone]
+        [Customer_Id, normalizedCustomerName , Customer_Phone]
       );
     }
        
@@ -3776,7 +3776,7 @@ let Customer_Id;
       // 🍽 INSERT INTO KITCHEN ORDER ITEMS
       // (One row per quantity — same model as dine-in)
       // --------------------------------------------
-      for (let q = 0; q < item.Item_Quantity; q++) {
+      // for (let q = 0; q < item.Item_Quantity; q++) {
         const KOT_Item_Id = await generateNextId(
           connection,
           "KOTITM",
@@ -3793,10 +3793,10 @@ let Customer_Id;
             KOT_Id,
             Item_Id,
             item.Item_Name,
-            1
+            item.Item_Quantity
           ]
         );
-      }
+      
     }
 
     // --------------------------------------------
@@ -3822,10 +3822,7 @@ if (!fy.length) {
   });
 }
 
-    // if (!fy.length)
-    //   return res.status(400).json({
-    //     message: "No active financial year found."
-    //   });
+    
 
     const activeFY = fy[0].Financial_Year;
 
@@ -3839,7 +3836,7 @@ if (!fy.length) {
         Takeaway_Order_Id,
         activeFY,
         Final_Amount,
-        Customer_Name || null,
+        normalizedCustomerName,
         Customer_Phone || null,
         Customer_Id,
         Discount_Type ?? "percentage",
@@ -3892,29 +3889,54 @@ if (!fy.length) {
     /* ------------------------------------------------
        9️⃣ GROUP BY CATEGORY
     ------------------------------------------------ */
+    // const itemsByCategory = {};
+
+    // kotItems.forEach((item) => {
+    //   if (!itemsByCategory[item.Item_Category]) {
+    //     itemsByCategory[item.Item_Category] = [];
+    //   }
+    //   itemsByCategory[item.Item_Category].push(item);
+    // });
+
+    // await connection.commit();
+
+    // /* ------------------------------------------------
+    //    🔔 10️⃣ SOCKET → CATEGORY STAFF ONLY
+    // ------------------------------------------------ */
+    // Object.entries(itemsByCategory).forEach(([category, items]) => {
+    //   io.to(`category_${category}`).emit("new_kitchen_order", {
+    //     KOT_Id,
+    //     Order_Id: Takeaway_Order_Id,
+    //     Order_Type: "takeaway",
+    //     Status: "pending",
+    //     items,
+    //   });
+    // });
     const itemsByCategory = {};
 
-    kotItems.forEach((item) => {
-      if (!itemsByCategory[item.Item_Category]) {
-        itemsByCategory[item.Item_Category] = [];
-      }
-      itemsByCategory[item.Item_Category].push(item);
-    });
+kotItems.forEach(item => {
+  if (!itemsByCategory[item.Item_Category]) {
+    itemsByCategory[item.Item_Category] = [];
+  }
+  itemsByCategory[item.Item_Category].push({
+    KOT_Item_Id: item.KOT_Item_Id,
+    Item_Id: item.Item_Id,
+    Item_Name: item.Item_Name,
+    Quantity: item.Quantity,
+    Item_Status: item.Item_Status,
+  });
+});
+await connection.commit();
+Object.entries(itemsByCategory).forEach(([category, items]) => {
+  io.to(`category_${category}`).emit("new_kitchen_order", {
+    KOT_Id,
+    Order_Id: Takeaway_Order_Id,
+    Order_Type: "takeaway",
+    Status: "pending",
+    items,
+  });
+});
 
-    await connection.commit();
-
-    /* ------------------------------------------------
-       🔔 10️⃣ SOCKET → CATEGORY STAFF ONLY
-    ------------------------------------------------ */
-    Object.entries(itemsByCategory).forEach(([category, items]) => {
-      io.to(`category_${category}`).emit("new_kitchen_order", {
-        KOT_Id,
-        Order_Id: Takeaway_Order_Id,
-        Order_Type: "takeaway",
-        Status: "pending",
-        items,
-      });
-    });
   } catch (err) {
     if (connection) await connection.rollback();
     console.error("❌ Error:", err);
@@ -3971,11 +3993,77 @@ const nextInvoiceNumber = async (req, res, next) => {
   }
 };
 
+const cancelTakeawayOrder = async (req, res, next) => {
+  let connection;
+
+  try {
+    const { Takeaway_Order_Id } = req.params;
+
+    if (!Takeaway_Order_Id) {
+      return res.status(400).json({
+        success: false,
+        message: "Takeaway Order Id is required",
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // 🔍 Check order exists & status
+    const [existing] = await connection.query(
+      `SELECT Status FROM orders_takeaway WHERE Takeaway_Order_Id = ?`,
+      [Takeaway_Order_Id]
+    );
+
+    if (!existing.length) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Takeaway order not found",
+      });
+    }
+
+    if (existing[0].Status === "cancelled") {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Order already cancelled",
+      });
+    }
+
+    
+
+    // ✅ Cancel order
+    const [result] = await connection.query(
+      `UPDATE orders_takeaway 
+       SET Status = 'cancelled', updated_at = NOW()
+       WHERE Takeaway_Order_Id = ?`,
+      [Takeaway_Order_Id]
+    );
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      affectedRows: result.affectedRows,
+      message: "Takeaway order cancelled successfully",
+    });
+
+  } catch (err) {
+    if (connection) await connection.rollback();
+    console.error("❌ Error cancelling takeaway order:", err);
+    next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+
 export {addNewCustomer,getAllCustomers,addOrder, getTablesHavingOrders, getTableOrderDetails, updateOrder, 
     confirmOrderBillPaidAndInvoiceGenerated,totalInvoicesEachDay,
     getAllInvoicesAndOrdersEachDay, takeawayAddOrdersAndGenerateInvoices,
     getAllInvoicesOfOrdersAndTakeawaysInDateRange
-,nextInvoiceNumber};
+,nextInvoiceNumber,cancelTakeawayOrder};
 
 
 // const updateOrder = async (req, res, next) => {
@@ -4447,3 +4535,244 @@ export {addNewCustomer,getAllCustomers,addOrder, getTablesHavingOrders, getTable
 //     if (connection) connection.release();
 //   }
 // };
+// const addOrder = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     const {
+//       Customer_Name,
+//       Customer_Phone,
+//       userId,
+//       Table_Names,
+//       items,
+//       Sub_Total,
+//       Amount,
+//     } = req.body;
+
+//     /* ---------------- VALIDATIONS ---------------- */
+//     if (!userId || !Array.isArray(Table_Names) || Table_Names.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "User ID and table are required",
+//       });
+//     }
+
+//     if (!Array.isArray(items) || items.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "At least one item is required",
+//       });
+//     }
+
+//     if (!Customer_Name || !Customer_Phone) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Customer name and phone are required",
+//       });
+//     }
+
+//     for (const item of items) {
+//       if (!item.Item_Name || item.Item_Quantity <= 0) {
+//         return res.status(400).json({
+//           success: false,
+//           message: `Invalid item: ${item.Item_Name}`,
+//         });
+//       }
+//     }
+
+//     /* ---------------- DB START ---------------- */
+//     connection = await db.getConnection();
+//     await connection.beginTransaction();
+
+//     /* ---------------- CUSTOMER ---------------- */
+//     let Customer_Id;
+//     const [existingCustomer] = await connection.query(
+//       `SELECT Customer_Id FROM customers WHERE Customer_Phone = ? LIMIT 1`,
+//       [Customer_Phone]
+//     );
+
+//     if (existingCustomer.length > 0) {
+//       Customer_Id = existingCustomer[0].Customer_Id;
+//     } else {
+//       Customer_Id = await generateNextId(
+//         connection,
+//         "CUST",
+//         "Customer_Id",
+//         "customers"
+//       );
+
+//       await connection.query(
+//         `INSERT INTO customers (Customer_Id, Customer_Name, Customer_Phone)
+//          VALUES (?, ?, ?)`,
+//         [Customer_Id, Customer_Name, Customer_Phone]
+//       );
+//     }
+
+//     /* ---------------- ORDER ---------------- */
+//     const Order_Id = await generateNextId(
+//       connection,
+//       "ODR",
+//       "Order_Id",
+//       "orders"
+//     );
+
+//     await connection.query(
+//       `INSERT INTO orders
+//        (Order_Id, User_Id, Customer_Id, Status, Sub_Total, Discount, Amount, Payment_Status)
+//        VALUES (?, ?, ?, 'hold', ?, 0, ?, 'pending')`,
+//       [Order_Id, userId, Customer_Id, Sub_Total, Amount]
+//     );
+
+//     /* ---------------- TABLES ---------------- */
+//     for (const tableName of Table_Names) {
+//       const [tbl] = await connection.query(
+//         `SELECT Table_Id, Status FROM add_table WHERE Table_Name = ?`,
+//         [tableName]
+//       );
+
+//       if (!tbl.length) {
+//         await connection.rollback();
+//         return res.status(400).json({
+//           success: false,
+//           message: "Table not found",
+//         });
+//       }
+
+//       if (tbl[0].Status === "occupied") {
+//         await connection.rollback();
+//         return res.status(400).json({
+//           success: false,
+//           message: "Table already occupied",
+//         });
+//       }
+
+//       const Order_Table_Id = await generateNextId(
+//         connection,
+//         "OTB",
+//         "Order_Table_Id",
+//         "order_tables"
+//       );
+
+//       await connection.query(
+//         `INSERT INTO order_tables (Order_Table_Id, Order_Id, Table_Id)
+//          VALUES (?, ?, ?)`,
+//         [Order_Table_Id, Order_Id, tbl[0].Table_Id]
+//       );
+
+//       await connection.query(
+//         `UPDATE add_table SET Status='occupied', Start_Time=NOW()
+//          WHERE Table_Id = ?`,
+//         [tbl[0].Table_Id]
+//       );
+//     }
+
+//     /* ---------------- KOT ---------------- */
+//     const KOT_Id = await generateNextId(
+//       connection,
+//       "KOT",
+//       "KOT_Id",
+//       "kitchen_orders"
+//     );
+
+//     await connection.query(
+//       `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status)
+//        VALUES (?, ?, 'pending')`,
+//       [KOT_Id, Order_Id]
+//     );
+
+//     /* ---------------- ITEMS ---------------- */
+//     for (const item of items) {
+//       const [[dbItem]] = await connection.query(
+//         `SELECT Item_Id, Item_Category
+//          FROM add_food_item
+//          WHERE Item_Name = ? LIMIT 1`,
+//         [item.Item_Name]
+//       );
+
+//       if (!dbItem) {
+//         await connection.rollback();
+//         return res.status(400).json({
+//           success: false,
+//           message: `Item not found: ${item.Item_Name}`,
+//         });
+//       }
+
+//       const Item_Id = dbItem.Item_Id;
+//       const Category = dbItem.Item_Category;
+
+//       /* ---------- order_items ---------- */
+//       const Order_Item_Id = await generateNextId(
+//         connection,
+//         "ODRITM",
+//         "Order_Item_Id",
+//         "order_items"
+//       );
+
+//       await connection.query(
+//         `INSERT INTO order_items
+//          (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
+//          VALUES (?, ?, ?, ?, ?, ?)`,
+//         [
+//           Order_Item_Id,
+//           Order_Id,
+//           Item_Id,
+//           item.Item_Quantity,
+//           item.Item_Price,
+//           item.Amount,
+//         ]
+//       );
+
+//       /* ---------- kitchen_order_items (1 row per qty) ---------- */
+//       for (let i = 0; i < item.Item_Quantity; i++) {
+//         const KOT_Item_Id = await generateNextId(
+//           connection,
+//           "KOTITM",
+//           "KOT_Item_Id",
+//           "kitchen_order_items"
+//         );
+
+//         await connection.query(
+//           `INSERT INTO kitchen_order_items
+//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
+//            VALUES (?, ?, ?, ?, 1, 'pending')`,
+//           [
+//             KOT_Item_Id,
+//             KOT_Id,
+//             Item_Id,
+//             item.Item_Name,
+//           ]
+//         );
+//       }
+
+//       /* 🔔 SOCKET → CATEGORY STAFF ONLY */
+//       io.to(`category_${Category}`).emit("new_kitchen_order", {
+//         KOT_Id,
+//         Order_Id,
+//         Category,
+//         items: [
+//           {
+//             Item_Name: item.Item_Name,
+//             Quantity: item.Item_Quantity,
+//           },
+//         ],
+//       });
+//     }
+
+//     await connection.commit();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Order created successfully",
+//       Order_Id,
+//       KOT_Id,
+//     });
+
+//   } catch (err) {
+//     if (connection) await connection.rollback();
+//     console.error("❌ Add Order Error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+

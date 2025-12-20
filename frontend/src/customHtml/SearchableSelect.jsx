@@ -45,7 +45,7 @@ import { useState} from "react";
 //     <div ref={wrapperRef} className="relative mt-2">
 //       <label
 //         htmlFor={id}
-//         className="absolute left-0 -top-5 text-sm text-[#4CA1AF ] transition-all"
+//         className="absolute left-0 -top-5 text-sm text-[#ff0000 ] transition-all"
 //       >
 //         {label}
 //       </label>
@@ -68,7 +68,7 @@ import { useState} from "react";
 //         required={required}
 //         {...register(id)}
 //         className={`w-full outline-none border-b-2 text-gray-900 transition-all duration-300 bg-transparent
-//           ${focusStates?.[id] ? "border-[#4CA1AF ]" : "border-[#6e6e6e]"}`}
+//           ${focusStates?.[id] ? "border-[#ff0000 ]" : "border-[#6e6e6e]"}`}
 //         placeholder={`Search ${label}`}
 //       />
 
@@ -80,7 +80,7 @@ import { useState} from "react";
 //               return (
 //                 <li
 //                   key={`${text}-${i}`}
-//                   className="px-3 py-2 cursor-pointer hover:bg-[#4CA1AF ] hover:text-white"
+//                   className="px-3 py-2 cursor-pointer hover:bg-[#ff0000 ] hover:text-white"
 //                   onMouseDown={() => {
 //                     onChange(text); // set selected value
 //                     setSearch(""); // reset typing
@@ -136,7 +136,7 @@ const FloatingSelect = ({
       {focus && (
         <label
           htmlFor={id}
-          className="absolute left-0 -top-5 text-sm text-[#4CA1AF ] transition-all"
+          className="absolute left-0 -top-5 text-sm text-[#ff0000 ] transition-all"
         >
           {label}
         </label>
@@ -178,7 +178,7 @@ const FloatingSelect = ({
           setOpen(true);
         }}
         className={`w-full outline-none border-b-2 bg-transparent text-gray-900 transition-all duration-300 
-          ${focus ? "border-[#4CA1AF ]" : "border-[#6e6e6e]"}`}
+          ${focus ? "border-[#ff0000 ]" : "border-[#6e6e6e]"}`}
         placeholder={focus ? "" : label}
       />
 
@@ -188,7 +188,7 @@ const FloatingSelect = ({
             filteredOptions.map((opt, i) => (
               <li
                 key={`${opt}-${i}`}
-                className="px-3 py-2 cursor-pointer hover:bg-[#4CA1AF ] hover:text-white"
+                className="px-3 py-2 cursor-pointer hover:bg-[#ff0000 ] hover:text-white"
                 onMouseDown={() => handleSelect(opt)}
               >
                 {opt}

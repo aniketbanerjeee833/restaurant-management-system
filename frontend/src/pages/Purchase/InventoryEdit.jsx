@@ -475,25 +475,22 @@ console.log("payload:", payload);
   const paymentType = watch("Payment_Type", "");
   return (
     <>
-      <div className="sb2-2-2">
+      {/* <div className="sb2-2-2">
         <ul>
           <li>
-            {/* <NavLink to="/">
-                                <i className="fa fa-home mr-2" aria-hidden="true"></i>
-                                Dashboard
-                            </NavLink> */}
+           
             <NavLink style={{ display: "flex", flexDirection: "row" }}
               to="/home"
 
             >
               <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-              {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+            
               Dashboard
             </NavLink>
           </li>
 
         </ul>
-      </div>
+      </div> */}
 
       {/* Main Content */}
       <div className="sb2-2-3">
@@ -532,7 +529,7 @@ console.log("payload:", payload);
                       type="button"
                       onClick={() => navigate("/inventory/all-inventories")}
                       className="text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       Back
                     </button>
@@ -541,7 +538,7 @@ console.log("payload:", payload);
                       type="button"
                       onClick={() => navigate("/inventory/all-inventories")}
                       className="text-white py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       All Purchases
                     </button>
@@ -612,7 +609,7 @@ console.log("payload:", payload);
     <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
       <span
         onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
       >
         + Add Party
       </span>
@@ -862,7 +859,7 @@ console.log("payload:", payload);
 
     {rows[i]?.CategoryOpen && !rows[i]?.isExistingItem && (
       <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-        <span className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        <span className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
           onClick={() => {
             setShowModal(true);
             handleRowChange(i, "CategoryOpen", false);
@@ -930,7 +927,7 @@ console.log("payload:", payload);
           type="text"
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
-          className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#4CA1AF]"
+          className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#ff0000]"
           placeholder="Enter category name"
         />
 
@@ -946,8 +943,8 @@ console.log("payload:", payload);
           <button
             type="button"
             onClick={handleAddCategory}
-            style={{ backgroundColor: "#4CA1AF" }}
-            className="px-4 py-2 rounded-md bg-[#4CA1AF] text-white hover:bg-[#5c52d4]"
+            style={{ backgroundColor: "#ff0000" }}
+            className="px-4 py-2 rounded-md bg-[#ff0000] text-white hover:bg-[#5c52d4]"
           >
             Add
           </button>
@@ -983,7 +980,7 @@ console.log("payload:", payload);
           type="text"
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
-          className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#4CA1AF]"
+          className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-[#ff0000]"
           placeholder="Enter category name"
         />
 
@@ -999,8 +996,8 @@ console.log("payload:", payload);
           <button
             type="button"
             onClick={handleAddCategory}
-            style={{ backgroundColor: "#4CA1AF" }}
-            className="px-4 py-2 rounded-md bg-[#4CA1AF] text-white hover:bg-[#5c52d4]"
+            style={{ backgroundColor: "#ff0000" }}
+            className="px-4 py-2 rounded-md bg-[#ff0000] text-white hover:bg-[#5c52d4]"
           >
             Add
           </button>
@@ -1501,7 +1498,7 @@ console.log("payload:", payload);
         type="button"
         onClick={handleAddRow}
        className=" text-white font-bold py-2 px-4 w-1/2 rounded "
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         + Add Row
       </button>
@@ -1888,7 +1885,7 @@ console.log("payload:", payload);
 
                       onClick={() => navigate("/inventory/all-inventories")}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       Cancel
                     </button>
@@ -1896,7 +1893,7 @@ console.log("payload:", payload);
                       type="submit"
                       disabled={formValues.errorCount > 0 || isEditingPurchase}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       {isEditingPurchase ? "Updating..." : "Update Purchase"}
                     </button>
@@ -2105,7 +2102,7 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
                         <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
                           <span
                             onClick={() => setShowPartyModal(true)}
-                            className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                            className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
                           >
                             + Add Party
                           </span>
@@ -2196,7 +2193,7 @@ style={{ marginBottom: 0, marginTop: "4px",border: "none",
     <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
       <span
         onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
       >
         + Add Party
       </span>

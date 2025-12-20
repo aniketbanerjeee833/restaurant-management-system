@@ -206,7 +206,7 @@ console.log(isExpanded,"isExpanded");
                           {/* Invoice ID & Order ID */}
                           <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <FileText size={20} style={{ color: '#4CA1AF' }} />
+                              <FileText size={20} style={{ color: '#ff0000' }} />
                               <div>
                                 <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>
                                   {data.invoice.Invoice_Id}
@@ -269,7 +269,7 @@ console.log(isExpanded,"isExpanded");
                           {/* Amount */}
                           <div className="flex justify-end gap-2" style={{ marginBottom: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CA1AF' }}>
+                              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff0000' }}>
                                 ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
                               </div>
                               <div style={{ fontSize: '12px', color: '#666' }}>
@@ -306,7 +306,7 @@ console.log(isExpanded,"isExpanded");
                               alignItems: 'center',
                               gap: '8px'
                             }}>
-                              <ShoppingCart size={18} style={{ color: '#4CA1AF' }} />
+                              <ShoppingCart size={18} style={{ color: '#ff0000' }} />
                               Order Items
                             </h5>
                             
@@ -408,11 +408,11 @@ console.log(isExpanded,"isExpanded");
                                 padding: '12px 0',
                                 fontSize: '18px',
                                 fontWeight: 'bold',
-                                borderTop: '2px solid #4CA1AF',
+                                borderTop: '2px solid #ff0000',
                                 marginTop: '8px'
                               }}>
                                 <span>Total:</span>
-                                <span style={{ color: '#4CA1AF' }}>
+                                <span style={{ color: '#ff0000' }}>
                                   ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
                                 </span>
                               </div>
@@ -431,8 +431,8 @@ console.log(isExpanded,"isExpanded");
                               style={{
                                 padding: '10px 20px',
                                 backgroundColor: '#fff',
-                                color: '#4CA1AF',
-                                border: '2px solid #4CA1AF',
+                                color: '#ff0000',
+                                border: '2px solid #ff0000',
                                 borderRadius: '6px',
                                 fontWeight: 'bold',
                                 cursor: 'pointer'
@@ -444,7 +444,7 @@ console.log(isExpanded,"isExpanded");
                               onClick={() => window.location.href = `/invoice/${data.invoice.Invoice_Id}`}
                               style={{
                                 padding: '10px 20px',
-                                backgroundColor: '#4CA1AF',
+                                backgroundColor: '#ff0000',
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: '6px',
@@ -510,7 +510,7 @@ console.log(isExpanded,"isExpanded");
                           {/* Invoice ID & Order ID */}
                           <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <FileText size={20} style={{ color: '#4CA1AF' }} />
+                              <FileText size={20} style={{ color: '#ff0000' }} />
                               <div>
                                 <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>
                                   {data?.invoice?.Invoice_Id}
@@ -572,7 +572,7 @@ console.log(isExpanded,"isExpanded");
                           {/* Amount */}
                           <div className="flex justify-end gap-2"  style={{ marginBottom: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CA1AF' }}>
+                              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff0000' }}>
                                 ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
                               </div>
                               <div style={{ fontSize: '12px', color: '#666' }}>
@@ -590,7 +590,7 @@ console.log(isExpanded,"isExpanded");
       )}
 
                               {/* <ChevronDown  onClick={() => toggleExpand(data?.invoice?.Invoice_Id)}/> */}
-                              {/* <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CA1AF' }}>
+                              {/* <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff0000' }}>
                                 ₹{parseFloat(data.invoice.Amount).toFixed(2)}
                               </div>
                               <div style={{ fontSize: '12px', color: '#666' }}>
@@ -618,7 +618,7 @@ console.log(isExpanded,"isExpanded");
                               alignItems: 'center',
                               gap: '8px'
                             }}>
-                              <ShoppingCart size={18} style={{ color: '#4CA1AF' }} />
+                              <ShoppingCart size={18} style={{ color: '#ff0000' }} />
                               Order Items
                             </h5>
                             
@@ -720,11 +720,11 @@ console.log(isExpanded,"isExpanded");
                                 padding: '12px 0',
                                 fontSize: '18px',
                                 fontWeight: 'bold',
-                                borderTop: '2px solid #4CA1AF',
+                                borderTop: '2px solid #ff0000',
                                 marginTop: '8px'
                               }}>
                                 <span>Total:</span>
-                                <span style={{ color: '#4CA1AF' }}>
+                                <span style={{ color: '#ff0000' }}>
                                   ₹{parseFloat(data.invoice.Amount).toFixed(2)}
                                 </span>
                               </div>
@@ -777,7 +777,7 @@ console.log(isExpanded,"isExpanded");
                                         //         'bg-gray-200 hover:bg-gray-300'
                                         //     }`}
                                         className={
-                                            `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                                            `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                                                 'bg-gray-200 hover:bg-gray-300'
                                             }`}
                                     >

@@ -921,6 +921,8 @@ const getKitchenOrders = async (req, res, next) => {
         koi.Item_Id,
         koi.Item_Name,
         koi.Quantity,
+       DATE_FORMAT(koi.created_at, '%h:%i %p') AS created_at,
+        
         koi.Item_Status,
         fi.Item_Category
       FROM kitchen_order_items koi
@@ -953,190 +955,6 @@ const getKitchenOrders = async (req, res, next) => {
 };
 
 
-// const updateKitchenItemStatus = async (req, res, next) => {
-//   let connection;
-
-//   try {
-//     const { KOT_Id, KOT_Item_Id } = req.params;
-//     const { status } = req.body;
-
-//     if (!["pending", "preparing", "ready"].includes(status)) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Invalid status value",
-//       });
-//     }
-
-//     connection = await db.getConnection();
-//     await connection.beginTransaction();
-
-//     /* --------------------------------------------------
-//        1️⃣ UPDATE SINGLE ITEM STATUS
-//     -------------------------------------------------- */
-//     await connection.query(
-//       `UPDATE kitchen_order_items 
-//        SET Item_Status = ? 
-//        WHERE KOT_Item_Id = ?`,
-//       [status, KOT_Item_Id]
-//     );
-
-//     /* --------------------------------------------------
-//        2️⃣ FETCH UPDATED ITEM (CATEGORY REQUIRED)
-//     -------------------------------------------------- */
-//     const [[updatedItem]] = await connection.query(
-//       `
-//       SELECT 
-//         koi.KOT_Item_Id,
-//         koi.KOT_Id,
-//         koi.Item_Id,
-//         koi.Item_Status,
-//         fi.Item_Name,
-//         fi.Item_Category
-//       FROM kitchen_order_items koi
-//       JOIN add_food_item fi ON fi.Item_Id = koi.Item_Id
-//       WHERE koi.KOT_Item_Id = ?
-//       `,
-//       [KOT_Item_Id]
-//     );
-
-//     if (!updatedItem) {
-//       await connection.rollback();
-//       return res.status(404).json({
-//         success: false,
-//         message: "Kitchen item not found",
-//       });
-//     }
-
-//     const itemCategory = updatedItem.Item_Category;
-
-//     /* --------------------------------------------------
-//        3️⃣ FETCH ORDER HEADER
-//     -------------------------------------------------- */
-//     const [[orderHeader]] = await connection.query(
-//       `SELECT KOT_Id, Order_Id 
-//        FROM kitchen_orders 
-//        WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     if (!orderHeader) {
-//       await connection.rollback();
-//       return res.status(404).json({
-//         success: false,
-//         message: "KOT not found",
-//       });
-//     }
-
-//     const orderId = orderHeader.Order_Id;
-//     const isTakeaway = orderId.startsWith("TKODR");
-//     const isDineIn = orderId.startsWith("ODR");
-
-//     /* --------------------------------------------------
-//        4️⃣ CHECK CATEGORY COMPLETION
-//     -------------------------------------------------- */
-//     const [categoryItems] = await connection.query(
-//       `
-//       SELECT Item_Status
-//       FROM kitchen_order_items koi
-//       JOIN add_food_item fi ON fi.Item_Id = koi.Item_Id
-//       WHERE koi.KOT_Id = ?
-//         AND fi.Item_Category = ?
-//       `,
-//       [KOT_Id, itemCategory]
-//     );
-
-//     const categoryAllReady =
-//       categoryItems.length > 0 &&
-//       categoryItems.every((i) => i.Item_Status === "ready");
-
-//     /* --------------------------------------------------
-//        5️⃣ CHECK FULL KOT COMPLETION (ONLY FOR TAKEAWAY)
-//     -------------------------------------------------- */
-//     const [allItems] = await connection.query(
-//       `SELECT Item_Status FROM kitchen_order_items WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     const allReady = allItems.every((i) => i.Item_Status === "ready");
-
-//     if (allReady && isTakeaway) {
-//       await connection.query(
-//         `UPDATE kitchen_orders SET Status = 'ready' WHERE KOT_Id = ?`,
-//         [KOT_Id]
-//       );
-
-//       await connection.query(
-//         `UPDATE orders_takeaway 
-//          SET Status = 'completed' 
-//          WHERE Takeaway_Order_Id = ?`,
-//         [orderId]
-//       );
-//     }
-
-//     await connection.commit();
-
-//     /* ==================================================
-//        🔔 SOCKET EMITS
-//     ================================================== */
-
-//     /* --------------------------------
-//        A️⃣ CATEGORY STAFF UPDATE
-//     -------------------------------- */
-//     io.to(`category_${itemCategory}`).emit("kitchen_order_updated", {
-//       KOT_Id,
-//       Order_Id: orderId,
-//       Order_Type: isTakeaway ? "takeaway" : "dinein",
-//       removeOrder: categoryAllReady, // 🔥 KEY FLAG
-//       items: categoryAllReady
-//         ? []
-//         : [
-//             {
-//               KOT_Item_Id: updatedItem.KOT_Item_Id,
-//               Item_Id: updatedItem.Item_Id,
-//               Item_Name: updatedItem.Item_Name,
-//               Item_Category: itemCategory,
-//               Quantity: 1,
-//               Item_Status: updatedItem.Item_Status,
-//             },
-//           ],
-//     });
-
-//     /* --------------------------------
-//        B️⃣ FRONTDESK ITEM UPDATE
-//     -------------------------------- */
-//     io.to(`order_${KOT_Id}`).emit("frontend_kot_update", {
-//       Order_Id: orderId,
-//       KOT_Id,
-//       KOT_Item_Id,
-//       itemName: updatedItem.Item_Name,
-//       status: updatedItem.Item_Status,
-//       orderType: isTakeaway ? "takeaway" : "dinein",
-//       isTakeaway,
-//     });
-
-//     /* --------------------------------
-//        C️⃣ FRONTDESK DASHBOARD
-//     -------------------------------- */
-//     io.emit("frontdesk_order_update", {
-//       Order_Id: orderId,
-//       KOT_Id,
-//       kotStatus: allReady ? "ready" : "preparing",
-//       isTakeaway,
-//       removeFromList: isTakeaway && allReady,
-//     });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Item status updated successfully",
-//     });
-//   } catch (err) {
-//     if (connection) await connection.rollback();
-//     console.error("❌ Error updating item:", err);
-//     next(err);
-//   } finally {
-//     if (connection) connection.release();
-//   }
-// };
 const updateKitchenItemStatus = async (req, res, next) => {
   let connection;
 
@@ -1174,6 +992,8 @@ const updateKitchenItemStatus = async (req, res, next) => {
         koi.KOT_Id,
         koi.Item_Id,
         koi.Item_Status,
+        koi.updated_at,
+        koi.created_at,
         fi.Item_Name,
         fi.Item_Category
       FROM kitchen_order_items koi
@@ -1287,6 +1107,7 @@ const updateKitchenItemStatus = async (req, res, next) => {
       KOT_Id,
       KOT_Item_Id,
       itemName: updatedItem.Item_Name,
+       updated_at: updatedItem.updated_at, // ✅ SEND TIME
       status: updatedItem.Item_Status,
       orderType: isTakeaway ? "takeaway" : "dinein",
       isTakeaway,
@@ -1299,6 +1120,7 @@ const updateKitchenItemStatus = async (req, res, next) => {
       Order_Id: orderId,
       KOT_Id,
       kotStatus: allReady ? "ready" : "preparing",
+       updated_at: updatedItem.updated_at, // ✅ useful for sorting
       isTakeaway,
       removeFromList: isTakeaway && allReady,
     });

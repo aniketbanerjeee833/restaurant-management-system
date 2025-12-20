@@ -59,7 +59,7 @@ export default function AddCategory() {
     return (
         <>
        
-                <div className="sb2-2-2">
+                {/* <div className="sb2-2-2">
                     <ul>
                         <li>
                                <NavLink style={{display:"flex",flexDirection:"row"}}
@@ -67,14 +67,14 @@ export default function AddCategory() {
                                                       
                                                                 >
                                                                   <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-                                                                  {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+                                                                 
                                                                   Dashboard
                                                                 </NavLink>
-                          {/* <NavLink to={"/home"}><i className="fa fa-home" aria-hidden="true"></i> Dashboard</NavLink> */}
+                        
                           </li>
 
                     </ul>
-                </div>
+                </div> */}
 
                 <div className="sb2-2-3 ">
                     <div className="row">
@@ -119,7 +119,7 @@ export default function AddCategory() {
                                         <input
                                             type="submit"
                                             disabled={isAddingCategory}
-                                               style={{ backgroundColor: "#4CA1AF" }}
+                                               style={{ backgroundColor: "#ff0000" }}
                                             className="waves-effect waves-light btn-large"
                                             value="Add Category"
                                         />
@@ -132,10 +132,10 @@ export default function AddCategory() {
     categories.map((cat) => (
       <div
         key={cat.id}
-        className="p-4 bg-[#f3f2fd] border-l-4 border-[#4CA1AF] rounded-r-md flex justify-between items-center mb-3"
+        className="p-4 bg-[#f3f2fd] border-l-4 border-[#ff0000] rounded-r-md flex justify-between items-center mb-3"
       >
         <div className="flex items-center">
-          <span className="text-[#4CA1AF] font-semibold">
+          <span className="text-[#ff0000] font-semibold">
             {cat.Item_Category}
           </span>
         </div>
@@ -147,7 +147,7 @@ export default function AddCategory() {
     categories.map((cat) => (
       <div
         key={cat.id}
-        className="px-3 py-2 bg-[#f3f2fd] border-l-4 border-[#4CA1AF] border border-gray-300 rounded-md text-sm text-[#4CA1AF] font-medium"
+        className="px-3 py-2 bg-[#f3f2fd] border-l-4 border-[#ff0000] border border-gray-300 rounded-md text-sm text-[#ff0000] font-medium"
       >
         {cat.Item_Category}
       </div>

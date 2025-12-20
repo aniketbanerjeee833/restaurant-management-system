@@ -118,7 +118,7 @@ return (
         type="button"
         onClick={() => navigate("/items/all-items")}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         Back
       </button>
@@ -126,7 +126,7 @@ return (
         type="button"
         onClick={()=>handlePrint()}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
       
         {isPrintLoading?"Printing...":"Print"} 
@@ -136,7 +136,7 @@ return (
     //   disabled={isPrintLoading}
     //   onClick={handlePrint}
       className="text-white font-bold py-2 px-4 rounded"
-      style={{ backgroundColor: "#4CA1AF" }}
+      style={{ backgroundColor: "#ff0000" }}
     >
         Print
       
@@ -173,14 +173,14 @@ return (
                                          style={{
                                            cursor: "pointer",
                                            backgroundColor: "transparent",
-                                           color: "#4CA1AF"
+                                           color: "#ff0000"
                                          }}
                                        /></div>   
                                   {/* <Eye onClick={() => navigate(`/purchase/view/${purchases?.Purchase_Id}`)}
                                   style={{
                                     cursor: "pointer",
                                     backgroundColor: "transparent",
-                                    color: "#4CA1AF"
+                                    color: "#ff0000"
                                   }} /></div> */}
                                  <div style={{background: "#f0f0f0"}} className="row ">
                                      
@@ -415,7 +415,7 @@ return (
                                   style={{
                                     cursor: "pointer",
                                     backgroundColor: "transparent",
-                                    color: "#4CA1AF"
+                                    color: "#ff0000"
                                   }} /> */}
                                         <Eye
                                          onClick={() =>
@@ -429,7 +429,7 @@ return (
                                          style={{
                                            cursor: "pointer",
                                            backgroundColor: "transparent",
-                                           color: "#4CA1AF"
+                                           color: "#ff0000"
                                          }}
                                        /></div> 
                                   
@@ -610,7 +610,7 @@ return (
                                     // className={`px-3 py-1 rounded ${page === index + 1 ? 'bg-[#7346ff] text-white' : 'bg-gray-200 hover:bg-gray-300'
                                     //     }`}
                                     className={
-                                        `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#4CA1AF] text-white' :
+                                        `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
                                             'bg-gray-200 hover:bg-gray-300'
                                         }`}
                                 >

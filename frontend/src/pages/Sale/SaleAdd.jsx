@@ -505,7 +505,7 @@ console.log(itemsValues,"itemsValues");
         type="button"
         onClick={() => navigate("/home")}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         Back
       </button>
@@ -514,7 +514,7 @@ console.log(itemsValues,"itemsValues");
         type="button"
         onClick={() => navigate("/sale/all-sales")}
         className="text-white py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         All Sales
       </button>
@@ -612,7 +612,7 @@ console.log(itemsValues,"itemsValues");
                 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
                                               <span
                                                 onClick={() => setShowPartyModal(true)}
-                                                className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                                                className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
                                               >
                                                 + Add Party
                                               </span>
@@ -703,7 +703,7 @@ console.log(itemsValues,"itemsValues");
     <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
       <span
         onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
       >
         + Add Party
       </span>
@@ -786,7 +786,7 @@ console.log(itemsValues,"itemsValues");
     <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
       <span
         onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
       >
         + Add Party
       </span>
@@ -1191,8 +1191,8 @@ handleRowChange(i ,"isUnitLocked", false);
             handleItemSelect(confirmModal.item, confirmModal.rowIndex);
             setConfirmModal({ open: false, item: null, rowIndex: null });
           }}
-          className="px-4 py-2 rounded-md bg-[#4CA1AF] text-white 
-          hover:bg-[#4CA1AF]"
+          className="px-4 py-2 rounded-md bg-[#ff0000] text-white 
+          hover:bg-[#ff0000]"
         >
           Yes, Add Item
         </button>
@@ -1587,7 +1587,7 @@ onChange={(e) => {
         type="button"
         onClick={handleAddRow}
        className=" text-white font-bold py-2 px-4 w-1/2 rounded  "
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         + Add Row
       </button>
@@ -1979,7 +1979,7 @@ className="flex justify-between items-start gap-6  mr-4">
                 
                     onClick={() => navigate("/sale/all-sales")}
                     className=" text-white font-bold py-2 px-4 rounded"
-                    style={{ backgroundColor: "#4CA1AF" }}
+                    style={{ backgroundColor: "#ff0000" }}
                   >
                     Cancel
                   </button>
@@ -1987,7 +1987,7 @@ className="flex justify-between items-start gap-6  mr-4">
                     type="submit"
                     disabled={formValues.errorCount > 0 ||isAddingSale}
                     className=" text-white font-bold py-2 px-4 rounded"
-                    style={{ backgroundColor: "#4CA1AF" }}
+                    style={{ backgroundColor: "#ff0000" }}
                   >
                   {isAddingSale ? "Saving..." : "Save"}
                   </button>
@@ -2143,7 +2143,7 @@ className="flex justify-between items-start gap-6  mr-4">
 }
 
 
-//#4CA1AF
+//#ff0000
 {/* <input
                                             type="text"
                                             style={{marginBottom:"0px",marginTop:"0px"}}
@@ -2196,7 +2196,7 @@ className="flex justify-between items-start gap-6  mr-4">
                                              w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
                                               <span
                                                 onClick={() => setShowPartyModal(true)}
-                                                className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                                                className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
                                               >
                                                 + Add Party
                                               </span>

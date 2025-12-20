@@ -1,15 +1,16 @@
 
 import { LayoutDashboard } from 'lucide-react';
-import  { useState } from 'react'
+import  { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useRegisterUserMutation } from '../../redux/api/userApi';
+import { userApi, useRegisterUserMutation } from '../../redux/api/userApi';
 import { toast } from 'react-toastify';
 
 import { useForm } from 'react-hook-form';
 
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useRef } from 'react';
-import { useGetAllCategoriesQuery } from '../../redux/api/itemApi';
+import { useAvailableCategoriesForKitchenStaffsQuery } from '../../redux/api/staffApi';
+
 
 
 
@@ -21,8 +22,8 @@ export default function AddStaff() {
    const [categorySearch, setCategorySearch] = useState("");
 const [categoryOpen, setCategoryOpen] = useState(false);
 
-
-     const categoryRefs = useRef([]); 
+const dispatch=useDispatch();
+     const categoryRef = useRef(); 
 
    const[registerUser]=useRegisterUserMutation();
   const navigate=useNavigate();
@@ -35,11 +36,13 @@ const [categoryOpen, setCategoryOpen] = useState(false);
     formState: { errors },
   } =  useForm({
   defaultValues: {
-    role: "kitchen_staff",
+    role: "",
     categories: [],
   },
 });
-  const { data: categories } = useGetAllCategoriesQuery()
+  // const { data: categories } = useGetAllCategoriesQuery()
+  const { data: availableCategories } = useAvailableCategoriesForKitchenStaffsQuery()
+  const categories=availableCategories?.availableCategories??[]
   console.log(categories, "categories");
 const formValues = watch();
 
@@ -50,6 +53,18 @@ const {user}=useSelector((state) => state.user);
 console.log(user);
 
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryRef.current && !categoryRef.current.contains(event.target)) {
+        setCategoryOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 const onSubmit = async (data) => {
   console.log("Raw Form Data (from RHF):", data);
 
@@ -69,6 +84,7 @@ try {
   const res = await registerUser({body:payload,User_Id:user.User_Id}).unwrap();
   console.log("Response from backend:", res);
   toast.success(res.message || "New employee added successfully!");
+  dispatch(userApi.util.invalidateTags(["User"]));
   navigate(`/staff/all-staffs`); // ✅ use backend userId
 } catch (error) {
   // ✅ show backend error message if available
@@ -161,7 +177,7 @@ try {
      
             
     <>
-      <div className="sb2-2-2">
+      {/* <div className="sb2-2-2">
         <ul>
            <li >
                     <NavLink style={{display:"flex" ,flexDirection:"row"}}
@@ -169,13 +185,13 @@ try {
           
                     >
                       <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-                      {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+                 
                       Dashboard
                     </NavLink>
                   </li>
        
         </ul>
-      </div>
+      </div> */}
 
       <div className="sb2-2-3">
         <div className="row">
@@ -235,7 +251,9 @@ try {
         }
       }}
     >
-      <option value="">Select Role</option>
+        <option value="" disabled>
+    Select Role
+  </option>
       <option value="staff">Staff</option>
       <option value="kitchen-staff">Kitchen Staff</option>
     </select>
@@ -247,7 +265,7 @@ try {
 
   {/* ================= CATEGORIES ================= */}
   {selectedRole === "kitchen-staff" && (
-    <div className="relative">
+    <div ref={categoryRef} className="relative">
 
       <span className="active">
         Assign Categories <span className="text-red-500">*</span>
@@ -262,7 +280,7 @@ try {
         {selectedCategories?.map((cat, idx) => (
           <span
             key={idx}
-            className="bg-[#4CA1AF] text-white px-2 py-1  flex items-center gap-1 text-sm"
+            className="bg-[#ff0000] text-white px-2 py-1  flex items-center gap-1 text-sm"
           >
             {cat}
             <button
@@ -352,7 +370,7 @@ try {
                                              <div className="flex justify-end ">
                     
                        <button
-                        style={{ backgroundColor: "#4CA1AF" }}
+                        style={{ backgroundColor: "#ff0000" }}
                         type="submit"
                         className="text-white font-bold py-2 px-4 rounded"
                         

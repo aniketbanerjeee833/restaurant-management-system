@@ -117,7 +117,7 @@ export default function AddMaterial() {
 
   return (<>
 
-
+{/* 
     <div className="sb2-2-2">
       <ul >
         <li >
@@ -126,13 +126,13 @@ export default function AddMaterial() {
 
           >
             <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-            {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+        
             Dashboard
           </NavLink>
         </li>
 
       </ul>
-    </div>
+    </div> */}
     <div className="sb2-2-3 ">
       <div className="row">
         <div className="col-md-12">
@@ -151,7 +151,7 @@ export default function AddMaterial() {
                                             style={{
                                                 outline: "none",
                                                 boxShadow: "none",
-                                                backgroundColor: "#4CA1AF",
+                                                backgroundColor: "#ff0000",
                                             }}
                                             className="text-white px-4 py-2 rounded-md"
 
@@ -381,7 +381,7 @@ export default function AddMaterial() {
                     type="submit"
                     disabled={formValues.errorCount > 0 ||isAddingMaterial}
                     className=" text-white font-bold py-2 px-4 rounded mt-4"
-                    style={{ backgroundColor: "#4CA1AF" }}
+                    style={{ backgroundColor: "#ff0000" }}
                   >
                     {isAddingMaterial ? "Saving..." : "Save"}
                   </button>

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useGetUserQuery, useLogoutUserMutation } from "../../redux/api/userApi";
-
+import "./Header.css";
 import { toast } from "react-toastify";
 import MobileSideMenu from "../MobileSideMenu/MobileSideMenu";
-import { LogOut,ChevronUp, ChevronDown } from 'lucide-react';
+import { LogOut,ChevronUp, ChevronDown, TableOfContents } from 'lucide-react';
 
 const Header = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -14,6 +14,7 @@ const Header = () => {
    //const dispatch = useDispatch();
    const IconComponent = dropdownOpen ? ChevronUp : ChevronDown;
   const { data: userMe,  } = useGetUserQuery();
+  console.log(userMe,"userMe");
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -34,7 +35,7 @@ const Header = () => {
 
   const[logoutUser]= useLogoutUserMutation();
 
-  const handleLogout = async (e) => {
+  const handleLogout = async () => {
     
 
     try{
@@ -72,46 +73,121 @@ const Header = () => {
           <div className="row ">
                
 
-<div className="w-full flex flex-wrap items-center justify-between ">
+<div style={{paddingLeft:"0px",paddingRight:"0px"}}
+className="w-full flex flex-wrap items-center justify-between header sm:mt-0">
 
   {/* LEFT SECTION */}
-  <div className="flex items-center gap-2 flex-shrink-0 mb-2 sm:mb-0">
-    <span
-      className="atab-menu cursor-pointer block sm:hidden"
+  {/* <div style={{border:"none"
+    
+  }} className="
+  flex  w-full items-center justify-around gap-2 flex-shrink-0 border-b border-gray-200  
+  sm:justify-start sm:w-auto">
+    {userMe?.user?.role!=="kitchen-staff" &&<span
+      className="atab-menu cursor-pointer block flex items-start justify-start sm:hidden"
       onClick={() => handleToggleMobileViewOpen()}
     >
       <i className="fa fa-bars tab-menu text-lg"></i>
-    </span>
+    </span>}
 
-    {/* <i className="fa fa-cubes text-xl text-blue-500"></i>
+     <i className="fa fa-cubes text-xl text-blue-500"></i>
 
-    <span className="font-semibold text-base sm:text-lg whitespace-nowrap">
-      Inventory Management
-    </span> */}
-    <div className="ml-2">
-     <img src="/assets/images/techeasy_logo.png" className="w-50" alt="" />
+    <div  className="flex justify-center items-center ">
+  
+     <img src="/assets/images/logo.png" className="w-22 " alt="" />
      </div>
+  </div> */}
+{/* LEFT SECTION */}
+{/* <div
+  className="
+    relative
+    flex w-full items-center justify-center  gap-2 flex-shrink-0
+ 
+    sm:justify-start sm:w-auto
+  "
+>
+
+  {userMe?.user?.role !== "kitchen-staff" && (
+    <span
+      className="
+        absolute left-2
+        cursor-pointer
+        flex items-center
+        lg:hidden
+      "
+      onClick={handleToggleMobileViewOpen}
+    >
+        <TableOfContents/>
+         {/* <i style={{fontSize:"2rem"}}
+         className="fa fa-bars  text-2xl">
+          
+         </i> 
+      {/* <i className="fa fa-bars text-2xl"></i> 
+    </span>
+  )}
+
+
+  <div className="flex justify-center items-center">
+    <img
+      src="/assets/images/logo.png"
+      className="w-22 sm:ml-4 mr-8"
+      alt="logo"
+    />
   </div>
+</div> */}
+<div 
+  className="
+    relative
+    flex w-full items-center justify-center
+    gap-2 flex-shrink-0
+    md:justify-start
+    sm:pl-12
+    lg:pl-0
+    sm:w-auto
+  "
+>
+  {userMe?.user?.role !== "kitchen-staff" && (
+    <span
+      className="
+        absolute left-2
+        cursor-pointer
+        flex items-center
+        lg:hidden
+      "
+      onClick={handleToggleMobileViewOpen}
+    >
+      <TableOfContents />
+    </span>
+  )}
+
+  <div className="flex justify-center items-center">
+    <img
+      src="/assets/images/logo.png"
+      className="w-22 sm:ml-4 mr-8"
+      alt="logo"
+    />
+  </div>
+</div>
+
 
   {/* RIGHT SECTION */}
-  <div className="flex items-center gap-2 sm:gap-4 ">
+  <div className="flex items-center w-full justify-center gap-2 sm:gap-4 sm:w-auto ">
 
     {/* Buttons */}
     {userMe?.user?.role==="admin" &&<button
       type="button"
       style={{backgroundColor:"red"}}
       onClick={() => navigate("/inventory/add")}
-      className="text-white text-sm sm:text-base font-semibold py-2 px-3 
-      sm:px-4 rounded"
+      className="text-white text-sm sm:text-base font-semibold py-2 px-2 
+      sm:px-4  rounded"
     >
       Add Inventory
     </button>}
 
     {userMe?.user?.role==="admin" && <button
       type="button"
-       style={{backgroundColor:"green"}}
+       style={{backgroundColor:"black"}}
       onClick={() => navigate("/new/food-items/add")}
-      className="text-white text-sm sm:text-base font-semibold py-2 px-3 sm:px-4 
+      className="text-white text-sm sm:text-base font-semibold py-2 px-2 sm:px-4 
       rounded "
     >
       Add Food Item
@@ -129,7 +205,7 @@ const Header = () => {
 
     {userMe?.user?.role==="staff" && <button
       type="button"
-       style={{backgroundColor:"green"}}
+       style={{backgroundColor:"black"}}
       onClick={() => navigate("/staff/orders-takeaway/add")}
       className="text-white text-sm sm:text-base font-semibold py-2 px-3 sm:px-4 
       rounded "
@@ -138,7 +214,7 @@ const Header = () => {
     </button>}
    {userMe?.user?.role==="kitchen-staff" && <button
       type="button"
-       style={{backgroundColor:"green"}}
+       style={{backgroundColor:"black"}}
       onClick={() => navigate("/new/all-new-food-items")}
       className="text-white text-sm sm:text-base font-semibold py-2 px-3 sm:px-4 
       rounded "
@@ -168,7 +244,9 @@ const Header = () => {
       >
         {userMe?.user?.role==="admin"&&<span>Admin Account</span>}
         {userMe?.user?.role==="staff"&&<span>Staff Account</span>}
-        {userMe?.user?.role==="kitchen-staff"&&<span>Kitchen Staff Account</span>}
+        {userMe?.user?.role==="kitchen-staff"&&
+        <span>{userMe?.user?.name} Staff Account</span>
+        }
         <IconComponent size={18} className="ml-1" />
       </NavLink>
 

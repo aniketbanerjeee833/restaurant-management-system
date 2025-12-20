@@ -1,16 +1,17 @@
 
-import { LayoutDashboard } from 'lucide-react';
-import  { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useRegisterUserMutation } from '../../redux/api/userApi';
+import  { useRef, useState } from 'react'
+
 import { toast } from 'react-toastify';
 
 import { useForm } from 'react-hook-form';
 
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
-import { useGetAllCategoriesQuery } from '../../redux/api/itemApi';
 import { useEffect } from 'react';
+import { useAvailableCategoriesForKitchenStaffsQuery, useEditStaffMutation } from '../../redux/api/staffApi';
+import { userApi } from '../../redux/api/userApi';
+
+
 
 
 
@@ -23,10 +24,9 @@ export default function EditStaffModal({selectedStaff,onClose}) {
 const [categoryOpen, setCategoryOpen] = useState(false);
 
 console.log(selectedStaff,"selectedStaff");
-     
+     const dispatch=useDispatch();
 
-   const[registerUser]=useRegisterUserMutation();
-  const navigate=useNavigate();
+
     const {
     register,
     handleSubmit,
@@ -37,20 +37,24 @@ console.log(selectedStaff,"selectedStaff");
     formState: { errors },
   } =  useForm({
   defaultValues: {
-    role: "kitchen_staff",
+    role: "",
     categories: [],
   },
 });
-  const { data: categories } = useGetAllCategoriesQuery()
+  const { data: availableCategories } = useAvailableCategoriesForKitchenStaffsQuery()
+  const categories=availableCategories?.availableCategories??[]
   console.log(categories, "categories");
+
+  const[editStaff,{isLoading}]=useEditStaffMutation();
 const formValues = watch();
 
-const selectedCategories = watch("categories") || [];
+ const selectedCategories = watch("categories") || [];
+// const selectedCategories=categories?.map((c) => c.Item_Category);
 const selectedRole = watch("role");
 
 const {user}=useSelector((state) => state.user);
 console.log(user);
-
+const categoryRef = useRef();
 
 useEffect(() => {
   if (!selectedStaff) return;
@@ -65,6 +69,7 @@ useEffect(() => {
       : [];
 
   reset({
+   
     name: selectedStaff.name || "",
     email: selectedStaff.email || "",
     phone: selectedStaff.phone || "",
@@ -77,31 +82,39 @@ useEffect(() => {
   });
 
 }, [selectedStaff, reset]);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryRef.current && !categoryRef.current.contains(event.target)) {
+        setCategoryOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  //const selectedCategories = watch("categories") || [];
 
 const onSubmit = async (data) => {
   console.log("Raw Form Data (from RHF):", data);
 
-  // const formData = new FormData();
-  //  Object.keys(data).forEach((key) => {
-  //   formData.append(key, data[key]);
-  // });
 
-  // append file if exists
-
-  const payload={...data};
-  
-
-  // ✅ Log FormData contents (you won't see anything with console.log(formData))
+  const payload={...data,
+    User_Id:selectedStaff.User_Id,};
+  console.log(payload,"payload");
 
 try {
-  const res = await registerUser({body:payload,User_Id:user.User_Id}).unwrap();
+  const res = await editStaff(payload).unwrap();
+  // dispatch(userApi.util(invalidateTags(["User"])));
   console.log("Response from backend:", res);
-  toast.success(res.message || "New employee added successfully!");
-  navigate(`/staff/all-staffs`); // ✅ use backend userId
+  toast.success(res.message || "Staf Updated!");
+  onClose();
 } catch (error) {
   // ✅ show backend error message if available
   const errorMessage =
-    error?.data?.message || error?.message || "Failed to add new employee";
+    error?.data?.message || error?.message || "Failed to update staff";
 
   toast.error(errorMessage);
   console.error("Submission failed", error);
@@ -110,7 +123,7 @@ try {
 
 };
 
-  console.log("Current form values:", formValues);
+  console.log("Current form values:", formValues );
   console.log("Form errors:", errors);
   const renderInput = (id, type = 'text', label, colClass = 'col s6') => (
 
@@ -274,7 +287,7 @@ try {
         }
       }}
     >
-      <option value="">Select Role</option>
+      <option value="" disabled>Select Role</option>
       <option value="staff">Staff</option>
       <option value="kitchen-staff">Kitchen Staff</option>
     </select>
@@ -286,7 +299,7 @@ try {
 
   {/* ================= CATEGORIES ================= */}
   {selectedRole === "kitchen-staff" && (
-    <div className="relative">
+    <div ref={categoryRef} className="relative">
 
       <span className="active">
         Assign Categories <span className="text-red-500">*</span>
@@ -301,10 +314,27 @@ try {
         {selectedCategories?.map((cat, idx) => (
           <span
             key={idx}
-            className="bg-[#4CA1AF] text-white px-2 py-1  flex items-center gap-1 text-sm"
+            className="bg-[#ff0000] text-white px-2 py-1  flex items-center gap-1 text-sm"
           >
             {cat}
             <button
+  type="button"
+  onClick={(e) => {
+    e.stopPropagation();
+
+    const updated = selectedCategories.filter(
+      (c) => c !== cat
+    );
+
+    setValue("categories", updated, {
+      shouldValidate: true,
+    });
+  }}
+>
+  ✕
+</button>
+
+            {/* <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -316,7 +346,7 @@ try {
               }}
             >
               ✕
-            </button>
+            </button> */}
           </span>
         ))}
 
@@ -351,14 +381,27 @@ try {
               <div
                 key={idx}
                 onClick={() => {
-                  setValue(
-                    "categories",
-                    [...selectedCategories, cat.Item_Category],
-                    { shouldValidate: true }
-                  );
-                  setCategorySearch("");
-                  setCategoryOpen(false);
-                }}
+  if (!selectedCategories.includes(cat.Item_Category)) {
+    setValue(
+      "categories",
+      [...selectedCategories, cat.Item_Category],
+      { shouldValidate: true }
+    );
+  }
+
+  setCategorySearch("");
+  setCategoryOpen(false);
+}}
+
+                // onClick={() => {
+                //   setValue(
+                //     "categories",
+                //     [...selectedCategories, cat.Item_Category],
+                //     { shouldValidate: true }
+                //   );
+                //   setCategorySearch("");
+                //   setCategoryOpen(false);
+                // }}
                 className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
               >
                 {cat.Item_Category}
@@ -391,12 +434,12 @@ try {
                                              <div className="flex justify-end ">
                     
                        <button
-                        style={{ backgroundColor: "#4CA1AF" }}
+                        style={{ backgroundColor: "#ff0000" }}
                         type="submit"
                         className="text-white font-bold py-2 px-4 rounded"
                         
                       >
-                        Add Staff
+                       {isLoading ? "Saving..." : "Save"}
                       </button>
                     
                   </div>   

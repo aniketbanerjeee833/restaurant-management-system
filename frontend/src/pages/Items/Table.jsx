@@ -1,5 +1,5 @@
 import {  useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
 
 
 
@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 
 
 import { toast } from "react-toastify";
-import {  LayoutDashboard } from "lucide-react";
+
 import { useAddTableMutation } from "../../redux/api/tableApi";
 
 
@@ -113,24 +113,11 @@ export default function Table() {
 
 console.log(errors);
 
-  return (<>
+  return (
+  <>
 
 
-    <div className="sb2-2-2">
-      <ul >
-        <li >
-          <NavLink style={{display:"flex" ,flexDirection:"row"}}
-            to="/home"
-
-          >
-            <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-            {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
-            Dashboard
-          </NavLink>
-        </li>
-
-      </ul>
-    </div>
+    
     <div className="sb2-2-3 ">
       <div className="row">
         <div className="col-md-12">
@@ -149,7 +136,7 @@ console.log(errors);
                                             style={{
                                                 outline: "none",
                                                 boxShadow: "none",
-                                                backgroundColor: "#4CA1AF",
+                                                backgroundColor: "#ff0000",
                                             }}
                                             className="text-white px-4 py-2 rounded-md"
 
@@ -228,7 +215,7 @@ console.log(errors);
                     type="submit"
                     disabled={formValues.errorCount > 0 ||isAddingTable}
                     className=" text-white font-bold py-2 px-4 rounded mt-4"
-                    style={{ backgroundColor: "#4CA1AF" }}
+                    style={{ backgroundColor: "#ff0000" }}
                   >
                     {isAddingTable ? "Saving..." : "Save"}
                   </button>

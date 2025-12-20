@@ -9,6 +9,7 @@ import Spinner from './components/Layout/Spinner';
 
 
 
+
 // 🧩 Lazy imports
 const Header = lazy(() => import('./components/Header/Header'));
 const Login = lazy(() => import('./pages/User/Login/Login'));
@@ -72,12 +73,16 @@ const OrdersTakeAway=lazy(()=>import('./StaffPanel/pages/OrdersTakeAway'))
 const OrderDetails=lazy(()=>import('./StaffPanel/pages/OrderDetails'))
 const TableOrderDetails=lazy(()=>import('./StaffPanel/pages/TableOrderDetails'))
 
+
+
+
 // ==========================================
 // Kitchen Staff PAnel Routes
 // ==========================================
 const KitchenStaff=lazy(()=>import('./KitchenStaffPanel/pages/KitchenStaff'))
 
 
+const InvoicePublicView=lazy(()=>import('./pages/InvoicePublicView'))
 // ==========================================
 // 🔒 Auth Route Guards
 // ==========================================
@@ -455,11 +460,11 @@ function RouterWrapper({ userRole }) {
               
               }
             />
-
-              <Route path="/order/all-orders" element={
+            <Route path="/order/all-orders" element={
               <Layout>
                 <AllOrdersDashboard />
               </Layout>
+            
             } />
 
                <Route
@@ -505,6 +510,11 @@ function RouterWrapper({ userRole }) {
             </>
               )}
 
+               <Route
+          path="/invoice/view/:token"
+          element={<InvoicePublicView/>}
+        />
+
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
@@ -530,155 +540,659 @@ export default function App() {
   );
 }
 
-// export default function App() {
 
-//   const { data: userMe, isLoading, isError } = useGetUserQuery();
 
-//   if (isLoading) return <div>Loading...</div>;
 
-//   // If not logged in → go to login
-//   if (isError || userMe?.success === false) {
-//     return (
-//       <BrowserRouter>
-//         <RouterWrapper userRole={null} userMe={null}/>
-//       </BrowserRouter>
-//     );
+// const AdminOnly = ({ children }) => {
+//   const { data } = useGetUserQuery();
+//   if (data?.user?.role !== "admin") {
+//     return <Navigate to="/login" replace />;
+//   }
+//   return children;
+// };
+// const StaffOnly = ({ children }) => {
+//   const { data } = useGetUserQuery();
+//   if (data?.user?.role !== "staff") {
+//     return <Navigate to="/login" replace />;
+//   }
+//   return children;
+// };
+// const KitchenOnly = ({ children }) => {
+//   const { data } = useGetUserQuery();
+//   if (data?.user?.role !== "kitchen-staff") {
+//     return <Navigate to="/login" replace />;
+//   }
+//   return children;
+// };
+// const AdminOnly = ({ role, children }) => {
+//   if (!role) return <Spinner size="lg" text="Loading role..." />;
+//   if (role !== "admin") return <Navigate to="/login" replace />;
+//   return children;
+// };
+
+// const StaffOnly = ({ role, children }) => {
+//   if (!role) return <Spinner size="lg" text="Loading role..." />;
+//   if (role !== "staff") return <Navigate to="/login" replace />;
+//   return children;
+// };
+
+// const KitchenOnly = ({ role, children }) => {
+//   if (!role) return <Spinner size="lg" text="Loading role..." />;
+//   if (role !== "kitchen-staff") return <Navigate to="/login" replace />;
+//   return children;
+// };
+
+// function AppLayout() {
+//   const dispatch = useDispatch();
+//   const { loggedIn } = useSelector((state) => state.user);
+
+//   const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+//   const { data, isLoading, isError } = useGetUserQuery();
+//   const role=data?.user?.role
+//   /* ================= AUTH BOOTSTRAP ================= */
+//   useEffect(() => {
+//     if (isLoading) {
+//       setIsAuthChecking(true);
+//       return;
+//     }
+
+//     if (isError || !data?.authenticated) {
+//       dispatch(setLoggedIn(false));
+//       setIsAuthChecking(false);
+//       return;
+//     }
+
+//     dispatch(setUser(data.user));
+//     dispatch(setUserId(data.user.User_Id));
+//     dispatch(setLoggedIn(true));
+//     setIsAuthChecking(false);
+//   }, [data, isLoading, isError, dispatch]);
+
+//   /* ================= ROUTE GUARDS ================= */
+
+//   const RequireAuth = ({ children }) => {
+//     if (isAuthChecking) return <Spinner size="lg" text="Checking session..." />;
+//     return loggedIn ? children : <Navigate to="/login" replace />;
+//   };
+
+//   // const RedirectIfAuth = ({ children }) => {
+//   //   if (isAuthChecking) return <Spinner size="lg" text="Checking session..." />;
+
+//   //   if (loggedIn && data?.user?.role) {
+//   //     const role = data.user.role;
+
+//   //     if (role === "staff") return <Navigate to="/staff/orders/all-orders" replace />;
+//   //     if (role === "kitchen-staff") return <Navigate to="/kitchen-staff/orders/all-orders" replace />;
+//   //     return <Navigate to="/home" replace />;
+//   //   }
+
+//   //   return children;
+//   // };
+// //   const RedirectIfAuth = ({ children }) => {
+// //   if (isAuthChecking) {
+// //     return <Spinner size="lg" text="Checking session..." />;
+// //   }
+
+// //   return loggedIn ? <Navigate to="/home" replace /> : children;
+// // };
+// const RedirectIfAuth = ({ children }) => {
+//   if (isAuthChecking ) {
+//     return <Spinner size="lg" text="Checking session..." />;
 //   }
 
-//   return (
-//     <BrowserRouter>
-//       <RouterWrapper 
-//         userRole={userMe?.user?.role} 
-//         userMe={userMe}
-//       />
-//     </BrowserRouter>
+//   if (loggedIn) {
+//     if (role === "staff") return <Navigate to="/staff/orders/all-orders" replace />;
+//     if (role === "kitchen-staff") return <Navigate to="/kitchen-staff/orders/all-orders" replace />;
+//     return <Navigate to="/home" replace />;
+//   }
+
+//   return children;
+// };
+
+
+//     const location = useLocation();
+
+//   const hideHeader = location.pathname === "/login" || 
+//   location.pathname.startsWith("/day-wise-report") ||
+//   location.pathname.startsWith("/date-range-report") ||
+//   location.pathname.startsWith("/material/material-view")||
+//   location.pathname.startsWith("/order/day-wise-invoices-order-report")||
+//   location.pathname.startsWith("/party/party-sales-purchases-details");
+
+  
+//     return (
+//     <>
+     
+//       {!hideHeader && <Header />}
+//     <Suspense fallback={<Spinner size="lg" text="Loading Dashboard..." />}>
+//         <Routes>
+//           {/* Public Route: Login */}
+          
+//             <Route path="/login" element={
+//                <RedirectIfAuth>
+//               <Login />
+//               </RedirectIfAuth>
+//               } />
+   
+       
+// {/* Admin Routes */}
+          
+
+//          <>
+  
+
+//           {/* Protected Routes */}
+//           {/* <Route element={<ProtectedRoute />}>
+//             <Route
+//               path="/home"
+//               element={
+//                 <Layout>
+//                   <Dashboard />
+//                 </Layout>
+//               }
+//             /> */}
+//                <Route
+//             path="/home"
+//             element={
+//               <RequireAuth>
+//                 <AdminOnly role={role}>
+//                 <Layout>
+//                   <Dashboard />
+//                 </Layout>
+//                 </AdminOnly>
+//               </RequireAuth>
+//             }
+//           />
+
+
+//             <Route
+//               path="/items/add-category"
+//               element={
+//                   <RequireAuth>
+//                     <AdminOnly role={role}>
+//                 <Layout>
+//                   <AddCategory />
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+//             <Route
+//               path="/table/add"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <Table/>
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+//             <Route
+//               path="/table/all-tables"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <AllTablesList />
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+//                   <Route
+//               path="/item/item-sales-purchases-details/:id"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                   <ItemSalesPurchasesDetails/>
+//                   </AdminOnly>
+//                   </RequireAuth>
+               
+//               }
+//             />
+//             <Route
+//               path="/party/add"
+//               element={
+//                  <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <PartyAdd />
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+//             <Route
+//               path="/party/all-parties"
+//               element={
+//                  <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <AllPartiesList />
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+//               <Route
+//               path="/party/party-sales-purchases-details/:id"
+//               element={
+
+//                   <RequireAuth>
+//                     <AdminOnly role={role}>
+//                   <PartySalesPurchasesDetails/>
+//                   </AdminOnly>
+//                   </RequireAuth>
+                
+                 
+               
+//               }
+//             />
+
+//              <Route
+//               path="/material/add"
+//               element={
+//                   <RequireAuth>
+//                     <AdminOnly role={role}>
+//                 <Layout>
+//                   <AddMaterial/>
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+
+           
+//             <Route
+//               path="/material/all-materials"
+//               element={
+//                <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <MaterialsList/>
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+//                 <Route
+//               path="/material/materials-release"
+//               element={
+//                  <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <MaterialsRelease/>
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+//   <Route
+//               path="/material/material-view/:Material_Name"
+//               element={
+//               <RequireAuth>
+//                     <AdminOnly role={role}>
+//                   <EachMaterialReport/>
+//                   </AdminOnly>
+//                   </RequireAuth>
+             
+//               }
+//             />
+            
+//               <Route
+//               path="/new/food-items/add"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                   <AddFoodItem />
+//                   </AdminOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+//              <Route
+//               path="/new/sale/edit/:id"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                   <NewSaleEdit/>
+//                   </AdminOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+//               <Route
+//               path="/new/all-new-food-items"
+//               element={
+//                 <RequireAuth>
+                 
+//                 <Layout>
+//                   <AllFoodItemsList/>
+//                 </Layout>
+                
+//                 </RequireAuth>
+//               }
+//             />
+//               <Route
+//               path="/sale/view/:id"
+//               element={
+//                  <RequireAuth>
+//                   <AdminOnly role={role}>
+//                   <SaleView />
+//                   </AdminOnly>
+//                   </RequireAuth>
+             
+//               }
+//             />
+//             <Route
+//               path="/inventory/add"
+//               element={
+//              <RequireAuth>
+//               <AdminOnly role={role}>
+//                   <InventoryAdd />
+//                   </AdminOnly>
+//                   </RequireAuth>
+                
+//               }
+//             />
+//               <Route
+//               path="/inventory/edit/:id"
+//               element={
+//              <RequireAuth>
+//                 <AdminOnly role={role}>
+//                   <InventoryEdit />
+//                   </AdminOnly>
+//                   </RequireAuth>
+                
+//               }
+//             />
+//             <Route
+//               path="/inventory/view/:id"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                   <InventoryView/>
+//                   </AdminOnly>
+//                   </RequireAuth>
+             
+//               }
+//             />
+//             <Route
+//               path="/inventory/all-inventories"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <AllInventoryList />
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+
+//             <Route path="/order/all-orders" element={
+//               <RequireAuth>
+               
+//               <Layout>
+//                 <AllOrdersDashboard />
+//               </Layout>
+             
+//               </RequireAuth>
+//             } />
+
+//             <Route
+//               path="/order/day-wise-invoices-order-report/:date"
+//               element={
+//                   <RequireAuth>
+//                       <AdminOnly role={role}>
+//                   <AllOrdersDayWise/>
+//                   </AdminOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+//             {/* /order/date-range-orders-takaway-report */}
+//                <Route
+//               path="/order/date-range-orders-takaway-report/:fromDate/:toDate"
+//               element={
+//                 <RequireAuth>
+//                     <AdminOnly role={role}>
+//                   <AllOrdersTakeawayDateRange/>
+//                   </AdminOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+//             {/* <Route path="/order/view/:id" element={
+//               <Layout>
+//                 <OrderView />
+//               </Layout>
+//             } /> */}
+ 
+//             <Route
+//               path="/staff/add"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <AddStaff/>
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+
+           
+//             <Route
+//               path="/staff/all-staffs"
+//               element={
+//                 <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <StaffList/>
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+            
+//             <Route
+//               path="/reports"
+//               element={
+//                 <RequireAuth>
+//                     <AdminOnly role={role}>
+//                 <Layout>
+//                   <Reports />
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+         
+//               <Route
+//               path="/day-wise-report/:date"
+//               element={
+//                  <RequireAuth>
+//                   <AdminOnly role={role}>
+//                   <DayWiseReport/>
+//                   </AdminOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+        
+//               <Route
+//              path="/date-range-report/:fromDate/:toDate" 
+//             element=
+//             {   <RequireAuth>
+//               <AdminOnly role={role}>
+//             <DateRangeReport/>
+//             </AdminOnly>
+//               </RequireAuth>
+//             } 
+//             />
+
+//                    <Route
+//               path="/financial-year/add"
+//               element={
+//                  <RequireAuth>
+//                   <AdminOnly role={role}>
+//                 <Layout>
+//                   <FinancialYear/>
+//                 </Layout>
+//                 </AdminOnly>
+//                 </RequireAuth>
+//               }
+//             />
+
+         
+//           </>
+        
+        
+
+        
+
+        
+//           <>
+        
+//               <Route
+//               path="/staff/orders/add"
+//               element={
+//                 <RequireAuth>
+//                   <StaffOnly role={role}>
+//                   <Orders/>
+//                   </StaffOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+//             <Route
+//               path="/staff/orders-takeaway/add"
+//               element={
+//                  <RequireAuth>
+//                     <StaffOnly role={role}>
+//                   <OrdersTakeAway/>
+//                   </StaffOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+//               <Route
+//               path="/staff/orders/all-orders"
+//               element={
+//                 <RequireAuth>
+//                     <StaffOnly role={role}>
+//                 <Layout>
+//                   <OrderDetails/>
+//                 </Layout>
+//                 </StaffOnly>
+//                 </RequireAuth>
+//               }
+//             />
+//             <Route
+//               path="/staff/orders/table-order-details/:Order_Id"
+//               element={
+//                <RequireAuth>
+//                  <StaffOnly role={role}>
+//                   <TableOrderDetails/>
+//                   </StaffOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+
+//               {/* <Route path="/order/all-orders" element={
+//                 <RequireAuth>
+//                     <StaffOnly>
+//               <Layout>
+//                 <AllOrdersDashboard />
+//               </Layout>
+//               </StaffOnly>
+//               </RequireAuth>
+//             } /> */}
+
+//                <Route
+//               path="/order/day-wise-invoices-order-report/:date"
+//               element={
+//                 <RequireAuth>
+//                   <StaffOnly role={role}>
+//                   <AllOrdersDayWise/>
+//                   </StaffOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+//             {/* /order/date-range-orders-takaway-report */}
+//                <Route
+//               path="/order/date-range-orders-takaway-report/:fromDate/:toDate"
+//               element={
+//                  <RequireAuth>
+//                       <StaffOnly role={role}>
+//                   <AllOrdersTakeawayDateRange/>
+//                   </StaffOnly>
+//                   </RequireAuth>
+              
+//               }
+//             />
+
+
+//           </>
+      
+
+      
+//           <>
+//             <Route
+//               path="/kitchen-staff/orders/all-orders"
+//               element={
+//                 <RequireAuth>
+//                   <KitchenOnly role={role}>
+//                   <KitchenStaff/>
+//                   </KitchenOnly>
+//                   </RequireAuth>
+               
+//               }
+//             />
+//                 {/* <Route
+//               path="/new/all-new-food-items"
+//               element={
+//                <RequireAuth>
+                 
+//                   <AllFoodItemsList/>
+              
+//                   </RequireAuth>
+              
+//               }
+//             /> */}
+//             </>
+              
+
+//           {/* Fallback */}
+//                    <Route
+//   path="*"
+//   element={
+//     loggedIn
+//       ? <Navigate to="/home" replace />
+//       : <Navigate to="/login" replace />
+//   }
+// />
+//           {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}
+//         </Routes>
+//       </Suspense>
+
+//       <ToastContainer position="top-right" autoClose={3000} />
+      
+//     </>
 //   );
+
 // }
 
 // export default function App() {
-
-
-
-//     const { data: userMe, isLoading, isError } =  useGetUserQuery();
-//     console.log(userMe);
 //   return (
-//     <BrowserRouter>
-//       <RouterWrapper   userRole={userMe?.user?.role} 
-//         userMe={userMe}/>
+//     <BrowserRouter  >
+//       <AppLayout />
 //     </BrowserRouter>
 //   );
 // }
-// ✅ PublicRoute – Prevent logged-in users from seeing /login
-// function PublicRoute() {
-//   const [isAuthenticated, setIsAuthenticated] = useState(null);
-
-//   useEffect(() => {
-//     const checkAuth = async () => {
-//       try {
-//         const res = await axios.get('/api/user/getUser', { withCredentials: true });
-//         setIsAuthenticated(res.data.authenticated);
-//       } catch {
-//         setIsAuthenticated(false);
-//       }
-//     };
-//     checkAuth();
-//   }, []);
-
-//   if (isAuthenticated === null) return <div>Loading...</div>;
-//   return isAuthenticated ? <Navigate to="/home" replace /> : <Outlet />;
-// }
-// return(
-//   <BrowserRouter>
-// <Header/>
-//   <Routes>
-//     <Route
-//             path="/login"
-//             element={
-           
-//                 <Login />
-            
-              
-//             }
-//           />
-//     <Route path="/" element={
-//       <Layout>
-//       <Dashboard/>
-//       </Layout>
-//       } />
-//     {/* <Route path="/items/add" element={<Items/>} /> */}
-
-//      <Route
-//           path="/items/add-category"
-//           element={
-//             <Layout>
-//               <AddCategory />
-//             </Layout>
-//           }
-//         />
-//       <Route 
-       
-//           path="/items/add"
-//           element={
-//             <Layout>
-//               <Items />
-//             </Layout>
-//           }
-//         />
-//       <Route 
-//       path="/items/all-items"
-//        element={
-//         <Layout>
-//         <AllItemsList/>
-//         </Layout>
-//         } 
-//         />
-   
-
-    
-//        <Route path="/party/add" element={
-//         <Layout>
-//         <PartyAdd/>
-//         </Layout>
-//         } />
-//         <Route path="/party/all-parties" element={
-//           <Layout>
-//           <AllPartiesList/>
-//           </Layout>
-//           } />
-//            <Route path="/sale/invoice" element={
-//           <Layout>
-//           <Invoice/>
-//           </Layout>
-//           } />
-          
-//             <Route path="/sale/add" element={
-     
-//       <SaleAdd/>
-    
-//       } />
-//           <Route path="/sale/all-sales" element={
-//           <Layout>
-//           <AllSaleList/>
-//           </Layout>
-//           } />
-
-//         <Route path="/purchase/add" element={
-//           // <Layout>
-//           <PurchaseAdd/>
-//           // </Layout>
-//           } />
-//             <Route path="/purchase/view/:id" element={
-//           // <Layout>
-//           <PurchaseView/>
-//           // </Layout>
-//           } />
-//               <Route path="/purchase/all-purchases" element={
-//           <Layout>
-//           <AllPurchasesList/>
-//           </Layout>
-//           } />
-//   </Routes>
- 
-//       <ToastContainer position="top-right" autoClose={3000} />
-// </BrowserRouter>
-// )

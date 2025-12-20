@@ -135,7 +135,7 @@ console.log(salesNewSalesPurchasesEachDay?.sales?.totalSalesAmount );
                     onClick={()=>handlePrint()}
                   
                     className=" text-white font-bold py-2 px-4 rounded"
-                    style={{ backgroundColor: "#4CA1AF" }}
+                    style={{ backgroundColor: "#ff0000" }}
                   >
                    {isPrintLoading ? "Printing..." : "Print"}
                   </button>
@@ -162,7 +162,7 @@ console.log(salesNewSalesPurchasesEachDay?.sales?.totalSalesAmount );
       disabled={isPrintLoading}
       onClick={handlePrint}
       className="text-white font-bold py-2 px-4 rounded"
-      style={{ backgroundColor: "#4CA1AF" }}
+      style={{ backgroundColor: "#ff0000" }}
     >
       {isPrintLoading ? "Printing..." : "Print"}
     </button>

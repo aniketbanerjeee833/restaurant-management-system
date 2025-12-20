@@ -1,99 +1,179 @@
 
 
 import db from "../config/db.js";
+
 const getTotalSalesPurchasesReceivablesPayablesProfit = async (req, res, next) => {
   let connection;
 
   try {
     connection = await db.getConnection();
 
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+    // 🔹 Date from frontend or default = today
+    const selectedDate =
+      req.query.date || new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
 
     // --------------------------------------------------
-    // 1️⃣ TOTAL DINE-IN SALES for CURRENT MONTH
+    // 1️⃣ TOTAL DINE-IN SALES (DAY-WISE)
     // --------------------------------------------------
     const [[dineInResult]] = await connection.query(
       `
       SELECT SUM(CAST(Amount AS DECIMAL(10,2))) AS total_dinein_sales
       FROM invoices
-      WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+      WHERE DATE(Invoice_Date) = ?
       `,
-      [currentMonth, currentYear]
+      [selectedDate]
     );
 
     // --------------------------------------------------
-    // 2️⃣ TOTAL TAKEAWAY SALES for CURRENT MONTH
+    // 2️⃣ TOTAL TAKEAWAY SALES (DAY-WISE)
     // --------------------------------------------------
     const [[takeawayResult]] = await connection.query(
       `
       SELECT SUM(CAST(Amount AS DECIMAL(10,2))) AS total_takeaway_sales
       FROM takeaway_invoices
-      WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+      WHERE DATE(Invoice_Date) = ?
       `,
-      [currentMonth, currentYear]
+      [selectedDate]
     );
 
-    // Combined Sales Value
     const totalDineInValue = Number(dineInResult?.total_dinein_sales || 0);
     const totalTakeawayValue = Number(takeawayResult?.total_takeaway_sales || 0);
-
     const totalSalesValue = totalDineInValue + totalTakeawayValue;
-    // --------------------------------------------------
-    // 3️⃣ TOTAL PURCHASES FOR CURRENT MONTH
-    // --------------------------------------------------
-    const [[purchaseResult]] = await connection.query(
-      `
-      SELECT SUM(Total_Amount) AS total_purchases
-      FROM add_purchase
-      WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?
-      `,
-      [currentMonth, currentYear]
-    );
-
-     const totalPurchasesValue = Number(purchaseResult?.total_purchases || 0);
 
     // --------------------------------------------------
-    // 4️⃣ NUMBER OF SALES (COUNT)
+    // 3️⃣ COUNT OF DINE-IN ORDERS
     // --------------------------------------------------
     const [[dineInCount]] = await connection.query(
       `
       SELECT COUNT(*) AS total_dinein_sales_count
       FROM invoices
-      WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+      WHERE DATE(Invoice_Date) = ?
       `,
-      [currentMonth, currentYear]
+      [selectedDate]
     );
 
+    // --------------------------------------------------
+    // 4️⃣ COUNT OF TAKEAWAY ORDERS
+    // --------------------------------------------------
     const [[takeawayCount]] = await connection.query(
       `
       SELECT COUNT(*) AS total_takeaway_sales_count
       FROM takeaway_invoices
-      WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+      WHERE DATE(Invoice_Date) = ?
       `,
-      [currentMonth, currentYear]
+      [selectedDate]
     );
 
     // --------------------------------------------------
     // RESPONSE
     // --------------------------------------------------
     return res.status(200).json({
-      month: currentMonth,
-      year: currentYear,
+      date: selectedDate,
       total_sales: totalSalesValue,
-      total_purchases: totalPurchasesValue,
       total_dineIn: dineInCount.total_dinein_sales_count,
       total_takeaway: takeawayCount.total_takeaway_sales_count,
-      profit: totalSalesValue - totalPurchasesValue,
     });
   } catch (err) {
-    console.error("❌ Error getting monthly totals:", err);
+    console.error("❌ Error getting day-wise totals:", err);
     next(err);
   } finally {
     if (connection) connection.release();
   }
 };
+
+// const getTotalSalesPurchasesReceivablesPayablesProfit = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     connection = await db.getConnection();
+
+//     const now = new Date();
+//     const currentMonth = now.getMonth() + 1;
+//     const currentYear = now.getFullYear();
+
+//     // --------------------------------------------------
+//     // 1️⃣ TOTAL DINE-IN SALES for CURRENT MONTH
+//     // --------------------------------------------------
+//     const [[dineInResult]] = await connection.query(
+//       `
+//       SELECT SUM(CAST(Amount AS DECIMAL(10,2))) AS total_dinein_sales
+//       FROM invoices
+//       WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+//       `,
+//       [currentMonth, currentYear]
+//     );
+
+//     // --------------------------------------------------
+//     // 2️⃣ TOTAL TAKEAWAY SALES for CURRENT MONTH
+//     // --------------------------------------------------
+//     const [[takeawayResult]] = await connection.query(
+//       `
+//       SELECT SUM(CAST(Amount AS DECIMAL(10,2))) AS total_takeaway_sales
+//       FROM takeaway_invoices
+//       WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+//       `,
+//       [currentMonth, currentYear]
+//     );
+
+//     // Combined Sales Value
+//     const totalDineInValue = Number(dineInResult?.total_dinein_sales || 0);
+//     const totalTakeawayValue = Number(takeawayResult?.total_takeaway_sales || 0);
+
+//     const totalSalesValue = totalDineInValue + totalTakeawayValue;
+//     // --------------------------------------------------
+//     // 3️⃣ TOTAL PURCHASES FOR CURRENT MONTH
+//     // --------------------------------------------------
+//     // const [[purchaseResult]] = await connection.query(
+//     //   `
+//     //   SELECT SUM(Total_Amount) AS total_purchases
+//     //   FROM add_purchase
+//     //   WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?
+//     //   `,
+//     //   [currentMonth, currentYear]
+//     // );
+
+//     //  const totalPurchasesValue = Number(purchaseResult?.total_purchases || 0);
+
+//     // --------------------------------------------------
+//     // 4️⃣ NUMBER OF SALES (COUNT)
+//     // --------------------------------------------------
+//     const [[dineInCount]] = await connection.query(
+//       `
+//       SELECT COUNT(*) AS total_dinein_sales_count
+//       FROM invoices
+//       WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+//       `,
+//       [currentMonth, currentYear]
+//     );
+
+//     const [[takeawayCount]] = await connection.query(
+//       `
+//       SELECT COUNT(*) AS total_takeaway_sales_count
+//       FROM takeaway_invoices
+//       WHERE MONTH(Invoice_Date) = ? AND YEAR(Invoice_Date) = ?
+//       `,
+//       [currentMonth, currentYear]
+//     );
+
+//     // --------------------------------------------------
+//     // RESPONSE
+//     // --------------------------------------------------
+//     return res.status(200).json({
+//       month: currentMonth,
+//       year: currentYear,
+//       total_sales: totalSalesValue,
+//       // total_purchases: totalPurchasesValue,
+//       total_dineIn: dineInCount.total_dinein_sales_count,
+//       total_takeaway: takeawayCount.total_takeaway_sales_count,
+//       // profit: totalSalesValue - totalPurchasesValue,
+//     });
+//   } catch (err) {
+//     console.error("❌ Error getting monthly totals:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
 
 // const getAllSalesAndPurchasesYearWise = async (req, res, next) => {
 //   let connection;

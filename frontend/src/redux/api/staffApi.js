@@ -3,6 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 
 
+
 export const staffApi = createApi({
   reducerPath: "staffApi",
   baseQuery: fetchBaseQuery({
@@ -30,6 +31,19 @@ getAllStaffs: builder.query({
   providesTags: ["Staff"],
 }),
 
+     availableCategoriesForKitchenStaffs:builder.query({
+            query: () => `staff/available-categories-for-kitchen-staffs` ,
+            providesTags: ["Kitchen-Staff"],
+        }),
+
+        editStaff: builder.mutation({
+            query: (payload) => ({
+                url: `staff/update-staff`,
+                method: "PATCH",
+                body: payload,
+            }),
+            invalidatesTags: ["Staff"],
+        }),
     
 
 
@@ -42,5 +56,5 @@ getAllStaffs: builder.query({
 
 
 export const {
-useGetAllStaffsQuery
+useGetAllStaffsQuery,useAvailableCategoriesForKitchenStaffsQuery,useEditStaffMutation
 } = staffApi;

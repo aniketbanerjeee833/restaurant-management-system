@@ -432,25 +432,22 @@ const subtotal = price ;
     <>
 
 
-      <div className="sb2-2-2">
+      {/* <div className="sb2-2-2">
         <ul>
           <li>
-            {/* <NavLink to="/">
-                                <i className="fa fa-home mr-2" aria-hidden="true"></i>
-                                Dashboard
-                            </NavLink> */}
+         
             <NavLink style={{ display: "flex", flexDirection: "row" }}
               to="/home"
 
             >
               <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-              {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+           
               Dashboard
             </NavLink>
           </li>
 
         </ul>
-      </div>
+      </div> */}
 
       {/* Main Content */}
       <div className="sb2-2-3" >
@@ -465,7 +462,7 @@ const subtotal = price ;
     flex flex-col sm:flex-row 
     justify-between 
     items-start sm:items-center 
-    w-full   mt-10  sm:mt-0             
+    w-full   mt-10  sm:mt-4             
   ">
 
                   {/* LEFT HEADER */}
@@ -487,7 +484,7 @@ const subtotal = price ;
                       type="button"
                       onClick={() => navigate("/inventory/all-inventories")}
                       className="text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "black" }}
                     >
                       Back
                     </button>
@@ -496,7 +493,7 @@ const subtotal = price ;
                       type="button"
                       onClick={() => navigate("/inventory/all-inventories")}
                       className="text-white py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       All Inventories
                     </button>
@@ -565,7 +562,7 @@ const subtotal = price ;
     <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
       <span
         onClick={() => setShowPartyModal(true)}
-        className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
       >
         + Add Party
       </span>
@@ -1275,8 +1272,9 @@ const subtotal = price ;
                         <button
                           type="button"
                           onClick={handleAddRow}
-                          className=" text-white font-bold py-2 px-4 sm:px-2 md:px-2 w-1/2  rounded "
-                          style={{ backgroundColor: "#4CA1AF" }}
+                          className=" text-white font-bold py-1 px-2 sm:px-2 py-2 md:px-2 w-1/2 
+                           rounded "
+                          style={{ backgroundColor: "#ff0000" }}
                         >
                           + Add Row
                         </button>
@@ -1518,7 +1516,7 @@ className="flex flex-col gap-4 mt-3 w-full">
 
                       onClick={() => navigate("/inventory/all-inventories")}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                     style={{ backgroundColor: "black" }}
                     >
                       Cancel
                     </button>
@@ -1526,7 +1524,7 @@ className="flex flex-col gap-4 mt-3 w-full">
                       type="submit"
                       disabled={formValues.errorCount > 0 || isAddingPurchase}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       {isAddingPurchase ? "Saving..." : "Save"}
                     </button>
@@ -1738,7 +1736,7 @@ className="flex flex-col gap-4 mt-3 w-full">
                             <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
                               <span
                                 onClick={() => setShowPartyModal(true)}
-                                className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
+                                className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
                               >
                                 + Add Party
                               </span>

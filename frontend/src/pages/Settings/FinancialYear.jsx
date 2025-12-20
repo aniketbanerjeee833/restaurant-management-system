@@ -98,23 +98,21 @@ const handleSubmit = async (e) => {
 
   return (
     <>
-      <div className="sb2-2-2">
+      {/* <div className="sb2-2-2">
         <ul>
           <li>
-            {/* <NavLink to={"/home"}>
-              <i className="fa fa-home" aria-hidden="true"></i> Dashboard
-            </NavLink> */}
+        
                  <NavLink style={{display:"flex",flexDirection:"row"}}
                                                     to="/home"
                                         
                                                   >
                                                     <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-                                                    {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+                                                   
                                                     Dashboard
                                                   </NavLink>
           </li>
         </ul>
-      </div>
+      </div> */}
 
       <div className="sb2-2-3">
         <div className="row">
@@ -222,7 +220,7 @@ const handleSubmit = async (e) => {
                       ">
                         <button
                           type="submit"
-                          style={{ backgroundColor: "#4CA1AF" }}
+                          style={{ backgroundColor: "#ff0000" }}
                           className="waves-effect waves-light btn-large"
                           // value="Save"
                           //value="Save"
@@ -241,7 +239,7 @@ const handleSubmit = async (e) => {
                    <div className="mt-4 ml-4 max-h-[50vh] overflow-y-auto space-y-2 w-[50%]">
                     <div
                       key={index}
-                      className="flex items-center justify-between px-4 py-2 bg-[#f3f2fd] border-l-4 border-[#4CA1AF] border border-gray-300 rounded-md text-sm text-[#4CA1AF] font-medium"
+                      className="flex items-center justify-between px-4 py-2 bg-[#f3f2fd] border-l-4 border-[#ff0000] border border-gray-300 rounded-md text-sm text-[#ff0000] font-medium"
                     >
                       <input 
                        type="checkbox" className="mr-2" />
@@ -259,8 +257,8 @@ const handleSubmit = async (e) => {
           >
             <div
               className="flex items-center justify-between px-3 py-2 bg-[#f3f2fd] 
-              border-l-4 border-[#4CA1AF] border border-gray-300 
-              rounded-md text-sm text-[#4CA1AF] font-medium"
+              border-l-4 border-[#ff0000] border border-gray-300 
+              rounded-md text-sm text-[#ff0000] font-medium"
             >
               <input
                 type="checkbox"

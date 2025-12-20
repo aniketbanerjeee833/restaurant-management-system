@@ -23,7 +23,7 @@ const { user } = useSelector((state) => state.user);
 console.log(user);
   const [orders, setOrders] = useState([]);
 
-  const { data: kitchenOrders } = useGetKitchenOrdersQuery();
+  const { data: kitchenOrders,refetch } = useGetKitchenOrdersQuery();
   console.log("Kitchen Orders from API:", kitchenOrders);
   const [updateKitchenItemStatus] = useUpdateKitchenItemStatusMutation();
 
@@ -33,6 +33,8 @@ console.log(user);
       socket.emit("join_kitchen_categories", user.categories);
       console.log("🍳 Joined categories:", user.categories);
     }
+
+    refetch();
 
     return () => {
       if (user?.categories) {
@@ -44,7 +46,7 @@ console.log(user);
 
 useEffect(() => {
   if (!Array.isArray(kitchenOrders?.orders)) return;
-
+  refetch();
   // API is already category-filtered
   const pendingOrders = kitchenOrders.orders.filter(
     (o) => o.Status === "pending"
@@ -232,7 +234,9 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-yellow-50 mt-8">
       {/* Header */}
       
-      <div className="bg-gradient-to-r from-[#4CA1AF] to-[#6CCBCD] text-white shadow-lg">
+      <div className="bg-gradient-to-r from-[#ff0000] to-[#120000] text-white shadow-lg">
+      {/* <div style={{     background: "linear-gradient(90deg, red, darkred)"}}
+       className=" text-white shadow-lg"> */}
   <div className="max-w-7xl mx-auto px-4 py-6">
     {/* <div className="flex items-center justify-between mt-12 sm:mt-4">
 
@@ -323,27 +327,39 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
                transform hover:-translate-y-1 border-2 border-gray-100 overflow-hidden"
   >
     {/* HEADER */}
-    <div className="bg-gradient-to-r from-[#4CA1AF] to-[#6CCBCD] text-white p-4">
+    {/* <div className="bg-gradient-to-r from-[#ff0000] to-[#6CCBCD] text-white p-4"> */}
+       {/* <div className=`bg-gradient-to-r ${} text-white p-4`> */}
+    {/* <div
+  className={`text-white p-4 bg-gradient-to-r ${
+    order.Order_Type === "dinein"
+      ? "from-black to-black"   // greenish for dine-in
+      : "from-[#D64545] to-[#F08080]"   // reddish for takeaway
+  }`}
+> */}
+    <div
+  className={`text-white p-4 bg-black`}
+>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Package className="w-5 h-5 text-white" />
-          <span className="font-bold text-lg">KOT #{order.KOT_Id}</span>
+          <span className="font-bold text-lg">KOT {order?.KOT_Id}</span>
         </div>
 
-        <div className={`px-3 py-1 rounded-full text-xs font-semibold border-2 flex items-center gap-1 
+        <div className={`px-3 py-1 rounded-full text-xs font-semibold border-2
+         flex items-center gap-1 
             ${getStatusColor(order?.status)}`}>
           {getStatusIcon(order?.status)}
-          {order.status}
+          {order?.status}
         </div>
       </div>
 
           <div className="flex items-center justify-between">
       <div className="text-sm opacity-90">
-        Order ID: <span className="font-semibold">{order.Order_Id}</span>
+        Order ID: <span className="font-semibold">{order?.Order_Id}</span>
       </div>
-
+   
          <div className="font-semibold text-white mt-2">
-        {order.items?.reduce((acc, item) => acc + item.Quantity, 0)} items
+        {order?.items?.reduce((acc, item) => acc + item.Quantity, 0)} items
       </div>
       </div>
     </div>
@@ -352,7 +368,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
     <div className="p-5">
 
       <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
-        <ChefHat className="w-4 h-4 text-[#4CA1AF]" />
+        <ChefHat className="w-4 h-4 text-[#ff0000]" />
         Order Items
       </h3>
 
@@ -361,28 +377,33 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
         {order?.items.map((item, i) => (
           <div
             key={i}
-            className="bg-[#4CA1AF10] p-3 rounded-lg border border-[#4CA1AF33]"
+            className=" p-3 rounded-lg border border-[#4CA1AF33]"
           >
             {/* ITEM ROW */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#4CA1AF] rounded-full"></div>
+                <div className="w-2 h-2 bg-[#ff0000] rounded-full"></div>
                 <span className="font-medium text-gray-800">
                   {item?.Item_Name}
                 </span>
               </div>
-
+                      <div className="font-semibold flex flex-row gap-2 mt-2">
+        {item?.created_at} 
+      
+          <div>
               <span className="bg-[#6CCBCD33] text-[#3A8C98] px-3 py-1 rounded-full 
                              text-sm font-bold">
                 × {item?.Quantity}
               </span>
+              </div>
+              </div>
             </div>
 
             {/* ACTION BUTTONS PER ITEM */}
             {/* <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleSingleItemStatus(order.KOT_Id, item.KOT_Item_Id, "preparing")}
-                className="bg-[#4CA1AF] hover:bg-[#3A8C98] text-white py-1.5 rounded-lg 
+                className="bg-[#ff0000] hover:bg-[#3A8C98] text-white py-1.5 rounded-lg 
                          font-semibold text-xs transition shadow flex items-center justify-center gap-1"
               >
                 <Flame className="w-3 h-3" />
@@ -410,7 +431,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
       py-1.5 rounded-lg font-semibold text-xs transition flex items-center justify-center gap-1
       ${
         item.Item_Status === "pending"
-          ? "bg-[#4CA1AF] hover:bg-[#3A8C98] text-white"
+          ? "bg-[#ff0000] hover:bg-[#3A8C98] text-white"
           : "bg-gray-300 text-gray-500 cursor-not-allowed"
       }
     `}
@@ -443,7 +464,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
 
             {/* ITEM STATUS LABEL */}
             <div className="text-xs mt-2 flex items-center justify-center gap-1 text-gray-600">
-              Status: <span className="font-semibold text-[#4CA1AF]">{item?.Item_Status}</span>
+              Status: <span className="font-semibold text-[#ff0000]">{item?.Item_Status}</span>
             </div>
           </div>
         ))}
@@ -451,17 +472,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
     </div>
 
     {/* FOOTER */}
-    {/*<div className="bg-[#4CA1AF10] px-5 py-3 justify-center flex items-center 
-                    text-xs text-gray-600 border-t border-[#4CA1AF22]">
-       <div className="flex items-center gap-1">
-        <Clock className="w-3 h-3 text-[#4CA1AF]" />
-        <span>Received just now</span>
-      </div> 
-
-      <div className="font-semibold text-[#3A8C98]">
-        {order.items?.reduce((acc, item) => acc + item.Quantity, 0)} items
-      </div>
-    </div>*/}
+   
   </div>
 ))}
 </div>
@@ -581,7 +592,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
 //     className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border-2 border-gray-100 overflow-hidden"
 //   >
 //     {/* ===== HEADER - THEME GRADIENT ===== */}
-//     <div className="bg-gradient-to-r from-[#4CA1AF] to-[#6CCBCD] text-white p-4">
+//     <div className="bg-gradient-to-r from-[#ff0000] to-[#6CCBCD] text-white p-4">
 //       <div className="flex items-center justify-between mb-2">
 //         <div className="flex items-center gap-2">
 //           <Package className="w-5 h-5 text-white" />
@@ -607,7 +618,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
 //     <div className="p-5">
 //       <div className="mb-4">
 //         <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
-//           <ChefHat className="w-4 h-4 text-[#4CA1AF]" />
+//           <ChefHat className="w-4 h-4 text-[#ff0000]" />
 //           Order Items
 //         </h3>
 
@@ -621,7 +632,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
 //                          hover:bg-[#4CA1AF15] transition-colors"
 //             >
 //               <div className="flex items-center gap-2">
-//                 <div className="w-2 h-2 bg-[#4CA1AF] rounded-full"></div>
+//                 <div className="w-2 h-2 bg-[#ff0000] rounded-full"></div>
 //                 <span className="font-medium text-gray-800">
 //                   {item.Item_Name}
 //                 </span>
@@ -641,7 +652,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
 //           {/* PREPARING */}
 //           <button
 //             onClick={() => updateOrderStatus(index, "preparing")}
-//             className="bg-[#4CA1AF] hover:bg-[#3A8C98] text-white px-4 py-2 
+//             className="bg-[#ff0000] hover:bg-[#3A8C98] text-white px-4 py-2 
 //                        rounded-lg font-semibold text-sm transition-colors 
 //                        flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
 //           >
@@ -677,7 +688,7 @@ const handleSingleItemStatus = async (KOT_Id, KOT_Item_Id, newStatus) => {
 //     <div className="bg-[#4CA1AF10] px-5 py-3 flex items-center justify-between 
 //                     text-xs text-gray-600 border-t border-[#4CA1AF22]">
 //       <div className="flex items-center gap-1">
-//         <Clock className="w-3 h-3 text-[#4CA1AF]" />
+//         <Clock className="w-3 h-3 text-[#ff0000]" />
 //         <span>Received just now</span>
 //       </div>
 

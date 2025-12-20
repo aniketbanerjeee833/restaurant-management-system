@@ -104,8 +104,9 @@ a:hover {
     margin-top: 59px;
 }
 .sb2-1 {
-    
+       padding-left: 0px;
     /* width: 20%; */
+    /* background: #000000; */
     background: #e8edf2;
     color: #fff;
     height: 90%;
@@ -136,7 +137,8 @@ a:hover {
     position: relative;
     overflow: hidden;
     padding: 25px 15px;
-    background: #ffffff;
+    background-color: #000000;
+    /* background: #ffffff; */
     text-align: center;
 }
 .sb2-12 ul {
@@ -179,7 +181,8 @@ a:hover {
 }
 
 .sb2-13 {
-	background: #ffffff;
+       background-color: #000000;
+	/* background: #ffffff; */
 } 
 .sb2-13 ul {
     /* padding: 20px; */
@@ -197,9 +200,12 @@ a:hover {
     display: block;
     font-size: 13px;
     padding: 10px 0px;
-    border-bottom: 1px solid #e8edf2;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.979);
+
+    /* border-bottom: 1px solid #e8edf2; */
     padding: 12px 20px;
-    color: #666;
+        color: #fff;
+    /* color: #666; */
 }
 .sb2-13 ul li a:after {
     font-family: FontAwesome;
@@ -233,12 +239,12 @@ a:hover {
     -o-transform: rotate(90deg);
     transform: rotate(90deg);
 }
-.sb2-13 ul li a:hover {
-    background: #4CA1AF ;
+/* .sb2-13 ul li a:hover {
+    background: #ff0000 ;
     color: #fff;
-}
+} */
 .sb2-13 ul li a:focus {
-    background: #4CA1AF ;
+    background: #ff0000 ;
     color: #fff;
 }
 .menu-act {
@@ -326,7 +332,8 @@ a:hover {
 }
 .sa-blog-rece ul li a {
     border-bottom: 1px solid #e1e6ec;
-    color: #a2a2a2 !important;
+     color: #fff !important;
+    /* color: #a2a2a2 !important; */
     font-weight: 200 !important;
     line-height: 40px;
     padding-bottom: 7px;
@@ -447,7 +454,8 @@ a:hover {
 .left-sub-menu ul li a:hover {
     background: none;
     padding-left: 55px;
-    color: #666 !important;
+     color: #fff !important; 
+    /* color: #666 !important; */
 }
 .left-sub-menu ul li a:focus {
     background: none;
@@ -679,8 +687,9 @@ a:hover {
 }
 .inn-title p {
     /* padding-bottom: 10px; */
-    
-    color: #6e6e6e;
+      color: red;
+/*     
+    color: #6e6e6e; */
     margin-bottom: 0px;
 }
 /*-------------------------------------------------------*/
@@ -827,7 +836,7 @@ a:hover {
 .list-act-hom ul li i {
     width: 35px;
     height: 35px;
-    background: #4CA1AF ;
+    background: #ff0000 ;
     border-radius: 50%;
     text-align: center;
     padding: 9px 10px;
@@ -999,7 +1008,7 @@ a:hover {
     display: initial;
 }
 .menu-active{
-    background: #4CA1AF ;
+    background: #ff0000 ;
     color: #fff !important;
 }
 .tab-map{}
@@ -1062,7 +1071,7 @@ a:hover {
     padding-top: 32px;
 }
 .ad-hom-col-1{
-    background: #4CA1AF ;
+    background: #ff0000 ;
     text-align: center;
 }
 .ad-hom-col-2{

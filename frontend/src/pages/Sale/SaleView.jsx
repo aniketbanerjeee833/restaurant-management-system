@@ -113,7 +113,7 @@ export default function SaleView() {
         type="button"
         onClick={() => navigate("/home")}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         Back
       </button> */}
@@ -129,7 +129,7 @@ export default function SaleView() {
     }
   }}
   className="text-white font-bold py-2 px-4 rounded"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "#ff0000" }}
 >
   Back
 </button>
@@ -138,7 +138,7 @@ export default function SaleView() {
         type="button"
         onClick={() => navigate("/sale/all-sales")}
         className="text-white py-2 px-4 rounded"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         All Sales
       </button>
@@ -476,7 +476,7 @@ export default function SaleView() {
     }
   }}
   className="text-white font-bold py-2 px-4 rounded"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "#ff0000" }}
 >
   Cancel
 </button> */}
@@ -494,7 +494,7 @@ export default function SaleView() {
     }
   }}
   className="text-white font-bold py-2 px-4 rounded"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "#ff0000" }}
 >
   Cancel
 </button> */}
@@ -510,7 +510,7 @@ export default function SaleView() {
     }
   }}
   className="text-white font-bold py-2 px-4 rounded"
-  style={{ backgroundColor: "#4CA1AF" }}
+  style={{ backgroundColor: "#ff0000" }}
 >
   Cancel
 </button>
@@ -521,7 +521,7 @@ export default function SaleView() {
                     onClick={()=>handlePrint()}
                   
                     className=" text-white font-bold py-2 px-4 rounded"
-                    style={{ backgroundColor: "#4CA1AF" }}
+                    style={{ backgroundColor: "#ff0000" }}
                   >
                    {isPrintLoading ? "Printing..." : "Print"}
                   </button>

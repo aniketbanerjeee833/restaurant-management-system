@@ -200,14 +200,7 @@ if (
   return (
     <>
       {/* Sidebar Header */}
-      <div  className="sb2-12 flex items-center justify-center  ">
-        {/* <ul className="flex flex-col items-center">
-        
-          <li className="mt-4">
-            <h5>Inventory Management</h5>
-          </li>
-        </ul> */}
-      </div>
+    
 
       {/* Sidebar Navigation */}
       <div
@@ -234,7 +227,7 @@ if (
               to="/home"
               className={({ isActive }) => (isActive ? "menu-active" : "")}
               style={{ display: 'block', padding: '10px 16px',
-                color: "#666", textDecoration: 'none' }}
+                color: "#fff", textDecoration: 'none' }}
                   onClick={() => setOpenMenu(null)} // ✅ Close all submenus
             >
               
@@ -248,6 +241,13 @@ if (
             { to: "/party/all-parties", text: "Party Details" },
              
           ])}
+
+            {userMe?.user?.role === "admin" && renderMenu("Inventory", <ShoppingCart size={20} />, [
+            
+            { to: "/inventory/add", text: "Add Inventory" },
+            { to: "/inventory/all-inventories", text: " All Inventory" },
+          ])}
+
       
            {userMe?.user?.role === "admin" && renderMenu("Material", <Handbag   size={20} />, [
            
@@ -258,12 +258,7 @@ if (
           ])}
 
           
-             {userMe?.user?.role === "admin" && renderMenu("Inventory", <ShoppingCart size={20} />, [
-            { to: "/items/add-category", text: "Add Category" },
-            { to: "/inventory/add", text: "Add Inventory" },
-            { to: "/inventory/all-inventories", text: " All Inventory" },
-          ])}
-
+       
              {userMe?.user?.role === "admin" && renderMenu("Table", <Armchair size={20} />, [
           
             { to: "/table/add", text: "Add Table" },
@@ -277,12 +272,12 @@ if (
           //   { to: "/food-items/add", text: "Add Sale" },
             
           //    { to: "/sale/all-sales", text: " All Sales" },
-             
+             { to: "/items/add-category", text: "Add Category" },
              { to: "/new/food-items/add", text: "Add  Food Items" },
               { to: "/new/all-new-food-items", text: "Food Items List" },
           
           ])}
-          {userMe?.user?.role === "admin" && renderMenu("Orders", <Calendar size={20} />, [
+          {/* {userMe?.user?.role === "admin" && renderMenu("Orders", <Calendar size={20} />, [
            
           //  {to: "/sale/invoice", text: " Invoice" },
           //   { to: "/food-items/add", text: "Add Sale" },
@@ -292,7 +287,7 @@ if (
             
               { to: "/order/all-orders", text: "All Orders" },
           
-          ])}
+          ])} */}
 
         
           
@@ -316,7 +311,7 @@ if (
               to="/staff/orders/all-orders"
               className={({ isActive }) => (isActive ? "menu-active" : "")}
               style={{ display: 'block', padding: '10px 16px',
-                color: "#666", textDecoration: 'none' }}
+               color: "#fff", textDecoration: 'none' }}
                   onClick={() => setOpenMenu(null)} // ✅ Close all submenus
             >
               
@@ -337,7 +332,7 @@ if (
               to="/staff/orders/add"
               className={({ isActive }) => (isActive ? "menu-active" : "")}
               style={{ display: 'block', padding: '10px 16px',
-                color: "#666", textDecoration: 'none' }}
+                color: "#fff", textDecoration: 'none' }}
                   onClick={() => setOpenMenu(null)} // ✅ Close all submenus
             >
               
@@ -351,7 +346,7 @@ if (
               to="/staff/orders-takeaway/add"
               className={({ isActive }) => (isActive ? "menu-active" : "")}
               style={{ display: 'block', padding: '10px 16px',
-                color: "#666", textDecoration: 'none' }}
+                color: "#fff", textDecoration: 'none' }}
                   onClick={() => setOpenMenu(null)} // ✅ Close all submenus
             >
               
@@ -366,7 +361,7 @@ if (
               to="/order/all-orders"
               className={({ isActive }) => (isActive ? "menu-active" : "")}
               style={{ display: 'block', padding: '10px 16px',
-                color: "#666", textDecoration: 'none' }}
+                color: "#fff", textDecoration: 'none' }}
                   onClick={() => setOpenMenu(null)} // ✅ Close all submenus
             >
               
@@ -380,7 +375,7 @@ if (
               to="/reports"
               className={({ isActive }) => (isActive ? "menu-active" : "")}
               style={{ display: 'block', padding: '10px 16px',
-                color: "#666", textDecoration: 'none' }}
+                color: "#fff", textDecoration: 'none' }}
                   onClick={() => setOpenMenu(null)} // ✅ Close all submenus
             >
               

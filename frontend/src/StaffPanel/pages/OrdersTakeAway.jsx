@@ -36,6 +36,7 @@ export default function OrdersTakeAway() {
   //const { userId } = useSelector((state) => state.user);
   // const dispatch = useDispatch();
   const TAX_RATES = {
+      "None": 0,
     "GST0": 0,
     "GST0.25": 0.25,
     "GST3": 3,
@@ -92,12 +93,15 @@ export default function OrdersTakeAway() {
   const { data: menuItems, isMenuItemsLoading } = useGetAllFoodItemsQuery({});
   const items = menuItems?.foodItems
   console.log(tables, isLoading, "tables", menuItems, isMenuItemsLoading);
-  const[customerModal,setShowCustomerModal]=useState(false);
+  // const[customerModal,setShowCustomerModal]=useState(false);
   const{ data: customers}=useGetAllCustomersQuery();
   console.log(customers,"customers");
-   const [customerSearch, setCustomerSearch] = useState("");
-
-   const[customerDropdownOpen,setCustomerDropdownOpen]=useState(false);
+  //  const [customerSearch, setCustomerSearch] = useState("");
+const [customerModal, setCustomerModal] = useState({
+  open: false,
+  mode: "add", // add | edit
+});
+  //  const[customerDropdownOpen,setCustomerDropdownOpen]=useState(false);
   const [rows, setRows] = useState([
     {
       CategoryOpen: false, categorySearch: "", preview: null
@@ -179,6 +183,10 @@ export default function OrdersTakeAway() {
   const itemsValues = watch("items");   // watch all item rows
   //const totalPaid = watch("Total_Paid"); // watch Total_Paid
   const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
+const customerName = watch("Customer_Name");
+const customerPhone = watch("Customer_Phone");
+
+const hasCustomer = Boolean(customerPhone); // phone is safest
 
 
   console.log(items)
@@ -340,7 +348,7 @@ export default function OrdersTakeAway() {
                       type="button"
                       onClick={() => navigate("/staff/orders/all-orders")}
                       className="text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "black" }}
                     >
                       Back
                     </button>
@@ -349,125 +357,97 @@ export default function OrdersTakeAway() {
                       type="button"
                       onClick={() => navigate("/staff/orders/all-orders")}
                       className="text-white py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       All Orders
                     </button>
                   </div>
                      </div>
-                  <div style={{ backgroundColor: "#f1f1f19d" }}
-                    className="w-full flex flex-col p-2  mt-2 gap-2 heading-wrapper "
-                  >
-                    <span className="whitespace-nowrap active ">
-                      Customer
-                      <span className="text-red-500">*</span>
-                    </span>
+            
+                  
+                                    <div style={{  backgroundColor: "#f1f1f19d" }} 
+                                      className="w-full flex flex-col p-2  mt-2 gap-2 heading-wrapper "
+                                                            >
+                                                            {/* <span className="whitespace-nowrap active ">
+                                                              Customer
+                                                              <span className="text-red-500">*</span>
+                                                            </span> */}
+                                                            
+                                 
 
-                    <div
-                      className="relative w-1/4">
-                      <div
-                        className="flex flex-row border rounded-md bg-white cursor-pointer"
-                        onClick={() => setCustomerDropdownOpen((prev) => !prev)}
-                      >
-                        <input
-                          type="text"
-                          id="Customer_Name"
-                          value={customerSearch}
-                          // value={customerSearch.length>10?customerSearch.slice(0,15)+"...":customerSearch}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setCustomerSearch(value);
-                            setValue("Customer_Name", value, { shouldValidate: true });
-                            setCustomerDropdownOpen(true);
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCustomerDropdownOpen(true);
-                          }}
-                          onBlur={() => {
-                            setTimeout(() => {
-                              const typedValue = customerSearch?.trim()?.toLowerCase();
-                              const matchedParty = customers?.parties?.find(
-                                (p) => p.Customer_Name.toLowerCase() === typedValue
-                              );
-
-                              if (matchedParty) {
-                                setCustomerSearch(matchedParty.Customer_Name);
-                                setValue("Customer_Name", matchedParty.Customer_Name, { shouldValidate: true });
-                                //setValue("GSTIN", matchedParty.GSTIN || "", { shouldValidate: true });
-                              }
-
-                              setCustomerDropdownOpen(false);
-                            }, 150);
-                          }}
-                          placeholder="Search By Name/Phone"
-                          className="w-full outline-none py-1 px-2 text-gray-900"
-                          style={{ marginBottom: 0, marginTop: "4px", border: "none", borderBottom: "none", height: "2rem" }}
-                        />
-                        <div className="w-10 "></div>
-                        <span className=" absolute right-0 px-2  top-1/3  text-gray-700">▼</span>
-                      </div>
-
-                      {customerDropdownOpen && (
-                        <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          <span
-                            onClick={() => setShowCustomerModal(true)}
-                            className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
-                          >
-                            + Add Customer
-                          </span>
-
-                          {customers
-                            ?.filter(
-                              (party) =>
-                                party?.Customer_Name?.toLowerCase()?.includes(customerSearch.toLowerCase()) ||
-                                party?.Customer_Phone?.includes(customerSearch)
-                            )
-                            .map((party, i) => (
-                              <div
-                                key={i}
-                                onClick={() => {
-                                  setCustomerSearch(`${party?.Customer_Name} (${party?.Customer_Phone})`);
-                                  setCustomerSearch(party?.Customer_Name);
-                                  setValue("Customer_Name", party?.Customer_Name, { shouldValidate: true });
-                                  setValue("Customer_Phone", party?.Customer_Phone, { shouldValidate: true });
-                                  // setValue("GSTIN", party.GSTIN || "", { shouldValidate: true });
-                                  setCustomerDropdownOpen(false);
-                                }}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                              >
-                                <span className="font-medium">{party?.Customer_Name}</span>{" "}
-                                <span className="text-gray-500">({party?.Customer_Phone})</span>
-                              </div>
-                            ))}
-
-                          {customers?.filter((party) =>
-                            party?.Customer_Name?.toLowerCase()?.includes(customerSearch.toLowerCase())
-                          ).length === 0 && (
-                              <p className="px-3 py-2 text-gray-500">No Customers found</p>
-                            )}
-                        </div>
-                      )}
-                    </div>
-
-
-                    {/* Add Party Modal */}
-                    {customerModal && (
-                      <AddCustomerModal
-                        onClose={() => setShowCustomerModal(false)}
-                        onSave={(newParty) => {
-                          setCustomerSearch(newParty);
-                          setValue("Customer_Name", newParty, { shouldValidate: true });
-                          setShowCustomerModal(false);
-                        }}
-                      />
-                    )}
-
-                    {/* RHF Error */}
-                    {errors?.Customer_Name && (
-                      <p className="text-red-500 text-xs mt-1">{errors?.Customer_Name?.message}</p>
-                    )}
-                  </div>
+                                                             <div className="relative sm:w-1/2">
+                                                              {/* LABEL AREA */}
+                                                             {!hasCustomer ? (
+                                                              <span className="text-sm font-medium text-gray-700">
+                                                                Customer
+                                                              </span>
+                                                            ) : (
+                                                              <div className="flex items-center gap-2 text-sm text-gray-700 w-full">
+                                                                <i className="fa fa-user-circle text-gray-400" />
+                                                                <span className="font-semibold ">
+                                                                  Customer Name:
+                                                                  <span>{customerName ??""}</span>
+                                                                </span>
+                                                                <span className="font-semibold">
+                                                                  <span className="font-semibold">Phone:</span>
+                                                                  {customerPhone}
+                                                                </span>
+                                                              </div>
+                                                            )}
+                                                            
+                                                            
+                                                              {/* ACTION */}
+                                                              {/* {!hasCustomer ? (
+                                                             
+                                                                <span
+                                                                  onClick={() =>     setCustomerModal({ open: true, mode: "add" })}
+                                                                  className="block py-2 text-[#ff0000] font-medium cursor-pointer hover:bg-gray-100"
+                                                                >
+                                                                  + Add Customer
+                                                                </span>
+                                                              ) : (
+                                                                
+                                                                <span
+                                                                  onClick={() =>
+                                                                    setCustomerModal({
+                                                                      open: true,
+                                                                      mode: "edit",
+                                                                    })
+                                                                  }
+                                                                  className="block py-2 text-blue-600 font-medium cursor-pointer hover:bg-gray-100"
+                                                                >
+                                                                  ✏️ Edit Customer
+                                                                </span>
+                                                              )} */}
+                                                            
+                                                              {!hasCustomer && (
+                                                              <span
+                                                                onClick={() => setCustomerModal({ open: true, mode: "add" })}
+                                                                className="block py-2 text-[#ff0000] font-medium cursor-pointer hover:bg-gray-100"
+                                                              >
+                                                                + Add Customer
+                                                              </span>
+                                                            )}
+                                                            
+                                                            </div>
+                                                            
+                                                            {customerModal.open && (
+                                                              <AddCustomerModal
+                                                                mode="add"          // 🔒 force add-only
+                                                                initialData={null}  // 🔒 no edit data
+                                                                onClose={() => setCustomerModal({ open: false, mode: "add" })}
+                                                                onSave={(customer) => {
+                                                                  setValue("Customer_Name", customer.Customer_Name || null, {
+                                                                    shouldValidate: true,
+                                                                  });
+                                                                  setValue("Customer_Phone", customer.Customer_Phone, {
+                                                                    shouldValidate: true,
+                                                                  });
+                                                                }}
+                                                              />
+                                                            )}
+                                                            
+                                                          </div>
              
               </div>
               <div style={{ padding: "0", backgroundColor: "#f1f1f19d" }} className="tab-inn">
@@ -499,8 +479,8 @@ export default function OrdersTakeAway() {
                             }
          `}
                           style={{
-                            backgroundColor: activeCategory === cat ? "#4CA1AF" : "",
-                            borderColor: activeCategory === cat ? "#4CA1AF" : "",
+                            backgroundColor: activeCategory === cat ? "#ff0000" : "",
+                            borderColor: activeCategory === cat ? "#ff0000" : "",
                           }}
                         >
                           {cat}
@@ -571,21 +551,26 @@ export default function OrdersTakeAway() {
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
                                   <div className="absolute top-2 right-2">
-                                    <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#4CA1AF] shadow">
+                                    <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#ff0000] shadow">
                                       {item.Item_Category}
                                     </span>
                                   </div>
 
-                                  <div className="absolute bottom-1 left-2 right-2">
+                                  {/* <div className="absolute bottom-1 left-2 right-2">
                                     <h4 className="text-white text-[20px] leading-tight">
                                       {item.Item_Name}
                                     </h4>
-                                  </div>
+                                  </div> */}
                                 </div>
 
                                 {/* ===== DETAILS SECTION ===== */}
                                 <div className="p-2">
-
+                  <div className="flex  mb-2">
+          <h5 style={{color:"red"}}
+          className="text-red text-[20px] leading-tight">
+            {item?.Item_Name}
+          </h5>
+        </div>
                                   {/* PRICE ROW */}
                                   <div className="flex justify-between items-center mb-2">
                                     <div>
@@ -598,7 +583,7 @@ export default function OrdersTakeAway() {
                                     </div>
 
                                     <div className="text-right">
-                                      <div className="text-sm font-bold text-[#4CA1AF]">
+                                      <div className="text-sm font-bold text-[#ff0000]">
                                         ₹{parseFloat(item.Amount).toFixed(2)}
                                       </div>
                                       <div className="text-[10px] text-gray-500">Total</div>
@@ -620,7 +605,7 @@ export default function OrdersTakeAway() {
                w-7 h-7 flex items-center justify-center rounded-md shadow transition
                ${unavailable
                                           ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                          : "bg-white hover:bg-gray-100 text-[#4CA1AF]"
+                                          : "bg-white hover:bg-gray-100 text-[#ff0000]"
                                         }
              `}
                                     >
@@ -634,6 +619,7 @@ export default function OrdersTakeAway() {
 
                                     {/* PLUS BUTTON */}
                                     <button
+                                      style={{ backgroundColor: "#ff0000" }}
                                       type="button"
                                       disabled={unavailable}
                                       onClick={() =>
@@ -644,7 +630,7 @@ export default function OrdersTakeAway() {
                w-7 h-7 flex items-center justify-center rounded-md shadow transition
                ${unavailable
                                           ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                          : "bg-[#4CA1AF] text-white hover:bg-[#3a8c98]"
+                                          : "bg-[#ff0000] text-white hover:bg-[#3a8c98]"
                                         }
              `}
                                     >
@@ -680,7 +666,7 @@ export default function OrdersTakeAway() {
 
                             className="relative w-full md:w-auto flex items-center justify-center gap-3 
                                                                    text-white font-bold py-3 px-6 rounded shadow"
-                            style={{ backgroundColor: "#4CA1AF" }}
+                            style={{ backgroundColor: "#ff0000" }}
                           >
                             Save & Pay Bill
 
@@ -703,7 +689,7 @@ export default function OrdersTakeAway() {
                           {/* <button
                             type="button"
                             className="w-full md:w-auto text-white font-bold py-3 px-6 rounded shadow"
-                            style={{ backgroundColor: "#4CA1AF" }}
+                            style={{ backgroundColor: "#ff0000" }}
                           >
                             Save & Pay Bill
                           </button> */}
@@ -775,8 +761,9 @@ export default function OrdersTakeAway() {
                           </div>
                           <div className="flex justify-center mt-4">
                             <button type="button"
+                            style={{ backgroundColor: "#ff0000" }}
                               onClick={() => setOrdertakeawayModalOpen(true)}
-                              className="w-16 h-10 flex items-center justify-center bg-[#4CA1AF] 
+                              className="w-16 h-10 flex items-center justify-center bg-[#ff0000] 
           rounded-md text-white shadow hover:bg-[#3a8c98] ">
                               OK
                             </button>
@@ -985,7 +972,7 @@ export default function OrdersTakeAway() {
          disabled={formValues.errorCount > 0 || isAddingOrder}
          className="relative w-full md:w-auto flex items-center justify-center gap-3 
                     text-white font-bold py-2 px-5 rounded shadow"
-         style={{ backgroundColor: "#4CA1AF" }}
+         style={{ backgroundColor: "#ff0000" }}
        >
          {isAddingOrder ? "Saving..." : "Save & Pay Bill"}
  
@@ -1008,7 +995,7 @@ export default function OrdersTakeAway() {
        <button
          type="submit"
          className="w-full md:w-auto text-white font-bold py-2 px-5 rounded shadow"
-         style={{ backgroundColor: "#4CA1AF" }}
+         style={{ backgroundColor: "#ff0000" }}
        >
          Save & Pay Bill
        </button> 
@@ -1016,3 +1003,189 @@ export default function OrdersTakeAway() {
      </div>
    </div>
  </div> */}
+
+    {/* <div 
+                                    className="relative sm:w-1/4">
+                                      <div
+                                        className="flex flex-row border rounded-md bg-white cursor-pointer"
+                                        onClick={() => setCustomerDropdownOpen((prev) => !prev)}
+                                      >
+                                        <input
+                                          type="text"
+                                          id="Customer_Name"
+                                          value={customerSearch}
+                                          // value={customerSearch.length>10?customerSearch.slice(0,15)+"...":customerSearch}
+                                          onChange={(e) => {
+                                            const value = e.target.value;
+                                            setCustomerSearch(value);
+                                            setValue("Customer_Name", value, { shouldValidate: true });
+                                            setCustomerDropdownOpen(true);
+                                          }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCustomerDropdownOpen(true);
+                                          }}
+                                          onBlur={() => {
+                                            setTimeout(() => {
+                                              const typedValue = customerSearch?.trim()?.toLowerCase();
+                                              const matchedParty = customers?.parties?.find(
+                                                (p) => p.Customer_Name.toLowerCase() === typedValue
+                                              );
+                                    
+                                              if (matchedParty) {
+                                                setCustomerSearch(matchedParty.Customer_Name);
+                                                setValue("Customer_Name", matchedParty.Customer_Name, { shouldValidate: true });
+                                                //setValue("GSTIN", matchedParty.GSTIN || "", { shouldValidate: true });
+                                              }
+                                    
+                                              setCustomerDropdownOpen(false);
+                                            }, 150);
+                                          }}
+                                          placeholder="Search By Name/Phone"
+                                          className="w-full outline-none py-1 px-2 text-gray-900"
+                                          style={{ marginBottom: 0, marginTop: "4px", border: "none",borderBottom:"none", height: "2rem" }}
+                                        />
+                                        <div className="w-10 "></div>
+                                        <span className=" absolute right-0 px-2  top-1/3  text-gray-700">▼</span>
+                                      </div>
+                                    {customerDropdownOpen && (
+                    <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      
+                    
+                      <span
+                        onClick={() => setShowCustomerModal(true)}
+                        className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
+                      >
+                        + Add Customer
+                      </span>
+                  
+                      {(() => {
+                        const isPhoneSearch = /^\d+$/.test(customerSearch);
+                  
+                        const filteredCustomers = customers?.filter((party) => {
+                          if (isPhoneSearch) {
+                            return party?.Customer_Phone?.includes(customerSearch);
+                          }
+                          return party?.Customer_Name
+                            ?.toLowerCase()
+                            ?.includes(customerSearch.toLowerCase());
+                        });
+                  
+                        return (
+                          <>
+                            {filteredCustomers?.map((party, i) => (
+                              <div
+                                key={i}
+                                onClick={() => {
+                    const displayValue =
+                      party?.Customer_Name?.trim() ||
+                      party?.Customer_Phone ||
+                      "";
+                  
+                    setCustomerSearch(displayValue);
+                  
+                    setValue(
+                      "Customer_Name",
+                      party?.Customer_Name?.trim() || "",
+                      { shouldValidate: true }
+                    );
+                  
+                    setValue(
+                      "Customer_Phone",
+                      party?.Customer_Phone || "",
+                      { shouldValidate: true }
+                    );
+                  
+                    setCustomerDropdownOpen(false);
+                  }}
+                  
+                                // onClick={() => {
+                                //   setCustomerSearch(party?.Customer_Name || "");
+                                //   setValue("Customer_Name", party?.Customer_Name || "", {
+                                //     shouldValidate: true,
+                                //   });
+                                //   setValue("Customer_Phone", party?.Customer_Phone || "", {
+                                //     shouldValidate: true,
+                                //   });
+                                //   setCustomerDropdownOpen(false);
+                                // }}
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                              >
+                                <span className="font-medium">
+                                  {party?.Customer_Name || "Unknown"}
+                                </span>{" "}
+                                <span className="text-gray-500">
+                                  ({party?.Customer_Phone})
+                                </span>
+                              </div>
+                            ))}
+                  
+                         
+                            {filteredCustomers?.length === 0 && (
+                              <p className="px-3 py-2 text-gray-500">No Customers found</p>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                  
+                                      {/* {customerDropdownOpen && (
+                                        <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                          <span
+                                            onClick={() => setShowCustomerModal(true)}
+                                            className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
+                                          >
+                                            + Add Customer
+                                          </span>
+                                    
+                                          {customers
+                                            ?.filter(
+                                              (party) =>
+                                                party?.Customer_Name?.toLowerCase()?.includes(customerSearch.toLowerCase()) ||
+                                                party?.Customer_Phone?.includes(customerSearch)
+                                            )
+                                            .map((party, i) => (
+                                              <div
+                                                key={i}
+                                                onClick={() => {
+                                                    setCustomerSearch(`${party?.Customer_Name} (${party?.Customer_Phone})`);
+                                                  setCustomerSearch(party?.Customer_Name);
+                                                  setValue("Customer_Name", party?.Customer_Name, { shouldValidate: true });
+                                                  setValue("Customer_Phone", party?.Customer_Phone, { shouldValidate: true });
+                                                 
+                                                  setCustomerDropdownOpen(false);
+                                                }}
+                                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                              >
+                                                     <span className="font-medium">{party?.Customer_Name}</span>{" "}
+                                <span className="text-gray-500">({party?.Customer_Phone})</span>
+                                              </div>
+                                            ))}
+                                    
+                                          {customers?.filter((party) =>
+                                            party?.Customer_Name?.toLowerCase()?.includes(customerSearch.toLowerCase())
+                                          ).length === 0 && (
+                                            <p className="px-3 py-2 text-gray-500">No Customers found</p>
+                                          )}
+                                        </div>
+                                      )} 
+                                    </div>
+                                    
+                                    
+                                                          
+                                                            {customerModal && (
+                                                              <AddCustomerModal
+                                                                onClose={() => setShowCustomerModal(false)}
+                                                                onSave={(newParty) => {
+                                                                  setCustomerSearch(newParty);
+                                                                  setValue("Customer_Name", newParty, { shouldValidate: true });
+                                                                  setShowCustomerModal(false);
+                                                                }}
+                                                              />
+                                                            )}
+                                    
+                                                           
+                                                            {errors?.Customer_Name && (
+                                                              <p className="text-red-500 text-xs mt-1">{errors?.Customer_Name?.message}</p>
+                                                            )} */}

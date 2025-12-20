@@ -772,10 +772,10 @@
     color: #4db6ac !important;
 }
 .teal.lighten-1 {
-    background-color: #4CA1AF  !important;
+    background-color: #ff0000  !important;
 }
 .teal-text.text-lighten-1 {
-    color: #4CA1AF  !important;
+    color: #ff0000  !important;
 }
 .teal.darken-1 {
     background-color: #00897b !important;
@@ -2475,7 +2475,7 @@ th {
     border-bottom: none;
 }
 .collection .collection-item.active {
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     color: #eafaf9;
 }
 .collection .collection-item.active .secondary-content {
@@ -2484,7 +2484,7 @@ th {
 .collection a.collection-item {
     display: block;
     transition: .25s;
-    color: #4CA1AF ;
+    color: #ff0000 ;
 }
 .collection a.collection-item:not(.active):hover {
     background-color: #ddd;
@@ -2502,7 +2502,7 @@ th {
 }
 .secondary-content {
     float: right;
-    color: #4CA1AF ;
+    color: #ff0000 ;
 }
 .collapsible .collection {
     margin: 0;
@@ -2538,11 +2538,11 @@ th {
     top: 0;
     left: 0;
     bottom: 0;
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     transition: width .3s linear;
 }
 .progress .indeterminate {
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
 }
 .progress .indeterminate:before {
     content: '';
@@ -2689,7 +2689,7 @@ span.badge.new {
     font-weight: 300;
     font-size: 0.8rem;
     color: #fff;
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     border-radius: 2px;
 }
 span.badge.new:after {
@@ -2738,6 +2738,7 @@ nav ul a span.badge {
     }
 }
 .container .row {
+    
     margin-left: -0.75rem;
     margin-right: -0.75rem;
 }
@@ -4320,14 +4321,14 @@ html {} @media only screen and (min-width: 0) {
     height: 40px;
     line-height: 40px;
     padding: 0;
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     border-radius: 50%;
     transition: .3s;
     cursor: pointer;
     vertical-align: middle;
 }
 .btn-floating:hover {
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
 }
 .btn-floating:before {
     border-radius: 0;
@@ -4451,7 +4452,7 @@ button.btn-floating {
     z-index: -1;
     width: 40px;
     height: 40px;
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     border-radius: 50%;
     -webkit-transform: scale(0);
     transform: scale(0);
@@ -4831,14 +4832,14 @@ button.btn-floating {
     transition: all .3s;
 }
 .chips.focus {
-    border-bottom: 1px solid #4CA1AF ;
-    box-shadow: 0 1px 0 0 #4CA1AF ;
+    border-bottom: 1px solid #ff0000 ;
+    box-shadow: 0 1px 0 0 #ff0000 ;
 }
 .chips:hover {
     cursor: text;
 }
 .chips .chip.selected {
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     color: #fff;
 }
 .chips .input {
@@ -5040,8 +5041,8 @@ input[type=tel]:focus:not([readonly]),
 input[type=number]:focus:not([readonly]),
 input[type=search]:focus:not([readonly]),
 textarea.materialize-textarea:focus:not([readonly]) {
-    border-bottom: 1px solid #4CA1AF ;
-    box-shadow: 0 1px 0 0 #4CA1AF ;
+    border-bottom: 1px solid #ff0000 ;
+    box-shadow: 0 1px 0 0 #ff0000 ;
 }
 input:not([type]):focus:not([readonly]) + label,
 input[type=text]:focus:not([readonly]) + label,
@@ -5056,7 +5057,7 @@ input[type=tel]:focus:not([readonly]) + label,
 input[type=number]:focus:not([readonly]) + label,
 input[type=search]:focus:not([readonly]) + label,
 textarea.materialize-textarea:focus:not([readonly]) + label {
-    color: #4CA1AF ;
+    color: #ff0000 ;
 }
 input:not([type]).valid,
 input:not([type]):focus.valid,
@@ -5254,7 +5255,7 @@ textarea.materialize-textarea + label:after {
     transition: color .2s;
 }
 .input-field .prefix.active {
-    color: #4CA1AF ;
+    color: #ff0000 ;
 }
 .input-field .prefix ~ input,
 .input-field .prefix ~ textarea,
@@ -5422,11 +5423,11 @@ textarea.materialize-textarea {
 [type="radio"]:checked + label:after,
 [type="radio"].with-gap:checked + label:before,
 [type="radio"].with-gap:checked + label:after {
-    border: 2px solid #4CA1AF ;
+    border: 2px solid #ff0000 ;
 }
 [type="radio"]:checked + label:after,
 [type="radio"].with-gap:checked + label:after {
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
 }
 [type="radio"]:checked + label:after {
     -webkit-transform: scale(1.02);
@@ -5505,7 +5506,7 @@ form p:last-child {
     background-color: #84c7c1;
 }
 .switch label input[type=checkbox]:checked + .lever:after {
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     left: 24px;
 }
 .switch label .lever {
@@ -5724,7 +5725,7 @@ input[type=range] + .thumb {
     height: 0;
     width: 0;
     border-radius: 50%;
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     margin-left: 7px;
     -webkit-transform-origin: 50% 50%;
     transform-origin: 50% 50%;
@@ -5735,7 +5736,7 @@ input[type=range] + .thumb .value {
     display: block;
     width: 30px;
     text-align: center;
-    color: #4CA1AF ;
+    color: #ff0000 ;
     font-size: 0;
     -webkit-transform: rotate(45deg);
     transform: rotate(45deg);
@@ -5763,7 +5764,7 @@ input[type=range]::-webkit-slider-thumb {
     height: 14px;
     width: 14px;
     border-radius: 50%;
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     -webkit-transform-origin: 50% 50%;
     transform-origin: 50% 50%;
     margin: -5px 0 0 0;
@@ -5788,7 +5789,7 @@ input[type=range]::-moz-range-thumb {
     height: 14px;
     width: 14px;
     border-radius: 50%;
-    background: #4CA1AF ;
+    background: #ff0000 ;
     margin-top: -5px;
 }
 input[type=range]:-moz-focusring {
@@ -5818,7 +5819,7 @@ input[type=range]::-ms-thumb {
     height: 14px;
     width: 14px;
     border-radius: 50%;
-    background: #4CA1AF ;
+    background: #ff0000 ;
 }
 input[type=range]:focus::-ms-fill-lower {
     background: #888;
@@ -5929,7 +5930,7 @@ input[type=range]:focus::-ms-fill-upper {
     background-color: #2bbbad;
 }
 .side-nav li > a.btn-floating:hover {
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
 }
 .side-nav li > a > i,
 .side-nav li > a > [class^="mdi-"],
@@ -6115,7 +6116,7 @@ input[type=range]:focus::-ms-fill-upper {
     width: 100%;
     height: 100%;
     opacity: 0;
-    border-color: #4CA1AF ;
+    border-color: #ff0000 ;
 }
 .spinner-blue,
 .spinner-blue-only {
@@ -7313,7 +7314,7 @@ input[type=range]:focus::-ms-fill-upper {
 }
 .picker__date-display {
     text-align: center;
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     color: #fff;
     padding-bottom: 15px;
     font-weight: 300;
@@ -7365,7 +7366,7 @@ input[type=range]:focus::-ms-fill-upper {
     border: 1px solid transparent;
 }
 .picker__day.picker__day--today {
-    color: #4CA1AF ;
+    color: #ff0000 ;
 }
 .picker__day.picker__day--today.picker__day--selected {
     color: #fff;
@@ -7379,7 +7380,7 @@ input[type=range]:focus::-ms-fill-upper {
     border-radius: 50%;
     -webkit-transform: scale(0.9);
     transform: scale(0.9);
-    background-color: #4CA1AF ;
+    background-color: #ff0000 ;
     color: #ffffff;
 }
 .picker__day--selected.picker__day--outfocus,
@@ -7395,7 +7396,7 @@ input[type=range]:focus::-ms-fill-upper {
 .picker__today {
     font-size: 1.1rem;
     padding: 0 1rem;
-    color: #4CA1AF ;
+    color: #ff0000 ;
 }
 .picker__nav--prev:before,
 .picker__nav--next:before {
@@ -7626,8 +7627,8 @@ button.picker__close:focus {
     height: 22px;
     border-top: 2px solid transparent;
     border-left: 2px solid transparent;
-    border-right: 2px solid #4CA1AF ;
-    border-bottom: 2px solid #4CA1AF ;
+    border-right: 2px solid #ff0000 ;
+    border-bottom: 2px solid #ff0000 ;
     -webkit-transform: rotate(40deg);
     transform: rotate(40deg);
     -webkit-backface-visibility: hidden;
@@ -7648,7 +7649,7 @@ button.picker__close:focus {
     height: 22px;
     border-top: none;
     border-left: none;
-    border-right: 2px solid #4CA1AF ;
+    border-right: 2px solid #ff0000 ;
     border-bottom: none;
     -webkit-transform: rotate(90deg);
     transform: rotate(90deg);
@@ -7711,8 +7712,8 @@ button.picker__close:focus {
     top: 0;
     width: 20px;
     height: 20px;
-    border: 2px solid #4CA1AF ;
-    background-color: #4CA1AF ;
+    border: 2px solid #ff0000 ;
+    background-color: #ff0000 ;
     z-index: 0;
 }
 [type="checkbox"].filled-in.tabbed:focus + label:after {
@@ -7722,8 +7723,8 @@ button.picker__close:focus {
 }
 [type="checkbox"].filled-in.tabbed:checked:focus + label:after {
     border-radius: 2px;
-    background-color: #4CA1AF ;
-    border-color: #4CA1AF ;
+    background-color: #ff0000 ;
+    border-color: #ff0000 ;
 }
 [type="checkbox"].filled-in:disabled:not(:checked) + label:before {
     background-color: transparent;

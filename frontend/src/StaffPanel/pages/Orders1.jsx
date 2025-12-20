@@ -537,7 +537,7 @@ export default function Orders1() {
                                             type="button"
                                             onClick={() => navigate("/staff/orders/all-orders")}
                                             className="text-white font-bold py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "#ff0000" }}
                                         >
                                             Back
                                         </button>
@@ -546,7 +546,7 @@ export default function Orders1() {
                                             type="button"
                                             onClick={() => navigate("/staff/orders/all-orders")}
                                             className="text-white py-2 px-4 rounded"
-                                            style={{ backgroundColor: "#4CA1AF" }}
+                                            style={{ backgroundColor: "#ff0000" }}
                                         >
                                             All Orders
                                         </button>
@@ -1146,7 +1146,7 @@ export default function Orders1() {
                                                     type="button"
                                                     onClick={handleAddRow}
                                                     className=" text-white font-bold py-2 px-4 w-1/2 rounded "
-                                                    style={{ backgroundColor: "#4CA1AF" }}
+                                                    style={{ backgroundColor: "#ff0000" }}
                                                 >
                                                     + Add Row
                                                 </button>
@@ -1325,7 +1325,7 @@ export default function Orders1() {
                                                                 disabled={formValues.errorCount > 0 || isAddingOrder}
                                                                 // onClick={() => navigate("/staff/orders/all-orders")}
                                                                 className=" text-white font-bold py-2 px-4 rounded"
-                                                                style={{ backgroundColor: "#4CA1AF" }}
+                                                                style={{ backgroundColor: "#ff0000" }}
                                                             >
                                                                 {isAddingOrder ? "Saving..." : "Save and Hold"}
                                                             </button>
@@ -1333,7 +1333,7 @@ export default function Orders1() {
                                                                 type="button"
 
                                                                 className=" text-white font-bold py-2 px-4 rounded"
-                                                                style={{ backgroundColor: "#4CA1AF" }}
+                                                                style={{ backgroundColor: "#ff0000" }}
                                                             >
                                                                 Save and Pay Bill
                                                             </button>

@@ -21,7 +21,7 @@ import { LayoutDashboard, Minus, Plus, ShoppingCart } from "lucide-react";
 
 
 
-import { useAddOrderMutation, useGetAllCustomersQuery } from "../../redux/api/Staff/orderApi";
+import { useAddOrderMutation } from "../../redux/api/Staff/orderApi";
 import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
 import { io } from "socket.io-client";
 import AddCustomerModal from "../../components/Modal/AddCustomerModal";
@@ -38,6 +38,7 @@ export default function Orders() {
   const { userId } = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const TAX_RATES = {
+    "None": 0,
     "GST0": 0,
     "GST0.25": 0.25,
     "GST3": 3,
@@ -77,13 +78,18 @@ export default function Orders() {
 
   const [selectedTables, setSelectedTables] = useState([]);
   const [addOrder] = useAddOrderMutation();
+const [customerModal, setCustomerModal] = useState({
+  open: false,
+  mode: "add", // add | edit
+});
+// const[showCustomerModal,setShowCustomerModal]=useState(false);
 
-  const[customerModal,setShowCustomerModal]=useState(false);
-  const{ data: customers}=useGetAllCustomersQuery();
-  console.log(customers,"customers");
-   const [customerSearch, setCustomerSearch] = useState("");
+//   // const[customerModal,setShowCustomerModal]=useState(false);
+// const [selectedCustomer, setSelectedCustomer] = useState({
+//   name: null,
+//   phone: null,
+// });
 
-   const[customerDropdownOpen,setCustomerDropdownOpen]=useState(false);
   // const itemUnits = {
 
   //   "pcs": "Pcs",
@@ -186,7 +192,7 @@ useEffect(() => {
   });
 
 
-  const { fields, append } = useFieldArray({
+  const { fields, append,remove } = useFieldArray({
     control,
     name: "items",
   });
@@ -265,40 +271,92 @@ useEffect(() => {
     setValue("Amount", subTotal.toFixed(2));
   };
 
-  const updateCart = (itemId, delta, index, itemName, itemAmount) => {
-    const amount = parseFloat(itemAmount || 0);
+  // const updateCart = (itemId, delta, index, itemName, itemAmount) => {
+  //   const amount = parseFloat(itemAmount || 0);
 
-    setCart(prev => {
-      const newQty = Math.max(0, (prev[itemId] || 0) + delta);
+  //   setCart(prev => {
+  //     const newQty = Math.max(0, (prev[itemId] || 0) + delta);
 
-      let rowIndex = itemRowMap.current[itemId];
+  //     let rowIndex = itemRowMap.current[itemId];
 
-      // ➤ If row does NOT exist yet → create one
-      if (rowIndex === undefined) {
-        rowIndex = fields.length; // next row index
-        itemRowMap.current[itemId] = rowIndex;
+  //     // ➤ If row does NOT exist yet → create one
+  //     if (rowIndex === undefined) {
+  //       rowIndex = fields.length; // next row index
+  //       itemRowMap.current[itemId] = rowIndex;
 
-        append({
-          Item_Name: itemName,
-          Item_Price: amount,
-          Item_Quantity: newQty,
-          Amount: (amount * newQty).toFixed(2),
-        });
+  //       append({
+  //         Item_Name: itemName,
+  //         Item_Price: amount,
+  //         Item_Quantity: newQty,
+  //         Amount: (amount * newQty).toFixed(2),
+  //       });
+  //     }
+
+  //     // ➤ Update existing row
+  //     setValue(`items.${rowIndex}.Item_Name`, itemName);
+  //     setValue(`items.${rowIndex}.Item_Price`, amount);
+  //     setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+  //     setValue(`items.${rowIndex}.Amount`, (amount * newQty).toFixed(2));
+
+  //     setTimeout(() => updateTotals(), 0);
+  //     return {
+  //       ...prev,
+  //       [itemId]: newQty
+  //     };
+  //   });
+  // };
+const updateCart = (itemId, delta, index, itemName, itemAmount) => {
+  const amount = parseFloat(itemAmount || 0);
+
+  setCart((prev) => {
+    const currentQty = Number(prev[itemId] || 0);
+    const newQty = currentQty + delta;
+
+    let rowIndex = itemRowMap.current[itemId];
+
+    // ❌ IF QTY BECOMES 0 → REMOVE ITEM COMPLETELY
+    if (newQty <= 0) {
+      if (rowIndex !== undefined) {
+        remove(rowIndex);                // 🔥 remove from RHF
+        delete itemRowMap.current[itemId]; // 🔥 remove mapping
       }
 
-      // ➤ Update existing row
-      setValue(`items.${rowIndex}.Item_Name`, itemName);
-      setValue(`items.${rowIndex}.Item_Price`, amount);
-      setValue(`items.${rowIndex}.Item_Quantity`, newQty);
-      setValue(`items.${rowIndex}.Amount`, (amount * newQty).toFixed(2));
+      const updatedCart = { ...prev };
+      delete updatedCart[itemId];        // 🔥 remove from cart
 
-      setTimeout(() => updateTotals(), 0);
-      return {
-        ...prev,
-        [itemId]: newQty
-      };
-    });
-  };
+      setTimeout(updateTotals, 0);
+      return updatedCart;
+    }
+
+    // ➤ If row does NOT exist yet → create one
+    if (rowIndex === undefined) {
+      rowIndex = fields.length;
+      itemRowMap.current[itemId] = rowIndex;
+
+      append({
+        Item_Name: itemName,
+        Item_Price: amount,
+        Item_Quantity: newQty,
+        Amount: (amount * newQty).toFixed(2),
+        id: itemId,
+      });
+    } else {
+      // ➤ Update existing row
+      setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+      setValue(
+        `items.${rowIndex}.Amount`,
+        (amount * newQty).toFixed(2)
+      );
+    }
+
+    setTimeout(updateTotals, 0);
+
+    return {
+      ...prev,
+      [itemId]: newQty,
+    };
+  });
+};
 
 
   const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
@@ -388,6 +446,20 @@ useEffect(() => {
     }
   };
 
+// const isPhoneSearch = /^\d+$/.test(customerSearch);
+
+// const filteredCustomer = customers?.filter((party) => {
+//   if (isPhoneSearch) {
+//     return party?.Customer_Phone?.includes(customerSearch);
+//   }
+//   return party?.Customer_Name
+//     ?.toLowerCase()
+//     ?.includes(customerSearch.toLowerCase());
+// });
+const customerName = watch("Customer_Name");
+const customerPhone = watch("Customer_Phone");
+
+const hasCustomer = Boolean(customerPhone); // phone is safest
 
 
 
@@ -459,7 +531,7 @@ useEffect(() => {
                       type="button"
                       onClick={() => navigate("/staff/orders/all-orders")}
                       className="text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "black" }}
                     >
                       Back
                     </button>
@@ -468,7 +540,7 @@ useEffect(() => {
                       type="button"
                       onClick={() => navigate("/staff/orders/all-orders")}
                       className="text-white py-2 px-4 rounded"
-                      style={{ backgroundColor: "#4CA1AF" }}
+                      style={{ backgroundColor: "#ff0000" }}
                     >
                       All Orders
                     </button>
@@ -479,122 +551,142 @@ useEffect(() => {
                   <div style={{  backgroundColor: "#f1f1f19d" }} 
                     className="w-full flex flex-col p-2  mt-2 gap-2 heading-wrapper "
                                           >
-                                          <span className="whitespace-nowrap active ">
+                                         
+              
+                   {/* <div 
+                  className="relative sm:w-1/4">
+
+                     <span className="whitespace-nowrap active ">
                                             Customer
                                             <span className="text-red-500">*</span>
+                          <span
+      onClick={() => setShowCustomerModal(true)}
+      className="block  py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
+    >
+      + Add Customer
+    </span>
                                           </span>
                                           
-                  <div 
-                  className="relative w-1/4">
-                    <div
-                      className="flex flex-row border rounded-md bg-white cursor-pointer"
-                      onClick={() => setCustomerDropdownOpen((prev) => !prev)}
-                    >
-                      <input
-                        type="text"
-                        id="Customer_Name"
-                        value={customerSearch}
-                        // value={customerSearch.length>10?customerSearch.slice(0,15)+"...":customerSearch}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setCustomerSearch(value);
-                          setValue("Customer_Name", value, { shouldValidate: true });
-                          setCustomerDropdownOpen(true);
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCustomerDropdownOpen(true);
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => {
-                            const typedValue = customerSearch?.trim()?.toLowerCase();
-                            const matchedParty = customers?.parties?.find(
-                              (p) => p.Customer_Name.toLowerCase() === typedValue
-                            );
-                  
-                            if (matchedParty) {
-                              setCustomerSearch(matchedParty.Customer_Name);
-                              setValue("Customer_Name", matchedParty.Customer_Name, { shouldValidate: true });
-                              //setValue("GSTIN", matchedParty.GSTIN || "", { shouldValidate: true });
-                            }
-                  
-                            setCustomerDropdownOpen(false);
-                          }, 150);
-                        }}
-                        placeholder="Search By Name/Phone"
-                        className="w-full outline-none py-1 px-2 text-gray-900"
-                        style={{ marginBottom: 0, marginTop: "4px", border: "none",borderBottom:"none", height: "2rem" }}
-                      />
-                      <div className="w-10 "></div>
-                      <span className=" absolute right-0 px-2  top-1/3  text-gray-700">▼</span>
-                    </div>
-                  
-                    {customerDropdownOpen && (
-                      <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        <span
-                          onClick={() => setShowCustomerModal(true)}
-                          className="block px-3 py-2 text-[#4CA1AF] font-medium hover:bg-gray-100 cursor-pointer"
-                        >
-                          + Add Customer
-                        </span>
-                  
-                        {customers
-                          ?.filter(
-                            (party) =>
-                              party?.Customer_Name?.toLowerCase()?.includes(customerSearch.toLowerCase()) ||
-                              party?.Customer_Phone?.includes(customerSearch)
-                          )
-                          .map((party, i) => (
-                            <div
-                              key={i}
-                              onClick={() => {
-                                  setCustomerSearch(`${party?.Customer_Name} (${party?.Customer_Phone})`);
-                                setCustomerSearch(party?.Customer_Name);
-                                setValue("Customer_Name", party?.Customer_Name, { shouldValidate: true });
-                                setValue("Customer_Phone", party?.Customer_Phone, { shouldValidate: true });
-                                // setValue("GSTIN", party.GSTIN || "", { shouldValidate: true });
-                                setCustomerDropdownOpen(false);
-                              }}
-                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                            >
-                                   <span className="font-medium">{party?.Customer_Name}</span>{" "}
-              <span className="text-gray-500">({party?.Customer_Phone})</span>
-                            </div>
-                          ))}
-                  
-                        {customers?.filter((party) =>
-                          party?.Customer_Name?.toLowerCase()?.includes(customerSearch.toLowerCase())
-                        ).length === 0 && (
-                          <p className="px-3 py-2 text-gray-500">No Customers found</p>
-                        )}
-                      </div>
-                    )}
+          
+
+
                   </div>
-                  
-                  
-                                          {/* Add Party Modal */}
-                                          {customerModal && (
-                                            <AddCustomerModal
-                                              onClose={() => setShowCustomerModal(false)}
-                                              onSave={(newParty) => {
-                                                setCustomerSearch(newParty);
-                                                setValue("Customer_Name", newParty, { shouldValidate: true });
-                                                setShowCustomerModal(false);
-                                              }}
-                                            />
-                                          )}
+                   */}
+ <div className="relative sm:w-1/2">
+  {/* LABEL AREA */}
+ {!hasCustomer ? (
+  <span className="text-sm font-medium text-gray-700">
+    Customer
+  </span>
+) : (
+  <div className="flex items-center gap-2 text-sm text-gray-700 w-full">
+    <i className="fa fa-user-circle text-gray-400" />
+    <span className="font-semibold ">
+      Customer Name:
+      <span>{customerName ??""}</span>
+    </span>
+    <span className="font-semibold">
+      <span className="font-semibold">Phone:</span>
+      {customerPhone}
+    </span>
+  </div>
+)}
+
+
+  {/* ACTION */}
+  {/* {!hasCustomer ? (
+ 
+    <span
+      onClick={() =>     setCustomerModal({ open: true, mode: "add" })}
+      className="block py-2 text-[#ff0000] font-medium cursor-pointer hover:bg-gray-100"
+    >
+      + Add Customer
+    </span>
+  ) : (
+    
+    <span
+      onClick={() =>
+        setCustomerModal({
+          open: true,
+          mode: "edit",
+        })
+      }
+      className="block py-2 text-blue-600 font-medium cursor-pointer hover:bg-gray-100"
+    >
+      ✏️ Edit Customer
+    </span>
+  )} */}
+
+  {!hasCustomer && (
+  <span
+    onClick={() => setCustomerModal({ open: true, mode: "add" })}
+    className="block py-2 text-[#ff0000] font-medium cursor-pointer hover:bg-gray-100"
+  >
+    + Add Customer
+  </span>
+)}
+
+</div>
+
+{customerModal.open && (
+  <AddCustomerModal
+    mode="add"          // 🔒 force add-only
+    initialData={null}  // 🔒 no edit data
+    onClose={() => setCustomerModal({ open: false, mode: "add" })}
+    onSave={(customer) => {
+      setValue("Customer_Name", customer.Customer_Name || null, {
+        shouldValidate: true,
+      });
+      setValue("Customer_Phone", customer.Customer_Phone, {
+        shouldValidate: true,
+      });
+    }}
+  />
+)}
+
+
+{/* {customerModal.open && (
+  <AddCustomerModal
+    mode={customerModal.mode}
+    initialData={
+      customerModal.mode === "edit"
+        ? {
+            Customer_Name: customerName || "",
+            Customer_Phone: customerPhone || "",
+          }
+        : null
+    }
+    onClose={() => setCustomerModal({ open: false, mode: "add" })}
+    onSave={(customer) => {
+      setValue("Customer_Name", customer.Customer_Name || null, {
+        shouldValidate: true,
+      });
+      setValue("Customer_Phone", customer.Customer_Phone, {
+        shouldValidate: true,
+      });
+    }}
+  />
+)} */}
+
+
                   
                                           {/* RHF Error */}
-                                          {errors?.Customer_Name && (
+                                          {/* {errors?.Customer_Name && (
                                             <p className="text-red-500 text-xs mt-1">{errors?.Customer_Name?.message}</p>
-                                          )}
+                                          )} */}
                                         </div>
               </div>
               <div style={{ padding: "0", backgroundColor: "#f1f1f19d" }} className="tab-inn">
                 <form onSubmit={handleSubmit(onSubmit)}>
 
-                  
-                  <div className="grid grid-cols-3  p-2 mt-0 gap-6 w-full heading-wrapper">
+                  <div className="
+  grid
+  grid-rows-2 grid-cols-1
+  md:grid-rows-1 md:grid-cols-3
+  p-2 mt-0 gap-6 w-full heading-wrapper
+">
+
+                  {/* <div className="grid grid-cols-3  p-2 mt-0 gap-6 w-full heading-wrapper"> */}
 
 
                     <div className="relative">
@@ -693,7 +785,9 @@ useEffect(() => {
 
 
                     {/* EMPTY MIDDLE COLUMN */}
-                    <div></div>
+                    <div className="hidden md:block"></div>
+
+                    {/* <div className="sm:visible"></div> */}
 
                     {/* RIGHT PANEL showing selected tables */}
                     <div className="flex flex-wrap gap-2">
@@ -717,7 +811,8 @@ useEffect(() => {
                       ))}
 
                       {selectedTables.length === 0 && (
-                        <p className="text-gray-500">No tables selected</p>
+                        <p className="text-gray-500 flex w-full
+                        items-center justify-center">No tables selected</p>
                       )}
                     </div>
                   </div>
@@ -746,8 +841,8 @@ useEffect(() => {
                             }
         `}
                           style={{
-                            backgroundColor: activeCategory === cat ? "#4CA1AF" : "",
-                            borderColor: activeCategory === cat ? "#4CA1AF" : "",
+                            backgroundColor: activeCategory === cat ? "#ff0000" : "",
+                            borderColor: activeCategory === cat ? "#ff0000" : "",
                           }}
                         >
                           {cat}
@@ -769,72 +864,7 @@ useEffect(() => {
 
                       <div className="bg-white shadow-md sticky top-0 ">
                         {/* TOP HEADER */}
-                        {/* <div
-    className="
-      max-w-7xl mx-auto 
-      flex flex-col gap-3
-      sm:flex-row sm:justify-between sm:items-center
-    "
-  >
-    
-    <div className="text-center sm:text-left">
-      {/* <h1 className="text-3xl font-bold text-gray-800">Food Menu</h1>
-      <p className="text-gray-500 text-sm">Fresh & Delicious</p> 
-    </div>
-
-    
-   
-  </div> */}
-
-
-                        {/* <div className="max-w-7xl mx-auto px-4">
-                                                    <div className="
-    flex items-center justify-between 
-    gap-4 
-    overflow-x-auto 
-    scrollbar-hide 
-    py-2
-  ">
-
-                                                       
-                                                        <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-1">
-                                                            {categories.map(cat => (
-                                                                <button
-                                                                    key={cat}
-                                                                    onClick={() => setActiveCategory(cat)}
-                                                                    className={`
-            px-6 py-2 rounded-full font-medium whitespace-nowrap transition-all
-            ${activeCategory === cat
-                                                                            ? 'text-white shadow-lg scale-105'
-                                                                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                                                                        }
-          `}
-                                                                    style={{
-                                                                        backgroundColor: activeCategory === cat ? "#4CA1AF" : "",
-                                                                        borderColor: activeCategory === cat ? "#4CA1AF" : "",
-                                                                    }}
-                                                                >
-                                                                    {cat}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-
-                                                       
-                                                         <div className="relative min-w-[40px] flex justify-end">
-                                                            <ShoppingCart className="w-8 h-8" style={{ color: "#4CA1AF" }} />
-                                                            {totalItems > 0 && (
-                                                                <span className="
-          absolute -top-2 -right-2 bg-red-500 text-white 
-          text-xs font-bold rounded-full w-6 h-6 
-          flex items-center justify-center
-        ">
-                                                                    {totalItems}
-                                                                </span>
-                                                            )}
-                                                        </div> 
-
-                                                    </div>
-                                                </div> */}
+                       
 
 
 
@@ -845,101 +875,7 @@ useEffect(() => {
                       <div className=" mx-auto px-2 py-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 
                                                 lg:grid-cols-4 xl:grid-cols-6 gap-6">
-                          {/* {filteredItems?.map((item, index) => {
-
-                            return (
-
-                              <div key={item.id ?? index}
-                                className="group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg 
-    transition-all duration-300 hover:-translate-y-1"
-                              >
-
-                   
-                                <div className="relative h-32 bg-gradient-to-br from-[#4CA1AF22] to-[#4CA1AF44]">
-
-                                  <img
-                                    src={
-                                      item?.Item_Image
-                                        ? `http://localhost:4000/uploads/food-item/${item.Item_Image}`
-                                        : ""
-                                    }
-                                    alt={item.Item_Name}
-                                    className="w-full h-full object-cover opacity-90"
-                                  />
-
-                                 
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-
-                                  
-                                  <div className="absolute top-2 right-2">
-                                    <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#4CA1AF] shadow">
-                                      {item.Item_Category}
-                                    </span>
-                                  </div>
-
-                               
-                                  <div className="absolute bottom-1 left-2 right-2">
-                                    <h4 className="text-white text-[20px]  leading-tight">
-                                      {item.Item_Name}
-                                    </h4>
-                                  </div>
-                                </div>
-
                     
-                                <div className="p-2">
-                                 
-                                  <div className="flex justify-between items-center mb-2">
-                                    <div>
-                                      <div className="text-base font-semibold text-gray-800">
-                                        ₹{parseFloat(item.Item_Price).toFixed(2)}
-                                      </div>
-                                      <div className="text-[10px] text-gray-500">
-                                        Tax: {TAX_RATES[item?.Tax_Type]}%
-                                      </div>
-                                    </div>
-
-                                    <div className="text-right">
-                                      <div className="text-sm font-bold text-[#4CA1AF]">
-                                        ₹{parseFloat(item.Amount).toFixed(2)}
-                                      </div>
-                                      <div className="text-[10px] text-gray-500">Total</div>
-                                    </div>
-                                  </div>
-
-                           
-                                  <div className="flex items-center justify-between bg-[#4CA1AF10] rounded-md p-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        updateCart(item.id, -1, index, item.Item_Name, item.Amount)
-                                      }
-                                      className="w-7 h-7 flex items-center justify-center bg-white 
-          rounded-md shadow hover:bg-gray-100 text-[#4CA1AF] transition"
-                                    >
-                                      <Minus className="w-3 h-3" />
-                                    </button>
-
-                                    <span className="text-base font-semibold text-gray-800 px-2">
-                                      {cart[item.id] || 0}
-                                    </span>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        updateCart(item.id, 1, index, item.Item_Name, item.Amount)
-                                      }
-                                      className="w-7 h-7 flex items-center justify-center bg-[#4CA1AF] 
-          rounded-md text-white shadow hover:bg-[#3a8c98] transition"
-                                    >
-                                      <Plus className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-
-                            )
-
-                          })} */}
                           {filteredItems?.map((item, index) => {
 
   const unavailable = item.is_available === 0; //  unavailable items
@@ -979,23 +915,25 @@ useEffect(() => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
         <div className="absolute top-2 right-2">
-          <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#4CA1AF] shadow">
+          <span className="bg-white/90 px-2 py-0.5 rounded-full text-[10px] font-semibold text-[#ff0000] shadow">
             {item.Item_Category}
           </span>
         </div>
 
-        <div className="absolute bottom-1 left-2 right-2">
-          <h4 className="text-white text-[20px] leading-tight">
-            {item.Item_Name}
-          </h4>
-        </div>
+      
       </div>
 
       {/* ===== DETAILS SECTION ===== */}
       <div className="p-2">
-
+            <div className="flex  mb-2">
+          <h5 style={{color:"red"}}
+          className="text-red text-[20px] leading-tight">
+            {item?.Item_Name}
+          </h5>
+        </div>
         {/* PRICE ROW */}
         <div className="flex justify-between items-center mb-2">
+          
           <div>
             <div className="text-base font-semibold text-gray-800">
               ₹{parseFloat(item.Item_Price).toFixed(2)}
@@ -1006,7 +944,7 @@ useEffect(() => {
           </div>
 
           <div className="text-right">
-            <div className="text-sm font-bold text-[#4CA1AF]">
+            <div className="text-sm font-bold text-[#ff0000]">
               ₹{parseFloat(item.Amount).toFixed(2)}
             </div>
             <div className="text-[10px] text-gray-500">Total</div>
@@ -1028,7 +966,7 @@ useEffect(() => {
               w-7 h-7 flex items-center justify-center rounded-md shadow transition
               ${unavailable
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-white hover:bg-gray-100 text-[#4CA1AF]"
+                : "bg-white hover:bg-gray-100 text-[#ff0000]"
               }
             `}
           >
@@ -1045,7 +983,7 @@ useEffect(() => {
     w-7 h-7 flex items-center justify-center rounded-md shadow transition
     ${unavailable || Number(cart[item.id] || 0) === 0
       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-      : "bg-white hover:bg-gray-100 text-[#4CA1AF]"
+      : "bg-white hover:bg-gray-100 text-[#ff0000]"
     }
   `}
 >
@@ -1067,7 +1005,7 @@ useEffect(() => {
     w-7 h-7 flex items-center justify-center rounded-md shadow transition
     ${unavailable
       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-      : "bg-[#4CA1AF] text-white hover:bg-[#3a8c98]"
+      : "bg-[#ff0000] text-white hover:bg-[#3a8c98]"
     }
   `}
 >
@@ -1082,6 +1020,7 @@ useEffect(() => {
 
           {/* PLUS BUTTON */}
           <button
+            style={{ backgroundColor: "#ff0000" }}
             type="button"
             disabled={unavailable}
             onClick={() =>
@@ -1092,7 +1031,7 @@ useEffect(() => {
               w-7 h-7 flex items-center justify-center rounded-md shadow transition
               ${unavailable
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-[#4CA1AF] text-white hover:bg-[#3a8c98]"
+                : "bg-[#ff0000] text-white hover:bg-[#3a8c98]"
               }
             `}
           >
@@ -1126,9 +1065,11 @@ useEffect(() => {
                             type="button"
                             onClick={() => setShowSummary(true)}   // open bottom sheet
                             // disabled={formValues.errorCount > 0 || isAddingOrder}
-                            className="relative w-full md:w-auto flex items-center justify-center gap-3 
-                                                                   text-white font-bold py-3 px-6 rounded shadow"
-                            style={{ backgroundColor: "#4CA1AF" }}
+                            className="relative w-full py-2 px-4 md:w-auto 
+                            flex items-center justify-center gap-3 
+                            
+                                  text-white font-bold  rounded shadow sm:py-3 px-6"
+                            style={{ backgroundColor: "black" }}
                           >
                             Save & Hold
                             {/* {isAddingOrder ? "Saving..." : "Save & Hold"} */}
@@ -1151,8 +1092,8 @@ useEffect(() => {
                           <button
                             type="button"
                             className="w-full md:w-auto
-                             text-white font-bold py-3 px-6 rounded shadow"
-                            style={{ backgroundColor: "#4CA1AF" }}
+                             text-white font-bold py-2 px-4 rounded shadow sm:py-3 px-6"
+                            style={{ backgroundColor: "#ff0000" }}
                           >
                             Save & Pay Bill
                           </button>
@@ -1224,8 +1165,9 @@ useEffect(() => {
                           </div>
                           <div className="flex justify-center mt-4">
                             <button type="submit"
-                              className="w-16 h-10 flex items-center justify-center bg-[#4CA1AF] 
-          rounded-md text-white shadow hover:bg-[#3a8c98] ">
+                            style={{backgroundColor:"#ff0000"}}
+                              className="w-16 h-10 flex items-center justify-center 
+          rounded-md text-white shadow  ">
                               OK
                             </button>
 
@@ -1406,7 +1348,7 @@ useEffect(() => {
 
 //                                                     {/* CATEGORY BADGE */}
 //                                                     <div className="absolute top-2 right-2">
-//                                                         <span className="bg-white/90 px-2 py-1 rounded-full text-xs font-semibold text-[#4CA1AF] shadow">
+//                                                         <span className="bg-white/90 px-2 py-1 rounded-full text-xs font-semibold text-[#ff0000] shadow">
 //                                                             {item.Item_Category}
 //                                                         </span>
 //                                                     </div>
@@ -1430,7 +1372,7 @@ useEffect(() => {
 //                                                         </div>
 
 //                                                         <div className="text-right">
-//                                                             <div className="text-sm font-bold text-[#4CA1AF]">
+//                                                             <div className="text-sm font-bold text-[#ff0000]">
 //                                                                 ₹{parseFloat(item.Amount).toFixed(2)}
 //                                                             </div>
 //                                                             <div className="text-xs text-gray-500">Total</div>
@@ -1450,7 +1392,7 @@ useEffect(() => {
 //                                                                         item?.Amount
 //                                                                     )}
 //                                                                     className="w-9 h-9 flex items-center justify-center bg-white 
-//            rounded-md shadow hover:bg-gray-100 text-[#4CA1AF]
+//            rounded-md shadow hover:bg-gray-100 text-[#ff0000]
 //            transition"
 //                                                                 >
 //                                                                     <Minus className="w-4 h-4" />
@@ -1468,7 +1410,7 @@ useEffect(() => {
 //                                                                         item.id, 1,index,item
 //                                                                         ?.Item_Name,
 //                                                                         item?.Amount)}
-//                                                                     className="w-9 h-9 flex items-center justify-center bg-[#4CA1AF] 
+//                                                                     className="w-9 h-9 flex items-center justify-center bg-[#ff0000] 
 //            rounded-md text-white shadow hover:bg-[#3a8c98] transition"
 //                                                                 >
 //                                                                     <Plus className="w-4 h-4" />
@@ -1534,14 +1476,14 @@ useEffect(() => {
 //                                                             <div className="w-full flex gap-3 justify-end items-center">
 
 //                                                                 {/* SAVE AND HOLD — (CART ICON + BADGE) */}
-//                                                                 <div style={{ backgroundColor: "#4CA1AF" }}
+//                                                                 <div style={{ backgroundColor: "#ff0000" }}
 //                                                                 className="flex flex-row rounded">
 //                                                                 <button
 //                                                                     type="submit"
 //                                                                     disabled={formValues.errorCount > 0 || isAddingOrder}
 //                                                                     className="relative text-white
 //                                                                      font-bold py-2 px-5 rounded flex items-center gap-3"
-//                                                                     style={{ backgroundColor: "#4CA1AF" }}
+//                                                                     style={{ backgroundColor: "#ff0000" }}
 //                                                                 >
 //                                                                     {isAddingOrder ? "Saving..." : "Save and Hold"}
 //                                                                 </button>
@@ -1571,7 +1513,7 @@ useEffect(() => {
 //                                                                 <button
 //                                                                     type="submit"
 //                                                                     className="text-white font-bold py-2 px-5 rounded"
-//                                                                     style={{ backgroundColor: "#4CA1AF" }}
+//                                                                     style={{ backgroundColor: "#ff0000" }}
 //                                                                 >
 //                                                                     Save and Pay Bill
 //                                                                 </button>
@@ -1586,7 +1528,7 @@ useEffect(() => {
 //                                                                 disabled={formValues.errorCount > 0 || isAddingOrder}
 //                                                                 // onClick={() => navigate("/staff/orders/all-orders")}
 //                                                                 className=" text-white font-bold py-2 px-4 rounded"
-//                                                                 style={{ backgroundColor: "#4CA1AF" }}
+//                                                                 style={{ backgroundColor: "#ff0000" }}
 //                                                             >
 //                                                                 {isAddingOrder ? "Saving..." : "Save and Hold"}
 //                                                             </button>
@@ -1594,7 +1536,7 @@ useEffect(() => {
 //                                                                 type="submit"
 
 //                                                                 className=" text-white font-bold py-2 px-4 rounded"
-//                                                                 style={{ backgroundColor: "#4CA1AF" }}
+//                                                                 style={{ backgroundColor: "#ff0000" }}
 //                                                             >
 //                                                                 Save and Pay Bill
 //                                                             </button>
@@ -1615,7 +1557,7 @@ useEffect(() => {
                                                                                 item?.Amount)}
                                                                             className="
             w-full py-2 
-            bg-[#4CA1AF] text-white rounded-lg 
+            bg-[#ff0000] text-white rounded-lg 
             shadow hover:bg-[#3a8c98] 
             font-medium transition
           "
@@ -1826,7 +1768,7 @@ useEffect(() => {
         disabled={formValues.errorCount > 0 || isAddingOrder}
         className="relative w-full md:w-auto flex items-center justify-center gap-3 
                    text-white font-bold py-2 px-5 rounded shadow"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         {isAddingOrder ? "Saving..." : "Save & Hold"}
 
@@ -1849,7 +1791,7 @@ useEffect(() => {
       <button
         type="submit"
         className="w-full md:w-auto text-white font-bold py-2 px-5 rounded shadow"
-        style={{ backgroundColor: "#4CA1AF" }}
+        style={{ backgroundColor: "#ff0000" }}
       >
         Save & Pay Bill
       </button>
@@ -1857,3 +1799,206 @@ useEffect(() => {
     </div>
   </div>
 </div> */}
+
+
+
+    {/* {customerDropdownOpen && (
+                      <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <span
+                          onClick={() => setShowCustomerModal(true)}
+                          className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
+                        >
+                          + Add Customer
+                        </span>
+                  
+                        {customers
+                          ?.filter(
+                            (party) =>
+                              party?.Customer_Name?.toLowerCase()?.includes(customerSearch.toLowerCase()) ||
+                              party?.Customer_Phone?.includes(customerSearch)
+                          )
+                          .map((party, i) => (
+                            <div
+                              key={i}
+                              onClick={() => {
+                                  setCustomerSearch(`${party?.Customer_Name} (${party?.Customer_Phone})`);
+                                setCustomerSearch(party?.Customer_Name);
+                                setValue("Customer_Name", party?.Customer_Name, { shouldValidate: true });
+                                setValue("Customer_Phone", party?.Customer_Phone, { shouldValidate: true });
+                               
+                                setCustomerDropdownOpen(false);
+                              }}
+                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                            >
+                                   <span className="font-medium">{party?.Customer_Name}</span>{" "}
+              <span className="text-gray-500">({party?.Customer_Phone})</span>
+                            </div>
+                          ))}
+                  
+                        {customers?.filter((party) =>
+                          party?.Customer_Name?.toLowerCase()?.includes(customerSearch.toLowerCase())
+                        ).length === 0 && (
+                          <p className="px-3 py-2 text-gray-500">No Customers found</p>
+                        )}
+                      </div>
+                    )} */}
+
+                        {/* <div 
+                  className="relative sm:w-1/4">
+                    <div
+                      className="flex flex-row border rounded-md bg-white cursor-pointer"
+                      onClick={() => setCustomerDropdownOpen((prev) => !prev)}
+                    >
+                      <input
+                        type="text"
+                        id="Customer_Name"
+                        value={customerSearch}
+                        // value={customerSearch.length>10?customerSearch.slice(0,15)+"...":customerSearch}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setCustomerSearch(value);
+                          setValue("Customer_Name", value, { shouldValidate: true });
+                          setCustomerDropdownOpen(true);
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCustomerDropdownOpen(true);
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            const typedValue = customerSearch?.trim()?.toLowerCase();
+                            const matchedParty = customers?.parties?.find(
+                              (p) => p.Customer_Name.toLowerCase() === typedValue
+                            );
+                  
+                            if (matchedParty) {
+                              setCustomerSearch(matchedParty.Customer_Name);
+                              setValue("Customer_Name", matchedParty.Customer_Name, { shouldValidate: true });
+                              //setValue("GSTIN", matchedParty.GSTIN || "", { shouldValidate: true });
+                            }
+                  
+                            setCustomerDropdownOpen(false);
+                          }, 150);
+                        }}
+                        placeholder="Search By Name/Phone"
+                        className="w-full outline-none py-1 px-2 text-gray-900"
+                        style={{ marginBottom: 0, marginTop: "4px", border: "none",borderBottom:"none", height: "2rem" }}
+                      />
+                      <div className="w-10 "></div>
+                      <span className=" absolute right-0 px-2  top-1/3  text-gray-700">▼</span>
+                    </div>
+                  {customerDropdownOpen && (
+  <div className="absolute z-20 flex flex-col mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+    
+   
+    <span
+      onClick={() => setShowCustomerModal(true)}
+      className="block px-3 py-2 text-[#ff0000] font-medium hover:bg-gray-100 cursor-pointer"
+    >
+      + Add Customer
+    </span>
+
+    {(() => {
+      const isPhoneSearch = /^\d+$/.test(customerSearch);
+
+      const filteredCustomers = customers?.filter((party) => {
+        if (isPhoneSearch) {
+          return party?.Customer_Phone?.includes(customerSearch);
+        }
+        return party?.Customer_Name
+          ?.toLowerCase()
+          ?.includes(customerSearch.toLowerCase());
+      });
+
+      return (
+        <>
+          {filteredCustomers?.map((party, i) => (
+            <div
+              key={i}
+              onClick={() => {
+  const displayValue =
+    party?.Customer_Name?.trim() ||
+    party?.Customer_Phone ||
+    "";
+
+  setCustomerSearch(displayValue);
+
+  setValue(
+    "Customer_Name",
+    party?.Customer_Name?.trim() || "",
+    { shouldValidate: true }
+  );
+
+  setValue(
+    "Customer_Phone",
+    party?.Customer_Phone || "",
+    { shouldValidate: true }
+  );
+
+  setCustomerDropdownOpen(false);
+}}
+
+          
+              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+            >
+              <span className="font-medium">
+                {party?.Customer_Name || "Unknown"}
+              </span>{" "}
+              <span className="text-gray-500">
+                ({party?.Customer_Phone})
+              </span>
+            </div>
+          ))}
+
+         
+          {filteredCustomers?.length === 0 && (
+            <p className="px-3 py-2 text-gray-500">No Customers found</p>
+          )}
+        </>
+      );
+    })()}
+  </div>
+)}
+
+                
+                  </div>
+                   */}
+
+                                                             {/* Add Customer Modal */}
+                                          {/* {customerModal && (
+                                            <AddCustomerModal
+                                              onClose={() => setShowCustomerModal(false)}
+                                              // onSave={(newParty) => {
+                                              //   setCustomerSearch(newParty);
+                                              //   setValue("Customer_Name", newParty, { shouldValidate: true });
+                                              //   setShowCustomerModal(false);
+                                              // }}
+                                            />
+                                          )} */}
+                                          {/* {customerModal && (
+  <AddCustomerModal
+    onClose={() => setShowCustomerModal(false)}
+    onSave={(customer) => {
+      // 🔥 SINGLE SOURCE OF TRUTH
+      setSelectedCustomer({
+        name: customer.Customer_Name || null,
+        phone: customer.Customer_Phone,
+      });
+
+      // 🔥 Update dropdown + RHF
+      // setCustomerSearch(
+      //   customer.Customer_Name || customer.Customer_Phone
+      // );
+
+      setValue("Customer_Name", customer.Customer_Name || null, {
+        shouldValidate: true,
+      });
+
+      setValue("Customer_Phone", customer.Customer_Phone, {
+        shouldValidate: true,
+      });
+
+      setShowCustomerModal(false);
+    }}
+  />
+)} */}

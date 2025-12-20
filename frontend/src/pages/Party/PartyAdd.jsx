@@ -69,28 +69,22 @@ export default function PartyAdd() {
     return (<>
 
        
-        <div className="sb2-2-2">
+        {/* <div className="sb2-2-2">
             <ul >
                 <li>
-                    {/* <NavLink
-                                    to="/home"
-
-                                >
-                                    <i className="fa fa-home mr-2" aria-hidden="true"></i>
-                                    Dashboard
-                                </NavLink> */}
+                 
                     <NavLink style={{ display: "flex", flexDirection: "row" }}
                         to="/home"
 
                     >
                         <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-                        {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+                       
                         Dashboard
                     </NavLink>
                 </li>
 
             </ul>
-        </div>
+        </div> */}
         <div className="sb2-2-3 ">
             <div className="row">
                 <div className="col-md-12">
@@ -293,7 +287,7 @@ export default function PartyAdd() {
 
                                                         {/* <p className="text-blue-500 cursor-pointer" onClick={() => setShippingAddress(!shippingAdress)}>Add Shipping Address</p> */}
                                                         <p
-                                                            className="text-[#4CA1AF] cursor-pointer font-medium hover:underline mt-2"
+                                                            className="text-[#ff0000] cursor-pointer font-medium hover:underline mt-2"
                                                             onClick={() => setShippingAddress(!shippingAdress)}
                                                         >
                                                             {shippingAdress
@@ -330,7 +324,7 @@ export default function PartyAdd() {
                                                         type="submit"
                                                         disabled={formValues.errorCount > 0 || isAddingParty}
                                                         className=" text-white font-bold py-2 px-4 rounded"
-                                                        style={{ backgroundColor: "#4CA1AF" }}
+                                                        style={{ backgroundColor: "#ff0000" }}
                                                     >
                                                         {isAddingParty ? "Adding..." : "Add Party"}
                                                     </button>

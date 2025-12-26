@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGetAllTablesQuery } from "../../redux/api/tableApi";
 import { Eye, SquarePen } from "lucide-react";
+import EditTableModal from "../../components/Modal/EditTableModal";
 
 export default function AllItemsList() {
 
@@ -17,8 +18,8 @@ export default function AllItemsList() {
         search: searchTerm
     });
 
-    //const[selectedItem, setSelectedItem] = useState(null);
-    //const[showItemModalForEdit, setShowItemModalForEdit] = useState(false)
+    const[selectedTable, setSelectedTable] = useState(null);
+    const[showTableModalForEdit, setShowTableModalForEdit] = useState(false)
     // const { data: eachItemHistory } = useGetEachItemHistoryQuery(selectedItem?.Item_Id,
     //     { skip: !selectedItem?.Item_Id }
     // )
@@ -131,8 +132,8 @@ export default function AllItemsList() {
                                                             
                                                             <th className="text-left">Table Capacity</th>
 
-                                                            <th className="text-left">View</th>
-                                                            <th className="text-left">Edit</th>
+                                                            {/* <th className="text-left">View</th> */}
+                                                            <th className="text-left">View/Edit</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -156,11 +157,8 @@ export default function AllItemsList() {
                                                          
                                                                    
 
-                                                                    <td>
-                                                                        {/* <NavLink
-                                                                            to={`/table/table-sales-purchases-details/${table?.Item_Id}`}
-                                                                            state={{ from: "table-details" }}
-                                                                        > */}
+                                                                    {/* <td>
+                                                                       
                                                                             <Eye
                                                                                 style={{
                                                                                     cursor: "pointer",
@@ -168,14 +166,14 @@ export default function AllItemsList() {
                                                                                     color: "#ff0000",
                                                                                 }}
                                                                             />
-                                                                        {/* </NavLink> */}
-                                                                    </td>
+                                                                       
+                                                                    </td> */}
                                                                     <td>
                                                                         <SquarePen
-                                                                            // onClick={() => {
-                                                                            //     setSelectedItem(table);     // ← STORE PARTY CLICKED
-                                                                            //     setShowItemModalForEdit(true);
-                                                                            // }}
+                                                                            onClick={() => {
+                                                                                setSelectedTable(table);     // ← STORE PARTY CLICKED
+                                                                                setShowTableModalForEdit(true);
+                                                                            }}
                                                                             style={{
                                                                                 cursor: "pointer",
                                                                                 backgroundColor: "transparent",
@@ -197,6 +195,12 @@ export default function AllItemsList() {
                                     )}
 
                                 </div>
+                                {showTableModalForEdit && (
+                                    <EditTableModal
+                                        table={selectedTable}
+                                        onClose={() => setShowTableModalForEdit(false)}
+                                    />
+                                )}
                             </div>
                             
                             <div className="flex justify-center align-center space-x-2 p-4">

@@ -117,52 +117,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
         }
     };
 
-    // const [rows, setRows] = useState([
-    //     {
-    //         CategoryOpen: false, categorySearch: "", preview: null
-    //     }
-    // ]);
-    // const [addNewSale, { isLoading: isAddingSale }] = useAddNewSaleMutation();
-    // const[addPurchase,{isLoading:isAddingPurchase}]=useAddPurchaseMutation();
-    // // helper to update a field in a specific row
-    // const handleRowChange = (index, field, value) => {
-    //     setRows((prev) => {
-    //         const updated = [...prev];
-    //         updated[index] = {
-    //             ...updated[index],
-    //             [field]: value,
-    //         };
-    //         return updated;
-    //     });
-    // };
-    // useEffect(() => {
-    //     const handleClickOutside = (event) => {
-    //         // setRows((prev) =>
-    //         //     prev.map((row, idx) => {
-    //         //         const catRef = categoryRefs.current[idx];
-    //         //         const itemRef = itemRefs.current[idx];
-
-    //         //         const clickedInsideCategory =
-    //         //             catRef && catRef.contains(event.target);
-    //         //         const clickedInsideItem =
-    //         //             itemRef && itemRef.contains(event.target);
-
-    //         //         // if clicked outside both → close
-    //         //         if (!clickedInsideCategory && !clickedInsideItem) {
-    //         //             return { ...row, CategoryOpen: false, itemOpen: false };
-    //         //         }
-
-    //         //         return row;
-    //         //     })
-    //         // );
-    //     };
-
-    //     document.addEventListener("mousedown", handleClickOutside);
-    //     return () => {
-    //         document.removeEventListener("mousedown", handleClickOutside);
-    //     };
-    // }, []);
-
+    
     useEffect(() => {
         function handleClickOutside(e) {
             if (categoryRef.current && !categoryRef.current.contains(e.target)) {
@@ -252,10 +207,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
             toast.error("Price is required");
             return;
         }
-        if (!data.Item_Quantity) {
-            toast.error("Quantity is required");
-            return;
-        }
+       
 
         // Build FormData
         const formData = new FormData();
@@ -263,7 +215,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
         formData.append("Item_Name", data.Item_Name);
         formData.append("Item_Category", data.Item_Category);
         formData.append("Item_Price", data.Item_Price);
-        formData.append("Item_Quantity", data.Item_Quantity);
+        
         formData.append("Tax_Type", data.Tax_Type || "None");
         formData.append("Tax_Amount", data.Tax_Amount || "0.00");
         formData.append("Amount", data.Amount || "0.00");
@@ -294,76 +246,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
     };
 
 
-    // const handleEdit = async () => {
-    //     const data=formValues;
-    //     console.log("Form Data (from RHF):", data);
-
-    //     if (!data.items || data.items.length === 0) {
-    //         toast.error("Please add at least one item before saving.");
-    //         return;
-    //     }
-
-    //     // Remove empty rows
-    //     const cleanedItems = data.items.filter(
-    //         (it) => it.Item_Name && it.Item_Name.trim() !== ""
-    //     );
-
-    //     if (cleanedItems.length === 0) {
-    //         toast.error("Please add at least one valid item with a name.");
-    //         return;
-    //     }
-
-    //     // Check duplicate names
-    //     const seen = new Set();
-    //     for (const item of cleanedItems) {
-    //         const name = item.Item_Name.trim().toLowerCase();
-    //         if (seen.has(name)) {
-    //             toast.error(`Duplicate item: ${item.Item_Name}`);
-    //             return;
-    //         }
-    //         seen.add(name);
-    //     }
-
-    //     // Ensure tax fields exist (auto values)
-    //     const itemsSafe = cleanedItems.map((item) => ({
-    //         ...item,
-    //         Tax_Type: item.Tax_Type || "None",
-    //         Tax_Amount: item.Tax_Amount || "0.00",
-    //         Amount: item.Amount || "0.00",
-    //     }));
-
-    //     // ------------------------------
-    //     // 🚀 Build FormData for multer
-    //     // ------------------------------
-    //     const formData = new FormData();
-
-    //     // Add JSON items
-    //     formData.append("items", JSON.stringify({ items: itemsSafe }));
-
-
-    // itemsSafe.forEach((item) => {
-    //     if (item.Item_Image instanceof File) {
-    //         formData.append("images", item.Item_Image);
-    //     }
-    // });
-    //     console.log("📦 Final FormData Prepared",formData);
-
-    //     try {
-    //         const res = await editFoodItem(formData).unwrap();
-
-    //         if (!res?.success) {
-    //             toast.error(res.message || "Failed to add Food Items");
-    //             return;
-    //         }
-
-    //         toast.success("Food Items added successfully!");
-    //         navigate("/new/all-new-food-items");
-
-    //     } catch (error) {
-    //         console.error("Submission Error:", error);
-    //         toast.error(error?.data?.message || "Failed to add food items");
-    //     }
-    // };
+    
 
     useEffect(() => {
         if (!editingFoodItem) return;
@@ -374,7 +257,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
             Item_Name: foodItem.Item_Name,
             Item_Category: foodItem.Item_Category,
             Item_Price: foodItem.Item_Price,
-            Item_Quantity: foodItem.Item_Quantity,
+           
             Tax_Type: foodItem.Tax_Type,
             Tax_Amount: foodItem.Tax_Amount,
             Amount: foodItem.Amount
@@ -541,6 +424,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                                                         key={idx}
                                                         onClick={() => {
                                                             handleSelect(cat.Item_Category);
+                                                            setValue(`Item_Category`, cat.Item_Category);
                                                             //handleRowChange("categorySearch", cat.Item_Category);
                                                         }}
                                                         className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
@@ -863,7 +747,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
                                                 Item_Quantity: currentQty,
                                                 Tax_Type: currentTax,
                                             });
-
+                                            setValue("Item_Price", val, { shouldValidate: true });
                                             setValue("Tax_Amount", Tax_Amount, { shouldValidate: true });
                                             setValue("Amount", Amount, { shouldValidate: true });
                                         }}
@@ -991,7 +875,7 @@ export default function EditFoodItemModal({ onClose, foodItem, editingFoodItem }
 
                             onClick={onClose}
                             className=" text-white font-bold py-2 px-4 rounded"
-                            style={{ backgroundColor: "#ff0000" }}
+                            style={{ backgroundColor: "black" }}
                         >
                             Cancel
                         </button>

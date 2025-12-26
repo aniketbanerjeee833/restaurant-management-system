@@ -161,9 +161,9 @@ console.log(errors);
                     </span>
                     <input
                       type="text"
-                      id="Item_Name"
+                      id="Table_Name"
                       {...register("Table_Name")}
-                      placeholder=" Item Name"
+                      placeholder=" Table Name"
                       className="w-full outline-none border-b-2 text-gray-900"
                     />
                     {errors?.Table_Name && (

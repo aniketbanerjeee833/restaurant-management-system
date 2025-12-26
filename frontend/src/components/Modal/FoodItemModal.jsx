@@ -6,6 +6,7 @@
 export default function FoodItemModal({ onClose,foodItem,editingFoodItem}) {
         
           const TAX_RATES = {
+            "None": 0,
         "GST0": 0,
         "GST0.25": 0.25,
         "GST3": 3,

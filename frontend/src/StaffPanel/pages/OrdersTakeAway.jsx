@@ -28,6 +28,7 @@ import OrderTakeawayModal from "../../components/Modal/OrderTakeawayModal";
 import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
 import { useGetAllCustomersQuery } from "../../redux/api/Staff/orderApi";
 import AddCustomerModal from "../../components/Modal/AddCustomerModal";
+import { useMemo } from "react";
 
 
 
@@ -64,7 +65,7 @@ export default function OrdersTakeAway() {
   console.log(categories, "categories");
   //const existingCategories=categories?.map((category) => category.Item_Category);
   const existingCategories = [...new Set(categories?.map(c => c.Item_Category))];
-
+  const[searchTerm,setSearchTerm]=useState('');
   const newCategories = ["All", ...existingCategories];
 
   const navigate = useNavigate();
@@ -89,6 +90,8 @@ export default function OrdersTakeAway() {
   //     "btl": "Bottle",
 
   // }
+  const [activeCategory, setActiveCategory] = useState('All');
+const lastCategoryRef = useRef(activeCategory);
   const { data: tables, isLoading } = useGetAllTablesQuery({});
   const { data: menuItems, isMenuItemsLoading } = useGetAllFoodItemsQuery({});
   const items = menuItems?.foodItems
@@ -191,16 +194,39 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
 
   console.log(items)
   const [cart, setCart] = useState({});
-  const [activeCategory, setActiveCategory] = useState('All');
-
+  
   // const newCategories = ['All', existingCategories];
   console.log(newCategories, "newCategories")
 
-  const filteredItems = activeCategory === 'All'
-    ? items
-    : items?.filter(item => item?.Item_Category === activeCategory);
+  // const filteredItems = activeCategory === 'All'
+  //   ? items
+  //   : items?.filter(item => item?.Item_Category === activeCategory);
 
+const filteredItems = useMemo(() => {
+  if (!items) return [];
 
+  const categoryChanged = lastCategoryRef.current !== activeCategory;
+
+  const result = items.filter((item) => {
+    const matchesCategory =
+      activeCategory === "All" ||
+      item.Item_Category === activeCategory;
+
+    // 🔥 Ignore search when category JUST changed
+    const matchesSearch =
+      categoryChanged
+        ? true
+        : !searchTerm.trim() ||
+          item.Item_Name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesCategory && matchesSearch;
+  });
+
+  // update ref AFTER filtering
+  lastCategoryRef.current = activeCategory;
+
+  return result;
+}, [items, activeCategory, searchTerm]);
   console.log(filteredItems, "filteredItems")
 
   const itemRowMap = useRef({});
@@ -364,9 +390,15 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
                   </div>
                      </div>
             
-                  
-                                    <div style={{  backgroundColor: "#f1f1f19d" }} 
-                                      className="w-full flex flex-col p-2  mt-2 gap-2 heading-wrapper "
+                                <div style={{  backgroundColor: "#f1f1f19d" }}  
+                                className="
+  grid
+  grid-rows-2 grid-cols-1
+  md:grid-rows-1 md:grid-cols-3
+  p-2 mt-0 gap-6 w-full heading-wrapper
+">
+                                    <div 
+                                      className="w-full flex flex-col   mt-2 gap-2  "
                                                             >
                                                             {/* <span className="whitespace-nowrap active ">
                                                               Customer
@@ -375,7 +407,7 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
                                                             
                                  
 
-                                                             <div className="relative sm:w-1/2">
+                                                             <div className="relative sm:w-full">
                                                               {/* LABEL AREA */}
                                                              {!hasCustomer ? (
                                                               <span className="text-sm font-medium text-gray-700">
@@ -447,6 +479,17 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
                                                               />
                                                             )}
                                                             
+                                                          </div>
+                                                           <div className="sm:visible"></div>
+        <div className="w-full ">
+      <input
+        type="text"
+        placeholder="Search ..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full"
+      />
+    </div>
                                                           </div>
              
               </div>

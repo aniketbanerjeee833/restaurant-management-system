@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+
 import {  useGetTotalSalesEachDayQuery } from "../redux/api/saleApi";
 import { useGetTotalPurchasesEachDayQuery } from "../redux/api/purchaseApi";
 import {  Filter, X } from 'lucide-react';
@@ -399,3 +399,362 @@ console.log(
 );
 
 }
+// import  { useState } from 'react';
+// import { 
+//   TrendingUp, TrendingDown, DollarSign, ShoppingCart, 
+//   Package, Users, Calendar, PieChart, BarChart3, 
+//   AlertTriangle, ChefHat, Clock, Filter
+// } from 'lucide-react';
+
+// export default function Reports() {
+//   const [dateRange, setDateRange] = useState('today');
+//   const [reportType, setReportType] = useState('overview');
+
+//   // Mock Data
+//   const kpiData = {
+//     totalSales: 145680,
+//     totalPurchases: 52340,
+//     grossProfit: 93340,
+//     totalOrders: 342,
+//     dineInOrders: 215,
+//     takeawayOrders: 127,
+//     avgOrderValue: 426
+//   };
+
+//   const topSellingItems = [
+//     { name: 'Chicken Biryani', qtySold: 120, revenue: 24000, contribution: 18 },
+//     { name: 'Butter Chicken', qtySold: 95, revenue: 18050, contribution: 14 },
+//     { name: 'Paneer Tikka', qtySold: 90, revenue: 13500, contribution: 10 },
+//     { name: 'Dal Makhani', qtySold: 85, revenue: 10200, contribution: 8 },
+//     { name: 'Tandoori Roti', qtySold: 280, revenue: 8400, contribution: 6 }
+//   ];
+
+//   const lowStockItems = [
+//     { material: 'Chicken', currentStock: 5, unit: 'kg', reorderLevel: 10, daysLeft: 2 },
+//     { material: 'Paneer', currentStock: 3, unit: 'kg', reorderLevel: 8, daysLeft: 1 },
+//     { material: 'Onion', currentStock: 12, unit: 'kg', reorderLevel: 15, daysLeft: 3 },
+//     { material: 'Tomato', currentStock: 8, unit: 'kg', reorderLevel: 12, daysLeft: 2 }
+//   ];
+
+//   const supplierPurchases = [
+//     { supplier: 'Fresh Farm Suppliers', totalPurchased: 25600, paid: 20000, due: 5600 },
+//     { supplier: 'Spencers', totalPurchased: 15340, paid: 15340, due: 0 },
+//     { supplier: 'Metro Cash & Carry', totalPurchased: 11400, paid: 8000, due: 3400 }
+//   ];
+
+//   const hourlyData = [
+//     { hour: '12 PM', orders: 45, revenue: 12500 },
+//     { hour: '1 PM', orders: 52, revenue: 15200 },
+//     { hour: '2 PM', orders: 38, revenue: 11000 },
+//     { hour: '7 PM', orders: 68, revenue: 22400 },
+//     { hour: '8 PM', orders: 72, revenue: 24800 },
+//     { hour: '9 PM', orders: 48, revenue: 16200 }
+//   ];
+
+//   const profitMargin = ((kpiData.grossProfit / kpiData.totalSales) * 100).toFixed(1);
+//   const foodCostPercent = ((kpiData.totalPurchases / kpiData.totalSales) * 100).toFixed(1);
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+//       <div className="max-w-7xl mx-auto">
+        
+//         {/* Header */}
+//         <div className="mb-6">
+//           <h1 className="text-3xl font-bold text-gray-800 mb-2">Reports Dashboard</h1>
+//           <p className="text-gray-600">Business insights and analytics</p>
+//         </div>
+
+//         {/* Filters */}
+//         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+//           <div className="flex flex-wrap gap-4 items-center">
+//             <div className="flex items-center gap-2">
+//               <Calendar size={20} className="text-gray-600" />
+//               <select 
+//                 value={dateRange}
+//                 onChange={(e) => setDateRange(e.target.value)}
+//                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+//               >
+//                 <option value="today">Today</option>
+//                 <option value="yesterday">Yesterday</option>
+//                 <option value="week">This Week</option>
+//                 <option value="month">This Month</option>
+//                 <option value="custom">Custom Range</option>
+//               </select>
+//             </div>
+
+//             <div className="flex items-center gap-2">
+//               <Filter size={20} className="text-gray-600" />
+//               <select 
+//                 value={reportType}
+//                 onChange={(e) => setReportType(e.target.value)}
+//                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+//               >
+//                 <option value="overview">Overview</option>
+//                 <option value="sales">Sales Details</option>
+//                 <option value="inventory">Inventory</option>
+//                 <option value="profit">Profit Analysis</option>
+//               </select>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* KPI Cards */}
+//         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+//           <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-5">
+//             <div className="flex items-center justify-between mb-2">
+//               <DollarSign size={24} />
+//               <TrendingUp size={20} className="opacity-80" />
+//             </div>
+//             <div className="text-2xl font-bold mb-1">₹{kpiData.totalSales.toLocaleString()}</div>
+//             <div className="text-sm opacity-90">Total Sales</div>
+//           </div>
+
+//           <div className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg shadow-lg p-5">
+//             <div className="flex items-center justify-between mb-2">
+//               <ShoppingCart size={24} />
+//               <TrendingDown size={20} className="opacity-80" />
+//             </div>
+//             <div className="text-2xl font-bold mb-1">₹{kpiData.totalPurchases.toLocaleString()}</div>
+//             <div className="text-sm opacity-90">Total Purchases</div>
+//           </div>
+
+//           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-5">
+//             <div className="flex items-center justify-between mb-2">
+//               <TrendingUp size={24} />
+//               <span className="text-sm bg-white/20 px-2 py-1 rounded">{profitMargin}%</span>
+//             </div>
+//             <div className="text-2xl font-bold mb-1">₹{kpiData.grossProfit.toLocaleString()}</div>
+//             <div className="text-sm opacity-90">Gross Profit</div>
+//           </div>
+
+//           <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-5">
+//             <div className="flex items-center justify-between mb-2">
+//               <Package size={24} />
+//               <span className="text-sm bg-white/20 px-2 py-1 rounded">₹{kpiData.avgOrderValue}</span>
+//             </div>
+//             <div className="text-2xl font-bold mb-1">{kpiData.totalOrders}</div>
+//             <div className="text-sm opacity-90">Total Orders</div>
+//           </div>
+//         </div>
+
+//         {/* Order Type Split */}
+//         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+//           <div className="bg-white rounded-lg shadow-md p-5">
+//             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+//               <PieChart size={20} className="text-blue-600" />
+//               Order Type Distribution
+//             </h3>
+//             <div className="space-y-3">
+//               <div>
+//                 <div className="flex justify-between mb-1 text-sm">
+//                   <span className="text-gray-600">Dine-in</span>
+//                   <span className="font-semibold">{kpiData.dineInOrders} ({((kpiData.dineInOrders/kpiData.totalOrders)*100).toFixed(0)}%)</span>
+//                 </div>
+//                 <div className="w-full bg-gray-200 rounded-full h-2">
+//                   <div className="bg-blue-600 h-2 rounded-full" style={{width: `${(kpiData.dineInOrders/kpiData.totalOrders)*100}%`}}></div>
+//                 </div>
+//               </div>
+//               <div>
+//                 <div className="flex justify-between mb-1 text-sm">
+//                   <span className="text-gray-600">Takeaway</span>
+//                   <span className="font-semibold">{kpiData.takeawayOrders} ({((kpiData.takeawayOrders/kpiData.totalOrders)*100).toFixed(0)}%)</span>
+//                 </div>
+//                 <div className="w-full bg-gray-200 rounded-full h-2">
+//                   <div className="bg-green-600 h-2 rounded-full" style={{width: `${(kpiData.takeawayOrders/kpiData.totalOrders)*100}%`}}></div>
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+
+//           <div className="bg-white rounded-lg shadow-md p-5">
+//             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+//               <BarChart3 size={20} className="text-green-600" />
+//               Profit Metrics
+//             </h3>
+//             <div className="space-y-4">
+//               <div>
+//                 <div className="flex justify-between items-center">
+//                   <span className="text-sm text-gray-600">Profit Margin</span>
+//                   <span className={`font-bold text-lg ${profitMargin >= 50 ? 'text-green-600' : 'text-yellow-600'}`}>
+//                     {profitMargin}%
+//                   </span>
+//                 </div>
+//               </div>
+//               <div>
+//                 <div className="flex justify-between items-center">
+//                   <span className="text-sm text-gray-600">Food Cost %</span>
+//                   <span className={`font-bold text-lg ${foodCostPercent <= 35 ? 'text-green-600' : 'text-red-600'}`}>
+//                     {foodCostPercent}%
+//                   </span>
+//                 </div>
+//                 <p className="text-xs text-gray-500 mt-1">Ideal: 28-35%</p>
+//               </div>
+//             </div>
+//           </div>
+
+//           <div className="bg-gradient-to-br from-orange-500 to-red-500 text-white rounded-lg shadow-lg p-5">
+//             <h3 className="font-bold mb-3 flex items-center gap-2">
+//               <AlertTriangle size={20} />
+//               Critical Alerts
+//             </h3>
+//             <div className="space-y-2 text-sm">
+//               <div className="bg-white/20 rounded p-2">
+//                 <div className="font-semibold">4 Items Low Stock</div>
+//                 <div className="text-xs opacity-90">Action needed today</div>
+//               </div>
+//               <div className="bg-white/20 rounded p-2">
+//                 <div className="font-semibold">₹9,000 Payment Due</div>
+//                 <div className="text-xs opacity-90">2 suppliers pending</div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Two Column Layout */}
+//         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          
+//           {/* Top Selling Items */}
+//           <div className="bg-white rounded-lg shadow-md">
+//             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-white">
+//               <h3 className="font-bold text-gray-800 flex items-center gap-2">
+//                 <ChefHat size={20} className="text-green-600" />
+//                 Top Selling Items
+//               </h3>
+//             </div>
+//             <div className="overflow-x-auto">
+//               <table className="w-full text-sm">
+//                 <thead className="bg-gray-50">
+//                   <tr>
+//                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Item</th>
+//                     <th className="px-4 py-3 text-center font-semibold text-gray-700">Qty</th>
+//                     <th className="px-4 py-3 text-right font-semibold text-gray-700">Revenue</th>
+//                     <th className="px-4 py-3 text-right font-semibold text-gray-700">%</th>
+//                   </tr>
+//                 </thead>
+//                 <tbody className="divide-y divide-gray-100">
+//                   {topSellingItems.map((item, idx) => (
+//                     <tr key={idx} className="hover:bg-gray-50">
+//                       <td className="px-4 py-3 font-medium text-gray-800">{item.name}</td>
+//                       <td className="px-4 py-3 text-center text-gray-600">{item.qtySold}</td>
+//                       <td className="px-4 py-3 text-right font-semibold text-green-600">₹{item.revenue.toLocaleString()}</td>
+//                       <td className="px-4 py-3 text-right">
+//                         <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
+//                           {item.contribution}%
+//                         </span>
+//                       </td>
+//                     </tr>
+//                   ))}
+//                 </tbody>
+//               </table>
+//             </div>
+//           </div>
+
+//           {/* Low Stock Alert */}
+//           <div className="bg-white rounded-lg shadow-md">
+//             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-white">
+//               <h3 className="font-bold text-gray-800 flex items-center gap-2">
+//                 <AlertTriangle size={20} className="text-red-600" />
+//                 Low Stock Items
+//               </h3>
+//             </div>
+//             <div className="overflow-x-auto">
+//               <table className="w-full text-sm">
+//                 <thead className="bg-gray-50">
+//                   <tr>
+//                     <th className="px-4 py-3 text-left font-semibold text-gray-700">Material</th>
+//                     <th className="px-4 py-3 text-center font-semibold text-gray-700">Current</th>
+//                     <th className="px-4 py-3 text-center font-semibold text-gray-700">Reorder</th>
+//                     <th className="px-4 py-3 text-center font-semibold text-gray-700">Days Left</th>
+//                   </tr>
+//                 </thead>
+//                 <tbody className="divide-y divide-gray-100">
+//                   {lowStockItems.map((item, idx) => (
+//                     <tr key={idx} className="hover:bg-gray-50">
+//                       <td className="px-4 py-3 font-medium text-gray-800">{item.material}</td>
+//                       <td className="px-4 py-3 text-center">
+//                         <span className="text-red-600 font-semibold">{item.currentStock} {item.unit}</span>
+//                       </td>
+//                       <td className="px-4 py-3 text-center text-gray-600">{item.reorderLevel} {item.unit}</td>
+//                       <td className="px-4 py-3 text-center">
+//                         <span className={`px-2 py-1 rounded text-xs font-semibold ${
+//                           item.daysLeft <= 1 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+//                         }`}>
+//                           {item.daysLeft}d
+//                         </span>
+//                       </td>
+//                     </tr>
+//                   ))}
+//                 </tbody>
+//               </table>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Supplier Purchases */}
+//         <div className="bg-white rounded-lg shadow-md mb-6">
+//           <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white">
+//             <h3 className="font-bold text-gray-800 flex items-center gap-2">
+//               <Users size={20} className="text-purple-600" />
+//               Supplier Purchase Summary
+//             </h3>
+//           </div>
+//           <div className="overflow-x-auto">
+//             <table className="w-full text-sm">
+//               <thead className="bg-gray-50">
+//                 <tr>
+//                   <th className="px-4 py-3 text-left font-semibold text-gray-700">Supplier</th>
+//                   <th className="px-4 py-3 text-right font-semibold text-gray-700">Total Purchased</th>
+//                   <th className="px-4 py-3 text-right font-semibold text-gray-700">Paid</th>
+//                   <th className="px-4 py-3 text-right font-semibold text-gray-700">Due</th>
+//                   <th className="px-4 py-3 text-center font-semibold text-gray-700">Status</th>
+//                 </tr>
+//               </thead>
+//               <tbody className="divide-y divide-gray-100">
+//                 {supplierPurchases.map((supplier, idx) => (
+//                   <tr key={idx} className="hover:bg-gray-50">
+//                     <td className="px-4 py-3 font-medium text-gray-800">{supplier.supplier}</td>
+//                     <td className="px-4 py-3 text-right font-semibold text-gray-700">₹{supplier.totalPurchased.toLocaleString()}</td>
+//                     <td className="px-4 py-3 text-right text-green-600">₹{supplier.paid.toLocaleString()}</td>
+//                     <td className="px-4 py-3 text-right text-red-600 font-semibold">₹{supplier.due.toLocaleString()}</td>
+//                     <td className="px-4 py-3 text-center">
+//                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+//                         supplier.due === 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+//                       }`}>
+//                         {supplier.due === 0 ? 'Paid' : 'Pending'}
+//                       </span>
+//                     </td>
+//                   </tr>
+//                 ))}
+//               </tbody>
+//             </table>
+//           </div>
+//         </div>
+
+//         {/* Peak Hours */}
+//         <div className="bg-white rounded-lg shadow-md">
+//           <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+//             <h3 className="font-bold text-gray-800 flex items-center gap-2">
+//               <Clock size={20} className="text-blue-600" />
+//               Peak Hours Analysis
+//             </h3>
+//           </div>
+//           <div className="p-6">
+//             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+//               {hourlyData.map((hour, idx) => (
+//                 <div key={idx} className="text-center">
+//                   <div className="text-xs text-gray-500 mb-2">{hour.hour}</div>
+//                   <div className="bg-blue-100 rounded-lg p-3 mb-2">
+//                     <div className="text-2xl font-bold text-blue-600">{hour.orders}</div>
+//                     <div className="text-xs text-gray-600">orders</div>
+//                   </div>
+//                   <div className="text-sm font-semibold text-gray-700">₹{(hour.revenue/1000).toFixed(1)}k</div>
+//                 </div>
+//               ))}
+//             </div>
+//           </div>
+//         </div>
+
+//       </div>
+//     </div>
+//   );
+// }

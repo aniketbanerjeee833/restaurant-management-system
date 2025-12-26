@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 
-import { addNewCustomer, addOrder, cancelTakeawayOrder, confirmOrderBillPaidAndInvoiceGenerated, getAllCustomers, getAllInvoicesAndOrdersEachDay, 
+import { addNewCustomer, addOrder, cancelTakeawayOrder, completeTakeawayOrder, confirmOrderBillPaidAndInvoiceGenerated, getAllCustomers, getAllInvoicesAndOrdersEachDay, 
    
     getAllInvoicesOfOrdersAndTakeawaysInDateRange, 
    
@@ -46,6 +46,13 @@ router.post("/confirm-bill/:Order_Id",userAuth,
   userAuth,
   cancelTakeawayOrder
 );
+            router.patch(
+  "/complete-takeaway-order/:Takeaway_Order_Id",
+  userAuth,
+  completeTakeawayOrder
+);
+
+
 
 
 export default router;

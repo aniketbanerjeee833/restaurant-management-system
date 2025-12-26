@@ -238,6 +238,257 @@ const cleanValue = (value) => {
 //     if (connection) connection.release();
 //   }
 // };
+// const registerUser = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     connection = await db.getConnection();
+//     await connection.beginTransaction();
+
+//     // ===============================
+//     // 🔐 AUTH CHECK
+//     // ===============================
+//     if (!req.user || !req.user.User_Id) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Unauthorized. Please login again.",
+//       });
+//     }
+
+//     const adminId = req.user.User_Id;
+
+//     const [adminRows] = await connection.query(
+//       `SELECT role FROM users WHERE User_Id = ?`,
+//       [adminId]
+//     );
+
+//     if (!adminRows.length || adminRows[0].role !== "admin") {
+//       await connection.rollback();
+//       return res.status(403).json({
+//         success: false,
+//         message: "Only admin can register users",
+//       });
+//     }
+
+//     // ===============================
+//     // 🧼 SANITIZE & VALIDATE
+//     // ===============================
+//     const cleanData = sanitizeObject(req.body);
+//     const parsed = registerSchema.safeParse(cleanData);
+
+//     if (!parsed.success) {
+//       return res.status(400).json({
+//         success: false,
+//         errors: parsed.error.errors.map(e => e.message),
+//       });
+//     }
+
+//     const {
+//       name,
+//       phone,
+//       email,
+//       username,
+//       password,
+//       address,
+//       pincode,
+//       city,
+//       role,
+//       categories = [],
+//     } = parsed.data;
+
+//     // ===============================
+//     // 🔁 DUPLICATE CHECK
+//     // ===============================
+//     const [existing] = await connection.query(
+//       `SELECT id FROM users 
+//        WHERE email = ? OR phone = ? OR username = ?`,
+//       [email, phone, username]
+//     );
+
+//     if (existing.length) {
+//       await connection.rollback();
+//       return res.status(400).json({
+//         success: false,
+//         message: "User already exists",
+//       });
+//     }
+
+//     // ===============================
+//     // 🆔 GENERATE USER ID
+//     // ===============================
+//     const [lastUser] = await connection.query(
+//       `SELECT User_Id FROM users ORDER BY id DESC LIMIT 1`
+//     );
+
+//     let userId = "USR001";
+//     if (lastUser.length) {
+//       const num = parseInt(lastUser[0].User_Id.replace("USR", ""), 10) + 1;
+//       userId = "USR" + String(num).padStart(3, "0");
+//     }
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // ===============================
+//     // 👤 INSERT USER
+//     // ===============================
+//     await connection.query(
+//       `INSERT INTO users
+//        (User_Id, name, phone, email, username, password,
+//         address, pincode, city, admin_id, role, created_at, updated_at)
+//        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+//       [
+//         userId,
+//         name,
+//         phone,
+//         email,
+//         username,
+//         hashedPassword,
+//         address || null,
+//         pincode || null,
+//         city || null,
+//         adminId,
+//         role,
+//       ]
+//     );
+
+//     // ===============================
+//     // 🍳 KITCHEN STAFF CATEGORY LOGIC
+//     // ===============================
+//     // if (role === "kitchen-staff") {
+
+//     //   if (!Array.isArray(categories) || categories.length === 0) {
+//     //     await connection.rollback();
+//     //     return res.status(400).json({
+//     //       success: false,
+//     //       message: "Kitchen staff must have at least one category",
+//     //     });
+//     //   }
+
+//     //   // ✅ Validate categories
+//     //   const [validCats] = await connection.query(
+//     //     `SELECT Item_Category 
+//     //      FROM add_category 
+//     //      WHERE Item_Category IN (?)`,
+//     //     [categories]
+//     //   );
+
+//     //   if (validCats.length !== categories.length) {
+//     //     const found = validCats.map(c => c.Item_Category);
+//     //     const missing = categories.filter(c => !found.includes(c));
+
+//     //     await connection.rollback();
+//     //     return res.status(400).json({
+//     //       success: false,
+//     //       message: `Invalid categories: ${missing.join(", ")}`,
+//     //     });
+//     //   }
+
+//     //   // 🆔 Generate Staff_Category_Id
+//     //   const [lastCat] = await connection.query(
+//     //     `SELECT Staff_Category_Id 
+//     //      FROM kitchen_staff_categories 
+//     //      ORDER BY id DESC LIMIT 1`
+//     //   );
+
+//     //   let staffCategoryId = "KSC00001";
+//     //   if (lastCat.length) {
+//     //     const num = parseInt(
+//     //       lastCat[0].Staff_Category_Id.replace("KSC", ""),
+//     //       10
+//     //     ) + 1;
+//     //     staffCategoryId = "KSC" + String(num).padStart(5, "0");
+//     //   }
+
+//     //   // 📌 Insert category mapping
+//     //   await connection.query(
+//     //     `INSERT INTO kitchen_staff_categories
+//     //      (Staff_Category_Id, User_Id, Category_Names, created_at, updated_at)
+//     //      VALUES (?, ?, ?, NOW(), NOW())`,
+//     //     [
+//     //       staffCategoryId,
+//     //       userId,
+//     //       categories.join(","), // 👈 IMPORTANT
+//     //     ]
+//     //   );
+//     // }
+// // ===============================
+// // 🍳 KITCHEN STAFF CATEGORY LOGIC
+// // ===============================
+// if (role === "kitchen-staff") {
+
+//   if (!Array.isArray(categories) || categories.length === 0) {
+//     await connection.rollback();
+//     return res.status(400).json({
+//       success: false,
+//       message: "Kitchen staff must have at least one category",
+//     });
+//   }
+
+//   // ✅ Validate categories
+//   const [validCats] = await connection.query(
+//     `SELECT Item_Category FROM add_category WHERE Item_Category IN (?)`,
+//     [categories]
+//   );
+
+//   if (validCats.length !== categories.length) {
+//     const found = validCats.map(c => c.Item_Category);
+//     const missing = categories.filter(c => !found.includes(c));
+
+//     await connection.rollback();
+//     return res.status(400).json({
+//       success: false,
+//       message: `Invalid categories: ${missing.join(", ")}`,
+//     });
+//   }
+
+//   // 🔢 Generate next Staff_Category_Id
+//   const [lastRow] = await connection.query(
+//     `SELECT Staff_Category_Id 
+//      FROM kitchen_staff_categories 
+//      ORDER BY id DESC LIMIT 1`
+//   );
+
+//   let nextNum = 1;
+//   if (lastRow.length && lastRow[0].Staff_Category_Id) {
+//     nextNum =
+//       parseInt(lastRow[0].Staff_Category_Id.replace("KSC", ""), 10) + 1;
+//   }
+
+//   const staffCategoryId = "KSC" + String(nextNum).padStart(5, "0");
+
+//   // 📌 INSERT SINGLE ROW
+//   await connection.query(
+//     `INSERT INTO kitchen_staff_categories
+//      (Staff_Category_Id, User_Id, Category_Names, created_at, updated_at)
+//      VALUES (?, ?, ?, NOW(), NOW())`,
+//     [
+//       staffCategoryId,
+//       userId,
+//       categories.join(","), // 👈 ONE ROW ONLY
+//     ]
+//   );
+// }
+
+//     // ===============================
+//     // ✅ COMMIT
+//     // ===============================
+//     await connection.commit();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "User registered successfully",
+//       User_Id: userId,
+//       role,
+//     });
+
+//   } catch (err) {
+//     if (connection) await connection.rollback();
+//     console.error("Register Error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
 const registerUser = async (req, res, next) => {
   let connection;
 
@@ -245,9 +496,9 @@ const registerUser = async (req, res, next) => {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    // ===============================
-    // 🔐 AUTH CHECK
-    // ===============================
+    /* =====================================================
+       🔐 AUTH CHECK (ADMIN ONLY)
+    ===================================================== */
     if (!req.user || !req.user.User_Id) {
       return res.status(401).json({
         success: false,
@@ -270,9 +521,9 @@ const registerUser = async (req, res, next) => {
       });
     }
 
-    // ===============================
-    // 🧼 SANITIZE & VALIDATE
-    // ===============================
+    /* =====================================================
+       🧼 SANITIZE & VALIDATE
+    ===================================================== */
     const cleanData = sanitizeObject(req.body);
     const parsed = registerSchema.safeParse(cleanData);
 
@@ -285,10 +536,10 @@ const registerUser = async (req, res, next) => {
 
     const {
       name,
-      phone,
-      email,
       username,
       password,
+      phone,
+      email,
       address,
       pincode,
       city,
@@ -296,14 +547,46 @@ const registerUser = async (req, res, next) => {
       categories = [],
     } = parsed.data;
 
-    // ===============================
-    // 🔁 DUPLICATE CHECK
-    // ===============================
-    const [existing] = await connection.query(
-      `SELECT id FROM users 
-       WHERE email = ? OR phone = ? OR username = ?`,
-      [email, phone, username]
-    );
+    /* =====================================================
+       🔁 NORMALIZE OPTIONAL FIELDS (CRITICAL LOGIC)
+       → NULL only if not passed
+       → keep value if passed
+    ===================================================== */
+    const phoneValue = phone ?? null;
+    const emailValue = email ?? null;
+    const addressValue = address ?? null;
+    const pincodeValue = pincode ?? null;
+    const cityValue = city ?? null;
+
+    /* =====================================================
+       🔁 DUPLICATE CHECK (DYNAMIC)
+    ===================================================== */
+    const conditions = [];
+    const values = [];
+
+    // username must always be unique
+    conditions.push("username = ?");
+    values.push(username);
+
+    // phone duplicate check only if provided
+    if (phoneValue) {
+      conditions.push("phone = ?");
+      values.push(phoneValue);
+    }
+
+    // email duplicate check only if provided
+    if (emailValue) {
+      conditions.push("email = ?");
+      values.push(emailValue);
+    }
+
+    const duplicateQuery = `
+      SELECT id FROM users
+      WHERE ${conditions.join(" OR ")}
+      LIMIT 1
+    `;
+
+    const [existing] = await connection.query(duplicateQuery, values);
 
     if (existing.length) {
       await connection.rollback();
@@ -313,24 +596,25 @@ const registerUser = async (req, res, next) => {
       });
     }
 
-    // ===============================
-    // 🆔 GENERATE USER ID
-    // ===============================
+    /* =====================================================
+       🆔 GENERATE USER ID
+    ===================================================== */
     const [lastUser] = await connection.query(
       `SELECT User_Id FROM users ORDER BY id DESC LIMIT 1`
     );
 
     let userId = "USR001";
     if (lastUser.length) {
-      const num = parseInt(lastUser[0].User_Id.replace("USR", ""), 10) + 1;
+      const num =
+        parseInt(lastUser[0].User_Id.replace("USR", ""), 10) + 1;
       userId = "USR" + String(num).padStart(3, "0");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ===============================
-    // 👤 INSERT USER
-    // ===============================
+    /* =====================================================
+       👤 INSERT USER
+    ===================================================== */
     await connection.query(
       `INSERT INTO users
        (User_Id, name, phone, email, username, password,
@@ -339,139 +623,77 @@ const registerUser = async (req, res, next) => {
       [
         userId,
         name,
-        phone,
-        email,
+        phoneValue,
+        emailValue,
         username,
         hashedPassword,
-        address || null,
-        pincode || null,
-        city || null,
+        addressValue,
+        pincodeValue,
+        cityValue,
         adminId,
         role,
       ]
     );
 
-    // ===============================
-    // 🍳 KITCHEN STAFF CATEGORY LOGIC
-    // ===============================
-    // if (role === "kitchen-staff") {
+    /* =====================================================
+       🍳 KITCHEN STAFF CATEGORY LOGIC (PRESERVED)
+    ===================================================== */
+    if (role === "kitchen-staff") {
 
-    //   if (!Array.isArray(categories) || categories.length === 0) {
-    //     await connection.rollback();
-    //     return res.status(400).json({
-    //       success: false,
-    //       message: "Kitchen staff must have at least one category",
-    //     });
-    //   }
+      if (!Array.isArray(categories) || categories.length === 0) {
+        await connection.rollback();
+        return res.status(400).json({
+          success: false,
+          message: "Kitchen staff must have at least one category",
+        });
+      }
 
-    //   // ✅ Validate categories
-    //   const [validCats] = await connection.query(
-    //     `SELECT Item_Category 
-    //      FROM add_category 
-    //      WHERE Item_Category IN (?)`,
-    //     [categories]
-    //   );
+      const [validCats] = await connection.query(
+        `SELECT Item_Category FROM add_category WHERE Item_Category IN (?)`,
+        [categories]
+      );
 
-    //   if (validCats.length !== categories.length) {
-    //     const found = validCats.map(c => c.Item_Category);
-    //     const missing = categories.filter(c => !found.includes(c));
+      if (validCats.length !== categories.length) {
+        const found = validCats.map(c => c.Item_Category);
+        const missing = categories.filter(c => !found.includes(c));
 
-    //     await connection.rollback();
-    //     return res.status(400).json({
-    //       success: false,
-    //       message: `Invalid categories: ${missing.join(", ")}`,
-    //     });
-    //   }
+        await connection.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Invalid categories: ${missing.join(", ")}`,
+        });
+      }
 
-    //   // 🆔 Generate Staff_Category_Id
-    //   const [lastCat] = await connection.query(
-    //     `SELECT Staff_Category_Id 
-    //      FROM kitchen_staff_categories 
-    //      ORDER BY id DESC LIMIT 1`
-    //   );
+      const [lastRow] = await connection.query(
+        `SELECT Staff_Category_Id 
+         FROM kitchen_staff_categories 
+         ORDER BY id DESC LIMIT 1`
+      );
 
-    //   let staffCategoryId = "KSC00001";
-    //   if (lastCat.length) {
-    //     const num = parseInt(
-    //       lastCat[0].Staff_Category_Id.replace("KSC", ""),
-    //       10
-    //     ) + 1;
-    //     staffCategoryId = "KSC" + String(num).padStart(5, "0");
-    //   }
+      let nextNum = 1;
+      if (lastRow.length && lastRow[0].Staff_Category_Id) {
+        nextNum =
+          parseInt(lastRow[0].Staff_Category_Id.replace("KSC", ""), 10) + 1;
+      }
 
-    //   // 📌 Insert category mapping
-    //   await connection.query(
-    //     `INSERT INTO kitchen_staff_categories
-    //      (Staff_Category_Id, User_Id, Category_Names, created_at, updated_at)
-    //      VALUES (?, ?, ?, NOW(), NOW())`,
-    //     [
-    //       staffCategoryId,
-    //       userId,
-    //       categories.join(","), // 👈 IMPORTANT
-    //     ]
-    //   );
-    // }
-// ===============================
-// 🍳 KITCHEN STAFF CATEGORY LOGIC
-// ===============================
-if (role === "kitchen-staff") {
+      const staffCategoryId =
+        "KSC" + String(nextNum).padStart(5, "0");
 
-  if (!Array.isArray(categories) || categories.length === 0) {
-    await connection.rollback();
-    return res.status(400).json({
-      success: false,
-      message: "Kitchen staff must have at least one category",
-    });
-  }
+      await connection.query(
+        `INSERT INTO kitchen_staff_categories
+         (Staff_Category_Id, User_Id, Category_Names, created_at, updated_at)
+         VALUES (?, ?, ?, NOW(), NOW())`,
+        [
+          staffCategoryId,
+          userId,
+          categories.join(","), // SINGLE ROW ONLY
+        ]
+      );
+    }
 
-  // ✅ Validate categories
-  const [validCats] = await connection.query(
-    `SELECT Item_Category FROM add_category WHERE Item_Category IN (?)`,
-    [categories]
-  );
-
-  if (validCats.length !== categories.length) {
-    const found = validCats.map(c => c.Item_Category);
-    const missing = categories.filter(c => !found.includes(c));
-
-    await connection.rollback();
-    return res.status(400).json({
-      success: false,
-      message: `Invalid categories: ${missing.join(", ")}`,
-    });
-  }
-
-  // 🔢 Generate next Staff_Category_Id
-  const [lastRow] = await connection.query(
-    `SELECT Staff_Category_Id 
-     FROM kitchen_staff_categories 
-     ORDER BY id DESC LIMIT 1`
-  );
-
-  let nextNum = 1;
-  if (lastRow.length && lastRow[0].Staff_Category_Id) {
-    nextNum =
-      parseInt(lastRow[0].Staff_Category_Id.replace("KSC", ""), 10) + 1;
-  }
-
-  const staffCategoryId = "KSC" + String(nextNum).padStart(5, "0");
-
-  // 📌 INSERT SINGLE ROW
-  await connection.query(
-    `INSERT INTO kitchen_staff_categories
-     (Staff_Category_Id, User_Id, Category_Names, created_at, updated_at)
-     VALUES (?, ?, ?, NOW(), NOW())`,
-    [
-      staffCategoryId,
-      userId,
-      categories.join(","), // 👈 ONE ROW ONLY
-    ]
-  );
-}
-
-    // ===============================
-    // ✅ COMMIT
-    // ===============================
+    /* =====================================================
+       ✅ COMMIT
+    ===================================================== */
     await connection.commit();
 
     return res.status(201).json({

@@ -14,6 +14,18 @@ async function generateNextId(connection, prefix, column, table) {
 
     return prefix + num.toString().padStart(5, "0");
 }
+// async function generateNextInvoiceId(connection, prefix, column, table) {
+//   const [rows] = await connection.query(
+//     `SELECT ${column} FROM ${table} ORDER BY id DESC LIMIT 1`
+//   );
+
+//   if (rows.length === 0) return prefix + "001";
+
+//   const lastId = rows[0][column];
+//   const num = parseInt(lastId.replace(prefix, ""), 10) + 1;
+
+//   return prefix + num.toString().padStart(3, "0");
+// }
 
 // const addNewCustomer = async (req, res, next) => {
 //     let connection;
@@ -1400,642 +1412,6 @@ existingKitchenItems.forEach(r => {
 };
 
 
-// const updateOrder = async (req, res, next) => {
-//   let connection;
-
-//   try {
-//     const { Order_Id } = req.params;
-//     const { items, Sub_Total, Amount } = req.body;
-
-//     if (!Order_Id) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Order ID missing",
-//       });
-//     }
-
-//     if (!Array.isArray(items) || items.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Items are required",
-//       });
-//     }
-
-//     connection = await db.getConnection();
-//     await connection.beginTransaction();
-
-//     /* =====================================================
-//        1️⃣ UPDATE ORDER TOTALS
-//     ===================================================== */
-//     await connection.query(
-//       `UPDATE orders SET Sub_Total = ?, Amount = ? WHERE Order_Id = ?`,
-//       [Sub_Total, Amount, Order_Id]
-//     );
-
-//     /* =====================================================
-//        2️⃣ DELETE OLD FRONTDESK ITEMS
-//     ===================================================== */
-//     await connection.query(
-//       `DELETE FROM order_items WHERE Order_Id = ?`,
-//       [Order_Id]
-//     );
-
-//     /* =====================================================
-//        3️⃣ FETCH OR CREATE KOT
-//     ===================================================== */
-//     const [[kotRow]] = await connection.query(
-//       `SELECT KOT_Id FROM kitchen_orders WHERE Order_Id = ? LIMIT 1`,
-//       [Order_Id]
-//     );
-
-//     let KOT_Id;
-
-//     if (kotRow) {
-//       KOT_Id = kotRow.KOT_Id;
-//       await connection.query(
-//         `UPDATE kitchen_orders SET Status='pending', updated_at=NOW() WHERE KOT_Id=?`,
-//         [KOT_Id]
-//       );
-//     } else {
-//       KOT_Id = await generateNextId(
-//         connection,
-//         "KOT",
-//         "KOT_Id",
-//         "kitchen_orders"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status)
-//          VALUES (?, ?, 'pending')`,
-//         [KOT_Id, Order_Id]
-//       );
-//     }
-
-//     /* =====================================================
-//        4️⃣ FETCH OLD KITCHEN ITEMS (TO PRESERVE STATUS)
-//     ===================================================== */
-//     const [oldKitchenItems] = await connection.query(
-//       `SELECT Item_Id, Item_Name, Item_Status
-//        FROM kitchen_order_items
-//        WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     // Group by Item_Id
-//     const oldItemMap = {};
-//     oldKitchenItems.forEach((row) => {
-//       if (!oldItemMap[row.Item_Id]) oldItemMap[row.Item_Id] = [];
-//       oldItemMap[row.Item_Id].push(row.Item_Status);
-//     });
-
-//     /* =====================================================
-//        5️⃣ DELETE OLD KITCHEN ITEMS
-//     ===================================================== */
-//     await connection.query(
-//       `DELETE FROM kitchen_order_items WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     /* =====================================================
-//        6️⃣ RE-INSERT ITEMS (OLD + NEW)
-//     ===================================================== */
-//     for (const item of items) {
-//       const { Item_Name, Item_Quantity, Item_Price, Amount: ItemAmount } = item;
-
-//       if (!Item_Name || Item_Quantity <= 0) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           success: false,
-//           message: `Invalid item data: ${Item_Name}`,
-//         });
-//       }
-
-//       // Lookup item
-//       const [[dbItem]] = await connection.query(
-//         `SELECT Item_Id, Item_Category FROM add_food_item
-//          WHERE Item_Name = ? LIMIT 1`,
-//         [Item_Name]
-//       );
-
-//       if (!dbItem) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           success: false,
-//           message: `Item not found: ${Item_Name}`,
-//         });
-//       }
-
-//       const { Item_Id, Item_Category } = dbItem;
-
-//       /* ---------- FRONTDESK ORDER ITEM ---------- */
-//       const Order_Item_Id = await generateNextId(
-//         connection,
-//         "ODRITM",
-//         "Order_Item_Id",
-//         "order_items"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO order_items
-//          (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
-//          VALUES (?, ?, ?, ?, ?, ?)`,
-//         [
-//           Order_Item_Id,
-//           Order_Id,
-//           Item_Id,
-//           Item_Quantity,
-//           Item_Price,
-//           ItemAmount,
-//         ]
-//       );
-
-//       /* ---------- KITCHEN ITEMS ---------- */
-//       const oldStatuses = oldItemMap[Item_Id] || [];
-//       const preserveCount = Math.min(oldStatuses.length, Item_Quantity);
-
-//       // Preserve old items
-//       for (let i = 0; i < preserveCount; i++) {
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
-
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, 1, ?)`,
-//           [
-//             KOT_Item_Id,
-//             KOT_Id,
-//             Item_Id,
-//             Item_Name,
-//             oldStatuses[i],
-//           ]
-//         );
-//       }
-
-//       // Add new pending items
-//       const newCount = Item_Quantity - preserveCount;
-
-//       for (let i = 0; i < newCount; i++) {
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
-
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, 1, 'pending')`,
-//           [
-//             KOT_Item_Id,
-//             KOT_Id,
-//             Item_Id,
-//             Item_Name,
-//           ]
-//         );
-//       }
-
-//       /* ---------- 🔔 NOTIFY CATEGORY STAFF ---------- */
-//       io.to(`category_${Item_Category}`).emit("new_kitchen_order", {
-//         KOT_Id,
-//         Order_Id,
-//         Category: Item_Category,
-//         items: [{ Item_Name, Quantity: Item_Quantity }],
-//       });
-//     }
-
-//     /* =====================================================
-//        7️⃣ FETCH FINAL ITEMS & UPDATE KOT STATUS
-//     ===================================================== */
-//     const [finalItems] = await connection.query(
-//       `SELECT KOT_Item_Id, Item_Id, Item_Name, Quantity, Item_Status
-//        FROM kitchen_order_items
-//        WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     const anyPending = finalItems.some(
-//       (it) => it.Item_Status !== "ready"
-//     );
-
-//     await connection.query(
-//       `UPDATE kitchen_orders SET Status = ? WHERE KOT_Id = ?`,
-//       [anyPending ? "pending" : "ready", KOT_Id]
-//     );
-
-//     await connection.commit();
-
-//     /* =====================================================
-//        8️⃣ SOCKET BROADCAST (FULL MERGE)
-//     ===================================================== */
-//     io.emit("kitchen_order_updated", {
-//       KOT_Id,
-//       Order_Id,
-//       items: finalItems,
-//     });
-
-//     io.to(`order_${KOT_Id}`).emit("frontend_kot_update", {
-//       KOT_Id,
-//       Order_Id,
-//       items: finalItems,
-//       type: "order_updated",
-//     });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Order updated successfully",
-//       KOT_Id,
-//     });
-
-//   } catch (err) {
-//     if (connection) await connection.rollback();
-//     console.error("❌ Update Order Error:", err);
-//     next(err);
-//   } finally {
-//     if (connection) connection.release();
-//   }
-// };
-
-
-// const updateOrder = async (req, res, next) => {
-//   let connection;
-
-//   try {
-//     const { Order_Id } = req.params;
-//     const { items, Sub_Total, Amount } = req.body;
-
-//     if (!Order_Id)
-//       return res.status(400).json({ success: false, message: "Order ID missing" });
-
-//     if (!items?.length)
-//       return res.status(400).json({ success: false, message: "Items required" });
-
-//     connection = await db.getConnection();
-//     await connection.beginTransaction();
-
-//     // -------------------------------------------
-//     // 1️⃣ UPDATE ORDER TOTALS
-//     // -------------------------------------------
-//     await connection.query(
-//       `UPDATE orders SET Sub_Total = ?, Amount = ? WHERE Order_Id = ?`,
-//       [Sub_Total, Amount, Order_Id]
-//     );
-
-//     // -------------------------------------------
-//     // 2️⃣ CLEAR FRONTDESK order_items
-//     // -------------------------------------------
-//     await connection.query(`DELETE FROM order_items WHERE Order_Id = ?`, [Order_Id]);
-
-//     // -------------------------------------------
-//     // 3️⃣ FETCH OR CREATE KOT
-//     // -------------------------------------------
-//     const [[existingKOT]] = await connection.query(
-//       `SELECT KOT_Id FROM kitchen_orders WHERE Order_Id = ? LIMIT 1`,
-//       [Order_Id]
-//     );
-
-//     let KOT_Id;
-
-//     if (existingKOT) {
-//       KOT_Id = existingKOT.KOT_Id;
-//       await connection.query(
-//         `UPDATE kitchen_orders SET Status = 'pending', updated_at = NOW() WHERE KOT_Id = ?`,
-//         [KOT_Id]
-//       );
-//     } else {
-//       KOT_Id = await generateNextId(connection, "KOT", "KOT_Id", "kitchen_orders");
-//       await connection.query(
-//         `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status, updated_at)
-//          VALUES (?, ?, 'pending', NOW())`,
-//         [KOT_Id, Order_Id]
-//       );
-//     }
-
-//     // -------------------------------------------
-//     // 4️⃣ FETCH OLD KITCHEN ITEMS (preserve status)
-//     // -------------------------------------------
-//     const [oldKitchenRows] = await connection.query(
-//       `SELECT KOT_Item_Id, Item_Id, Item_Name, Quantity, Item_Status 
-//        FROM kitchen_order_items 
-//        WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     // Group old rows by Item_Id
-//     const oldMap = {};
-//     oldKitchenRows.forEach((row) => {
-//       if (!oldMap[row.Item_Id]) oldMap[row.Item_Id] = [];
-//       oldMap[row.Item_Id].push({
-//         Item_Name: row.Item_Name,
-//         Quantity: row.Quantity,
-//         Item_Status: row.Item_Status
-//       });
-//     });
-
-//     // -------------------------------------------
-//     // 5️⃣ DELETE previous kitchen_order_items
-//     // -------------------------------------------
-//     await connection.query(`DELETE FROM kitchen_order_items WHERE KOT_Id = ?`, [KOT_Id]);
-
-//     // -------------------------------------------
-//     // 6️⃣ RE-INSERT ITEMS WITH QUANTITY-BASED LOGIC
-//     // -------------------------------------------
-//     for (let item of items) {
-//       const { Item_Name, Item_Quantity, Item_Price, Amount: ItemAmount } = item;
-
-//       if (!Item_Name || Item_Name.trim() === "")
-//         return res.status(400).json({ success: false, message: "Item name empty" });
-
-//       if (Item_Quantity <= 0)
-//         return res.status(400).json({ success: false, message: "Invalid quantity" });
-
-//       // Lookup Item_Id
-//       const [dbItem] = await connection.query(
-//         `SELECT Item_Id FROM add_food_item WHERE Item_Name = ? LIMIT 1`,
-//         [Item_Name]
-//       );
-
-//       const Item_Id = dbItem[0].Item_Id;
-
-//       // Insert FRONTDESK rows
-//       const Order_Item_Id = await generateNextId(
-//         connection,
-//         "ODRITM",
-//         "Order_Item_Id",
-//         "order_items"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO order_items (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
-//          VALUES (?, ?, ?, ?, ?, ?)`,
-//         [
-//           Order_Item_Id,
-//           Order_Id,
-//           Item_Id,
-//           Item_Quantity,
-//           Item_Price,
-//           ItemAmount,
-//         ]
-//       );
-
-//       // -------------------------------------------
-//       // 🟩 PRESERVE OLD ROWS (same name & same item)
-//       // -------------------------------------------
-//       const oldRows = oldMap[Item_Id] || [];
-//       const oldCount = oldRows.length;
-//       const newQty = Item_Quantity;
-
-//       // First insert preserved rows
-//       for (let i = 0; i < Math.min(oldCount, newQty); i++) {
-//         const preserved = oldRows[i];
-
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
-
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, ?, ?)`,
-//           [
-//             KOT_Item_Id,
-//             KOT_Id,
-//             Item_Id,
-//             Item_Name,
-//             1,
-//             preserved.Item_Status,
-//           ]
-//         );
-//       }
-
-//       // -------------------------------------------
-//       // 🟥 ADD EXTRA NEW ROWS AS PENDING
-//       // -------------------------------------------
-//       const newRequired = newQty - oldCount;
-
-//       for (let i = 0; i < newRequired; i++) {
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
-
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, ?, 'pending')`,
-//           [
-//             KOT_Item_Id,
-//             KOT_Id,
-//             Item_Id,
-//             Item_Name,
-//             1,
-//           ]
-//         );
-//       }
-//     }
-
-//     // -------------------------------------------
-//     // 7️⃣ FETCH final cleaned KOT items for kitchen UI
-//     // -------------------------------------------
-//     const [kotItems] = await connection.query(
-//       `SELECT KOT_Item_Id, Item_Id, Item_Name, Quantity, Item_Status
-//        FROM kitchen_order_items 
-//        WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-//    const anyPending = kotItems.some(it => it.Item_Status !== "ready");
-
-//     await connection.query(
-//       `UPDATE kitchen_orders SET Status = ? WHERE KOT_Id = ?`,
-//       [anyPending ? "pending" : "ready", KOT_Id]
-//     );
-
-//     await connection.commit();
-
-//     // -------------------------------------------
-//     // 8️⃣ SOCKET BROADCAST
-//     // -------------------------------------------
-// //     io.emit("kitchen_item_update", {
-// //       KOT_Id,
-// //       Order_Id,
-// //       items: kotItems,
-// //     });
-
-// //     // 8️⃣ SOCKET BROADCAST - SEND FULL UPDATED ORDER TO KITCHEN
-// // io.emit("kitchen_order_updated", {
-// //   KOT_Id,
-// //   Order_Id,
-// //   items: kotItems,   // full updated kitchen item list
-// // //   status: "pending",
-// // });
-// // io.to(`order_${KOT_Id}`).emit("frontend_kot_update", {
-// //   KOT_Id,
-// //   items: kotItems,
-// //   type: "order_updated"
-// // });
-//     io.emit("kitchen_order_updated", { KOT_Id, Order_Id, items: kotItems });
-
-//     // 🔥 Notify front counter
-//     io.to(`order_${KOT_Id}`).emit("frontend_kot_update", {
-//       KOT_Id,
-//       Order_Id,
-//       items: kotItems,
-//       type: "order_updated"
-//     });
-
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Order updated successfully",
-//       KOT_Id,
-//     });
-
-//   } catch (err) {
-//     if (connection) await connection.rollback();
-//     console.error("❌ Update Order Error:", err);
-//     next(err);
-//   } finally {
-//     if (connection) connection.release();
-//   }
-// }; 
-// const confirmOrderBillPaidAndInvoiceGenerated = async (req, res, next) => {
-//     let connection;
-
-//     try {
-//         const { Order_Id } = req.params;
-
-//         const {
-//             Customer_Name,
-//             Customer_Phone,
-//             Discount_Type,
-//             Discount,
-//             Service_Charge,
-//             Payment_Type,
-//             Final_Amount // Amount after discount + service charge
-//         } = req.body;
-
-//         if (!Order_Id) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "Order ID missing"
-//             });
-//         }
-
-//         connection = await db.getConnection();
-//         await connection.beginTransaction();
-
-//         // 1️⃣ Create Invoice ID
-//         const Invoice_Id = await generateNextId(
-//             connection,
-//             "INV",
-//             "Invoice_Id",
-//             "invoices"
-//         );
-//          const [fy] = await connection.query(
-//       `SELECT Financial_Year 
-//        FROM financial_year 
-//        WHERE Current_Financial_Year = 1
-//        LIMIT 1`
-//     );
-
-//     if (fy.length === 0) {
-//       await connection.rollback();
-//       return res.status(400).json({
-//         message: "No active financial year found. Please set one in settings.",
-//       });
-//     }
-
-//     const activeFY = fy[0].Financial_Year; 
-
-//         // 2️⃣ Insert Invoice
-//         await connection.query(
-//             `INSERT INTO invoices
-//             (Invoice_Id, Order_Id,Invoice_Date,Financial_Year, Customer_Name, Customer_Phone,
-//              Discount_Type, Discount,
-//              Service_Charge, Amount, Payment_Type)
-//              VALUES (?, ?, NOW(), ?,?,?, ?, ?, ?,?, ?)`,
-//             [
-//                 Invoice_Id,
-//                 Order_Id,
-//                 activeFY,
-
-
-//                 Customer_Name || null,
-//                 Customer_Phone || null,
-//                 Discount_Type ,
-//                 Discount || 0,
-//                 Service_Charge || 0,
-//                 Final_Amount,
-//                 Payment_Type
-//             ]
-//         );
-
-//         // 3️⃣ Update Order status
-//         await connection.query(
-//             `UPDATE orders SET Payment_Status = 'completed',Status = 'paid'
-//              WHERE Order_Id = ?`,
-//             [Order_Id]
-//         );
-
-//         // 4️⃣ Fetch table IDs linked to order
-//         // const [tableIds] = await connection.query(
-//         //     `SELECT Table_Id FROM order_tables WHERE Order_Id = ?`
-//         //     [Order_Id]
-//         // );
-//   const [tableIds] = await connection.query(
-//             `SELECT Table_Id FROM order_tables WHERE Order_Id = ?`,
-//             [Order_Id]        // ✔ FIXED
-//         );
-//         const tableIdsArray = tableIds.map((t) => t.Table_Id);
-
-//         // 5️⃣ Free the tables
-//         await connection.query(
-//             `UPDATE add_table 
-//              SET Status = 'available', 
-//                  Start_Time = NULL,
-//                  End_Time = NOW()
-//              WHERE Table_Id IN (?)`,
-//             [tableIdsArray]
-//         );
-
-
-//          await connection.query(
-//       `DELETE FROM kitchen_order_items WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     // 3️⃣ Delete KOT header
-//     await connection.query(
-//       `DELETE FROM kitchen_orders WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//         await connection.commit();
-
-//         return res.status(200).json({
-//             success: true,
-//             message: "Invoice generated & order completed successfully.",
-//             Invoice_Id
-//         });
-
-//     } catch (err) {
-//         if (connection) await connection.rollback();
-//         console.error(err);
-//         next(err);
-//     } finally {
-//         if (connection) connection.release();
-//     }
-// };
 
 
 //ADMIN to see All orders
@@ -2085,6 +1461,12 @@ if( !Customer_Phone || !Final_Amount){
     // ---------------------------------------
     // 1️⃣ Generate Invoice ID
     // ---------------------------------------
+    // const Invoice_Id = await generateNextInvoiceId(
+    //   connection,
+    //   "IN",
+    //   "Invoice_Id",
+    //   "invoices"
+    // );
     const Invoice_Id = await generateNextId(
       connection,
       "INV",
@@ -2224,58 +1606,6 @@ if( !Customer_Phone || !Final_Amount){
 
 
 
-// const totalInvoicesEachDay= async (req, res, next) => {
-//     let connection;
-
-//     try {
-      
-//         connection = await db.getConnection();
-
-//         const[invoices]=await connection.query(`
-//         SELECT
-//       DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
-//         COUNT(*) AS total_invoices
-//         FROM invoices
-//         GROUP BY DATE(Invoice_Date)
-//         ORDER BY DATE(Invoice_Date) DESC
-//         `)
-
-//         const [takeawayInvoices] = await connection.query(`
-//         SELECT
-//       DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
-//         COUNT(*) AS total_takeaway_invoices
-//         FROM takeaway_invoices
-//         FROM takeaway_invoices
-//         JOIN orders ON takeaway_invoices.Order_Id = orders.Order_Id
-//         WHERE orders.Status NOT IN ('cancelled')
-//         GROUP BY DATE(Invoice_Date)
-//         ORDER BY DATE(Invoice_Date) DESC
-//         `)
-//           const[canceTakeawayInvoices]= await connection.query(`
-//         SELECT
-//       DATE_FORMAT(Invoice_Date, '%Y-%m-%d') AS date,
-//         COUNT(*) AS total_takeaway_invoices
-//         FROM takeaway_invoices
-//         JOIN orders ON takeaway_invoices.Order_Id = orders.Order_Id
-//         WHERE orders.Status = 'cancelled'
-//         GROUP BY DATE(Invoice_Date)
-//         ORDER BY DATE(Invoice_Date) DESC
-//         `)
-//         return res.status(200).json({
-//             success: true,
-//             data: invoices,
-//             takeawayInvoices,
-//             canceTakeawayInvoices
-//         });
-
-//     }catch(err){
-       
-//         console.error("❌ Error fetching invoice data:", err);
-//         next(err);
-//     }finally{
-//         if (connection) connection.release();
-//     }
-// }
 const totalInvoicesEachDay = async (req, res, next) => {
   let connection;
 
@@ -2335,57 +1665,36 @@ const totalInvoicesEachDay = async (req, res, next) => {
   }
 };
 
-const getAllInvoicesAndOrdersEachDay = async (req, res, next) => {
-  let connection;
 
-  try {
-    const { date, search = "" } = req.query;
-    const page = req.query.page ? parseInt(req.query.page, 10) : 1;
-    const limit = 10;
-    const offset = (page - 1) * limit;
+// const getAllInvoicesAndOrdersEachDay = async (req, res, next) => {
+//   let connection;
 
-    if (!date) {
-      return res.status(400).json({
-        success: false,
-        message: "Date is required",
-      });
-    }
+//   try {
+//     const { date, search = "" } = req.query;
+//     const page = req.query.page ? parseInt(req.query.page, 10) : 1;
+//     const limit = 10;
+//     const offset = (page - 1) * limit;
 
-    connection = await db.getConnection();
+//     if (!date) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Date is required",
+//       });
+//     }
 
-    let searchCondition = "";
-    let params = [date];
-let searchInvoice = "";
-let searchTakeaway = "";
+//     connection = await db.getConnection();
 
-let paramsInvoice = [date];
-let paramsTakeaway = [date];
-if (search) {
-  const cleanSearch = search.trim().toLowerCase();
-  const s = `%${cleanSearch}%`;
+//     let searchCondition = "";
+//     let params = [date];
+// let searchInvoice = "";
+// let searchTakeaway = "";
 
-  searchInvoice = `
-    AND (
-      LOWER(Customer_Name) LIKE ?
-      OR LOWER(Customer_Phone) LIKE ?
-      OR LOWER(Invoice_Id) LIKE ?
-      OR LOWER(Order_Id) LIKE ?
-    )
-  `;
-
-  searchTakeaway = `
-    AND (
-      LOWER(Customer_Name) LIKE ?
-      OR LOWER(Customer_Phone) LIKE ?
-      OR LOWER(Invoice_Id) LIKE ?
-      OR LOWER(Takeaway_Order_Id) LIKE ?
-    )
-  `;
-
-  paramsInvoice.push(s, s, s, s);
-  paramsTakeaway.push(s, s, s, s);
-}
+// let paramsInvoice = [date];
+// let paramsTakeaway = [date];
 // if (search) {
+//   const cleanSearch = search.trim().toLowerCase();
+//   const s = `%${cleanSearch}%`;
+
 //   searchInvoice = `
 //     AND (
 //       LOWER(Customer_Name) LIKE ?
@@ -2404,236 +1713,211 @@ if (search) {
 //     )
 //   `;
 
-//   const s = `%${search.toLowerCase()}%`;
-
-//   paramsInvoice.push(s, s, s,s);
-//   paramsTakeaway.push(s, s, s,s);
+//   paramsInvoice.push(s, s, s, s);
+//   paramsTakeaway.push(s, s, s, s);
 // }
 
-    // if (search) {
-    //   searchCondition = `
-    //     AND (
-    //       LOWER(Customer_Name) LIKE ? 
-    //       OR LOWER(Invoice_Id) LIKE ?
-    //       OR LOWER(Order_Id) LIKE ?
-    //     )
-    //   `;
-    //   params.push(`%${search.toLowerCase()}%`);
-    //   params.push(`%${search.toLowerCase()}%`);
-    //   params.push(`%${search.toLowerCase()}%`);
-    // }
+// const [countNormal] = await connection.query(
+//   `SELECT COUNT(*) as total
+//    FROM invoices
+//    WHERE DATE(created_at) = ?
+//    ${searchInvoice}`,
+//   paramsInvoice
+// );
 
-    // ----------------------------------------------------
-    // 1️⃣ COUNT INVOICES
-    // ----------------------------------------------------
-    // const [countNormal] = await connection.query(
-    //   `SELECT COUNT(*) as total 
-    //    FROM invoices
-    //    WHERE DATE(created_at) = ?
-    //    ${searchCondition}`,
-    //   params
-    // );
-const [countNormal] = await connection.query(
-  `SELECT COUNT(*) as total
-   FROM invoices
-   WHERE DATE(created_at) = ?
-   ${searchInvoice}`,
-  paramsInvoice
-);
+//     // const [countTakeaway] = await connection.query(
+//     //   `SELECT COUNT(*) as total 
+//     //    FROM takeaway_invoices
+//     //    WHERE DATE(created_at) = ?
+//     //    ${searchCondition}`,
+//     //   params
+//     // );
+// const [countTakeaway] = await connection.query(
+//   `SELECT COUNT(*) as total
+//    FROM takeaway_invoices
+//    WHERE DATE(created_at) = ?
+//    ${searchTakeaway}`,
+//   paramsTakeaway
+// );
 
-    // const [countTakeaway] = await connection.query(
-    //   `SELECT COUNT(*) as total 
-    //    FROM takeaway_invoices
-    //    WHERE DATE(created_at) = ?
-    //    ${searchCondition}`,
-    //   params
-    // );
-const [countTakeaway] = await connection.query(
-  `SELECT COUNT(*) as total
-   FROM takeaway_invoices
-   WHERE DATE(created_at) = ?
-   ${searchTakeaway}`,
-  paramsTakeaway
-);
+//     const totalInvoices = countNormal[0].total + countTakeaway[0].total;
+//     const totalPages = Math.ceil(totalInvoices / limit);
 
-    const totalInvoices = countNormal[0].total + countTakeaway[0].total;
-    const totalPages = Math.ceil(totalInvoices / limit);
+//     // ----------------------------------------------------
+//     // 2️⃣ FETCH DINE-IN INVOICES (with Customer_Id)
+//     // ----------------------------------------------------
+//     // const [normalInvoices] = await connection.query(
+//     //   `SELECT inv.*, 'dine' AS orderType
+//     //    FROM invoices inv
+//     //    WHERE DATE(inv.created_at) = ?
+//     //    ${searchCondition}
+//     //    ORDER BY inv.created_at ASC
+//     //    LIMIT ? OFFSET ?`,
+//     //   [...params, limit, offset]
+//     // );
+// const [normalInvoices] = await connection.query(
+//   `SELECT inv.*, 'dine' AS orderType
+//    FROM invoices inv
+//    WHERE DATE(inv.created_at) = ?
+//    ${searchInvoice}
+//    ORDER BY inv.created_at ASC
+//    LIMIT ? OFFSET ?`,
+//   [...paramsInvoice, limit, offset]
+// );
 
-    // ----------------------------------------------------
-    // 2️⃣ FETCH DINE-IN INVOICES (with Customer_Id)
-    // ----------------------------------------------------
-    // const [normalInvoices] = await connection.query(
-    //   `SELECT inv.*, 'dine' AS orderType
-    //    FROM invoices inv
-    //    WHERE DATE(inv.created_at) = ?
-    //    ${searchCondition}
-    //    ORDER BY inv.created_at ASC
-    //    LIMIT ? OFFSET ?`,
-    //   [...params, limit, offset]
-    // );
-const [normalInvoices] = await connection.query(
-  `SELECT inv.*, 'dine' AS orderType
-   FROM invoices inv
-   WHERE DATE(inv.created_at) = ?
-   ${searchInvoice}
-   ORDER BY inv.created_at ASC
-   LIMIT ? OFFSET ?`,
-  [...paramsInvoice, limit, offset]
-);
+//     // ----------------------------------------------------
+//     // 3️⃣ FETCH TAKEAWAY INVOICES (with Customer_Id)
+//     // ----------------------------------------------------
+//     // const [takeawayInvoices] = await connection.query(
+//     //   `SELECT tk.*, 'takeaway' AS orderType
+//     //    FROM takeaway_invoices tk
+//     //    WHERE DATE(tk.created_at) = ?
+//     //    ${searchCondition}
+//     //    ORDER BY tk.created_at ASC
+//     //    LIMIT ? OFFSET ?`,
+//     //   [...params, limit, offset]
+//     // );
+// const [takeawayInvoices] = await connection.query(
+//   `SELECT tk.*, 'takeaway' AS orderType
+//    FROM takeaway_invoices tk
+//    WHERE DATE(tk.created_at) = ?
+//    ${searchTakeaway}
+//    ORDER BY tk.created_at ASC
+//    LIMIT ? OFFSET ?`,
+//   [...paramsTakeaway, limit, offset]
+// );
 
-    // ----------------------------------------------------
-    // 3️⃣ FETCH TAKEAWAY INVOICES (with Customer_Id)
-    // ----------------------------------------------------
-    // const [takeawayInvoices] = await connection.query(
-    //   `SELECT tk.*, 'takeaway' AS orderType
-    //    FROM takeaway_invoices tk
-    //    WHERE DATE(tk.created_at) = ?
-    //    ${searchCondition}
-    //    ORDER BY tk.created_at ASC
-    //    LIMIT ? OFFSET ?`,
-    //   [...params, limit, offset]
-    // );
-const [takeawayInvoices] = await connection.query(
-  `SELECT tk.*, 'takeaway' AS orderType
-   FROM takeaway_invoices tk
-   WHERE DATE(tk.created_at) = ?
-   ${searchTakeaway}
-   ORDER BY tk.created_at ASC
-   LIMIT ? OFFSET ?`,
-  [...paramsTakeaway, limit, offset]
-);
+//     const allInvoices = [...normalInvoices, ...takeawayInvoices];
 
-    const allInvoices = [...normalInvoices, ...takeawayInvoices];
+//     if (allInvoices.length === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         date,
+//         page,
+//         totalInvoices,
+//         totalPages,
+//         data: []
+//       });
+//     }
 
-    if (allInvoices.length === 0) {
-      return res.status(200).json({
-        success: true,
-        date,
-        page,
-        totalInvoices,
-        totalPages,
-        data: []
-      });
-    }
+//     // Extract order_ids
+//     const dineOrderIds = normalInvoices.map(i => i.Order_Id);
+//     const takeawayOrderIds = takeawayInvoices.map(i => i.Takeaway_Order_Id);
 
-    // Extract order_ids
-    const dineOrderIds = normalInvoices.map(i => i.Order_Id);
-    const takeawayOrderIds = takeawayInvoices.map(i => i.Takeaway_Order_Id);
+//     const dineCustomerIds = normalInvoices.map(i => i.Customer_Id).filter(Boolean);
+//     const takeawayCustomerIds = takeawayInvoices.map(i => i.Customer_Id).filter(Boolean);
 
-    const dineCustomerIds = normalInvoices.map(i => i.Customer_Id).filter(Boolean);
-    const takeawayCustomerIds = takeawayInvoices.map(i => i.Customer_Id).filter(Boolean);
+//     const allCustomerIds = [...new Set([...dineCustomerIds, ...takeawayCustomerIds])];
 
-    const allCustomerIds = [...new Set([...dineCustomerIds, ...takeawayCustomerIds])];
+//     // ----------------------------------------------------
+//     // 4️⃣ FETCH CUSTOMER DETAILS FOR ALL
+//     // ----------------------------------------------------
+//     let [customerList] = allCustomerIds.length
+//       ? await connection.query(
+//           `SELECT * FROM customers WHERE Customer_Id IN (?)`,
+//           [allCustomerIds]
+//         )
+//       : [[]];
 
-    // ----------------------------------------------------
-    // 4️⃣ FETCH CUSTOMER DETAILS FOR ALL
-    // ----------------------------------------------------
-    let [customerList] = allCustomerIds.length
-      ? await connection.query(
-          `SELECT * FROM customers WHERE Customer_Id IN (?)`,
-          [allCustomerIds]
-        )
-      : [[]];
+//     // ----------------------------------------------------
+//     // 5️⃣ FETCH ORDERS (DINE-IN)
+//     // ----------------------------------------------------
+//     let [orders] = dineOrderIds.length
+//       ? await connection.query(`SELECT * FROM orders WHERE Order_Id IN (?)`, [dineOrderIds])
+//       : [[]];
 
-    // ----------------------------------------------------
-    // 5️⃣ FETCH ORDERS (DINE-IN)
-    // ----------------------------------------------------
-    let [orders] = dineOrderIds.length
-      ? await connection.query(`SELECT * FROM orders WHERE Order_Id IN (?)`, [dineOrderIds])
-      : [[]];
+//     // ----------------------------------------------------
+//     // 6️⃣ FETCH TAKEAWAY ORDERS
+//     // ----------------------------------------------------
+//     let [ordersTakeaway] = takeawayOrderIds.length
+//       ? await connection.query(`SELECT * FROM orders_takeaway WHERE Takeaway_Order_Id IN (?)`, [takeawayOrderIds])
+//       : [[]];
 
-    // ----------------------------------------------------
-    // 6️⃣ FETCH TAKEAWAY ORDERS
-    // ----------------------------------------------------
-    let [ordersTakeaway] = takeawayOrderIds.length
-      ? await connection.query(`SELECT * FROM orders_takeaway WHERE Takeaway_Order_Id IN (?)`, [takeawayOrderIds])
-      : [[]];
+//     // ----------------------------------------------------
+//     // 7️⃣ FETCH ITEMS FOR DINE-IN
+//     // ----------------------------------------------------
+//     let [items] = dineOrderIds.length
+//       ? await connection.query(
+//           `SELECT oi.Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
+//            FROM order_items oi
+//            JOIN add_food_item f ON f.Item_Id = oi.Item_Id
+//            WHERE oi.Order_Id IN (?)`,
+//           [dineOrderIds]
+//         )
+//       : [[]];
 
-    // ----------------------------------------------------
-    // 7️⃣ FETCH ITEMS FOR DINE-IN
-    // ----------------------------------------------------
-    let [items] = dineOrderIds.length
-      ? await connection.query(
-          `SELECT oi.Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
-           FROM order_items oi
-           JOIN add_food_item f ON f.Item_Id = oi.Item_Id
-           WHERE oi.Order_Id IN (?)`,
-          [dineOrderIds]
-        )
-      : [[]];
+//     // ----------------------------------------------------
+//     // 8️⃣ FETCH ITEMS FOR TAKEAWAY
+//     // ----------------------------------------------------
+//     let [takeawayItems] = takeawayOrderIds.length
+//       ? await connection.query(
+//           `SELECT oi.Takeaway_Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
+//            FROM order_takeaway_items oi
+//            JOIN add_food_item f ON f.Item_Id = oi.Item_Id
+//            WHERE oi.Takeaway_Order_Id IN (?)`,
+//           [takeawayOrderIds]
+//         )
+//       : [[]];
 
-    // ----------------------------------------------------
-    // 8️⃣ FETCH ITEMS FOR TAKEAWAY
-    // ----------------------------------------------------
-    let [takeawayItems] = takeawayOrderIds.length
-      ? await connection.query(
-          `SELECT oi.Takeaway_Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
-           FROM order_takeaway_items oi
-           JOIN add_food_item f ON f.Item_Id = oi.Item_Id
-           WHERE oi.Takeaway_Order_Id IN (?)`,
-          [takeawayOrderIds]
-        )
-      : [[]];
+//     // ----------------------------------------------------
+//     // 9️⃣ FETCH TABLES FOR DINE-IN
+//     // ----------------------------------------------------
+//     let [tables] = dineOrderIds.length
+//       ? await connection.query(
+//           `SELECT ot.Order_Id, t.Table_Id, t.Table_Name
+//            FROM order_tables ot
+//            JOIN add_table t ON t.Table_Id = ot.Table_Id
+//            WHERE ot.Order_Id IN (?)`,
+//           [dineOrderIds]
+//         )
+//       : [[]];
 
-    // ----------------------------------------------------
-    // 9️⃣ FETCH TABLES FOR DINE-IN
-    // ----------------------------------------------------
-    let [tables] = dineOrderIds.length
-      ? await connection.query(
-          `SELECT ot.Order_Id, t.Table_Id, t.Table_Name
-           FROM order_tables ot
-           JOIN add_table t ON t.Table_Id = ot.Table_Id
-           WHERE ot.Order_Id IN (?)`,
-          [dineOrderIds]
-        )
-      : [[]];
+//     // ----------------------------------------------------
+//     // 🔟 MERGE EVERYTHING
+//     // ----------------------------------------------------
+//     const finalData = allInvoices.map(inv => {
+//       const customer = customerList.find(c => c.Customer_Id === inv.Customer_Id) || null;
 
-    // ----------------------------------------------------
-    // 🔟 MERGE EVERYTHING
-    // ----------------------------------------------------
-    const finalData = allInvoices.map(inv => {
-      const customer = customerList.find(c => c.Customer_Id === inv.Customer_Id) || null;
+//       if (inv.orderType === "dine") {
+//         return {
+//           invoice: inv,
+//           customer,
+//           order: orders.find(o => o.Order_Id === inv.Order_Id) || null,
+//           items: items.filter(i => i.Order_Id === inv.Order_Id),
+//           tables: tables.filter(t => t.Order_Id === inv.Order_Id),
+//           orderType: "dine"
+//         };
+//       }
 
-      if (inv.orderType === "dine") {
-        return {
-          invoice: inv,
-          customer,
-          order: orders.find(o => o.Order_Id === inv.Order_Id) || null,
-          items: items.filter(i => i.Order_Id === inv.Order_Id),
-          tables: tables.filter(t => t.Order_Id === inv.Order_Id),
-          orderType: "dine"
-        };
-      }
+//       else {
+//         return {
+//           invoice: inv,
+//           customer,
+//           order: ordersTakeaway.find(o => o.Takeaway_Order_Id === inv.Takeaway_Order_Id) || null,
+//           items: takeawayItems.filter(i => i.Takeaway_Order_Id === inv.Takeaway_Order_Id),
+//           tables: [],
+//           orderType: "takeaway"
+//         };
+//       }
+//     });
 
-      else {
-        return {
-          invoice: inv,
-          customer,
-          order: ordersTakeaway.find(o => o.Takeaway_Order_Id === inv.Takeaway_Order_Id) || null,
-          items: takeawayItems.filter(i => i.Takeaway_Order_Id === inv.Takeaway_Order_Id),
-          tables: [],
-          orderType: "takeaway"
-        };
-      }
-    });
+//     return res.status(200).json({
+//       success: true,
+//       date,
+//       page,
+//       totalInvoices,
+//       totalPages,
+//       pageSize: limit,
+//       data: finalData,
+//     });
 
-    return res.status(200).json({
-      success: true,
-      date,
-      page,
-      totalInvoices,
-      totalPages,
-      pageSize: limit,
-      data: finalData,
-    });
-
-  } catch (err) {
-    console.error("❌ Error:", err);
-    next(err);
-  } finally {
-    if (connection) connection.release();
-  }
-};
+//   } catch (err) {
+//     console.error("❌ Error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
 
 // const getAllInvoicesAndOrdersEachDay = async (req, res, next) => {
 //     let connection;
@@ -3360,167 +2644,439 @@ const [takeawayInvoices] = await connection.query(
 //         if (connection) connection.release();
 //     }
 // };
-const getAllInvoicesOfOrdersAndTakeawaysInDateRange = async (req, res, next) => {
+
+// const getAllInvoicesAndOrdersEachDay = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     const { date, search = "" } = req.query;
+//     const page = req.query.page ? parseInt(req.query.page, 10) : 1;
+//     const limit = 10;
+//     const offset = (page - 1) * limit;
+
+//     if (!date) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Date is required",
+//       });
+//     }
+
+//     connection = await db.getConnection();
+
+//     // ----------------------------------------------------
+//     // 🔍 SEARCH CONDITIONS
+//     // ----------------------------------------------------
+//     let searchInvoice = "";
+//     let searchTakeaway = "";
+//     let paramsInvoice = [date];
+//     let paramsTakeaway = [date];
+
+//     if (search) {
+//       const s = `%${search.trim().toLowerCase()}%`;
+
+//       searchInvoice = `
+//         AND (
+//           LOWER(Customer_Name) LIKE ?
+//           OR LOWER(Customer_Phone) LIKE ?
+//           OR LOWER(Invoice_Id) LIKE ?
+//           OR LOWER(Order_Id) LIKE ?
+//         )
+//       `;
+
+//       searchTakeaway = `
+//         AND (
+//           LOWER(Customer_Name) LIKE ?
+//           OR LOWER(Customer_Phone) LIKE ?
+//           OR LOWER(Invoice_Id) LIKE ?
+//           OR LOWER(Takeaway_Order_Id) LIKE ?
+//         )
+//       `;
+
+//       paramsInvoice.push(s, s, s, s);
+//       paramsTakeaway.push(s, s, s, s);
+//     }
+
+//     // ----------------------------------------------------
+//     // 1️⃣ FETCH ALL INVOICE HEADERS (NO PAGINATION)
+//     // ----------------------------------------------------
+//     const [normalInvoices] = await connection.query(
+//       `
+//       SELECT inv.*, 'dine' AS orderType
+//       FROM invoices inv
+//       WHERE DATE(inv.created_at) = ?
+//       ${searchInvoice}
+//       `,
+//       paramsInvoice
+//     );
+
+//     const [takeawayInvoices] = await connection.query(
+//       `
+//       SELECT tk.*, 'takeaway' AS orderType
+//       FROM takeaway_invoices tk
+//       WHERE DATE(tk.created_at) = ?
+//       ${searchTakeaway}
+//       `,
+//       paramsTakeaway
+//     );
+
+//     const [countNormal] = await connection.query(
+//   `SELECT COUNT(*) as total
+//    FROM invoices
+//    WHERE DATE(created_at) = ?
+//    ${searchInvoice}`,
+//   paramsInvoice
+// );
+
+//     // const [countTakeaway] = await connection.query(
+//     //   `SELECT COUNT(*) as total 
+//     //    FROM takeaway_invoices
+//     //    WHERE DATE(created_at) = ?
+//     //    ${searchCondition}`,
+//     //   params
+//     // );
+// const [countTakeaway] = await connection.query(
+//   `SELECT COUNT(*) as total
+//    FROM takeaway_invoices
+//    WHERE DATE(created_at) = ?
+//    ${searchTakeaway}`,
+//   paramsTakeaway
+// );
+//     // ----------------------------------------------------
+//     // 2️⃣ MERGE + SORT
+//     // ----------------------------------------------------
+   
+// const allInvoicesSorted = [...normalInvoices, ...takeawayInvoices].sort(
+//   (a, b) => {
+//     // 1️⃣ DINE FIRST
+//     if (a.orderType !== b.orderType) {
+//       return a.orderType === "dine" ? -1 : 1;
+//     }
+
+//     // 2️⃣ SORT BY DATE INSIDE SAME TYPE
+//     return new Date(a.created_at) - new Date(b.created_at);
+//   }
+// );
+
+//     const totalInvoices = countNormal[0].total + countTakeaway[0].total;
+//     const totalPages = Math.ceil(totalInvoices / limit);
+
+//     // ----------------------------------------------------
+//     // 3️⃣ APPLY PAGINATION (HERE IS THE KEY)
+//     // ----------------------------------------------------
+//     const paginatedInvoices = allInvoicesSorted.slice(
+//       offset,
+//       offset + limit
+//     );
+
+//     if (paginatedInvoices.length === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         date,
+//         page,
+//         pageSize: limit,
+//         totalInvoices,
+//         totalPages,
+//         data: [],
+//       });
+//     }
+
+//     // ----------------------------------------------------
+//     // 4️⃣ EXTRACT IDS (ONLY FROM PAGINATED DATA)
+//     // ----------------------------------------------------
+//     const dineOrderIds = paginatedInvoices
+//       .filter(i => i.orderType === "dine")
+//       .map(i => i.Order_Id);
+
+//     const takeawayOrderIds = paginatedInvoices
+//       .filter(i => i.orderType === "takeaway")
+//       .map(i => i.Takeaway_Order_Id);
+
+//     const customerIds = [
+//       ...new Set(
+//         paginatedInvoices
+//           .map(i => i.Customer_Id)
+//           .filter(Boolean)
+//       )
+//     ];
+
+//     // ----------------------------------------------------
+//     // 5️⃣ FETCH CUSTOMERS
+//     // ----------------------------------------------------
+//     const [customers] = customerIds.length
+//       ? await connection.query(
+//           `SELECT * FROM customers WHERE Customer_Id IN (?)`,
+//           [customerIds]
+//         )
+//       : [[]];
+
+//     // ----------------------------------------------------
+//     // 6️⃣ FETCH ORDERS
+//     // ----------------------------------------------------
+//     const [orders] = dineOrderIds.length
+//       ? await connection.query(
+//           `SELECT * FROM orders WHERE Order_Id IN (?)`,
+//           [dineOrderIds]
+//         )
+//       : [[]];
+
+//     const [ordersTakeaway] = takeawayOrderIds.length
+//       ? await connection.query(
+//           `SELECT * FROM orders_takeaway WHERE Takeaway_Order_Id IN (?)`,
+//           [takeawayOrderIds]
+//         )
+//       : [[]];
+
+//     // ----------------------------------------------------
+//     // 7️⃣ FETCH ITEMS
+//     // ----------------------------------------------------
+//     const [items] = dineOrderIds.length
+//       ? await connection.query(
+//           `
+//           SELECT oi.Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
+//           FROM order_items oi
+//           JOIN add_food_item f ON f.Item_Id = oi.Item_Id
+//           WHERE oi.Order_Id IN (?)
+//           `,
+//           [dineOrderIds]
+//         )
+//       : [[]];
+
+//     const [takeawayItems] = takeawayOrderIds.length
+//       ? await connection.query(
+//           `
+//           SELECT oi.Takeaway_Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
+//           FROM order_takeaway_items oi
+//           JOIN add_food_item f ON f.Item_Id = oi.Item_Id
+//           WHERE oi.Takeaway_Order_Id IN (?)
+//           `,
+//           [takeawayOrderIds]
+//         )
+//       : [[]];
+
+//     // ----------------------------------------------------
+//     // 8️⃣ FETCH TABLES (DINE-IN)
+//     // ----------------------------------------------------
+//     const [tables] = dineOrderIds.length
+//       ? await connection.query(
+//           `
+//           SELECT ot.Order_Id, t.Table_Id, t.Table_Name
+//           FROM order_tables ot
+//           JOIN add_table t ON t.Table_Id = ot.Table_Id
+//           WHERE ot.Order_Id IN (?)
+//           `,
+//           [dineOrderIds]
+//         )
+//       : [[]];
+
+//     // ----------------------------------------------------
+//     // 9️⃣ FINAL MERGE
+//     // ----------------------------------------------------
+//     const finalData = paginatedInvoices.map(inv => {
+//       const customer =
+//         customers.find(c => c.Customer_Id === inv.Customer_Id) || null;
+
+//       if (inv.orderType === "dine") {
+//         return {
+//           invoice: inv,
+//           customer,
+//           order: orders.find(o => o.Order_Id === inv.Order_Id) || null,
+//           items: items.filter(i => i.Order_Id === inv.Order_Id),
+//           tables: tables.filter(t => t.Order_Id === inv.Order_Id),
+//           orderType: "dine",
+//         };
+//       }
+
+//       return {
+//         invoice: inv,
+//         customer,
+//         order:
+//           ordersTakeaway.find(o => o.Takeaway_Order_Id === inv.Takeaway_Order_Id) ||
+//           null,
+//         items: takeawayItems.filter(
+//           i => i.Takeaway_Order_Id === inv.Takeaway_Order_Id
+//         ),
+//         tables: [],
+//         orderType: "takeaway",
+//       };
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       date,
+//       page,
+//       pageSize: limit,
+//       totalInvoices,
+//       totalPages,
+//       data: finalData,
+//     });
+
+//   } catch (err) {
+//     console.error("❌ Error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+const getAllInvoicesAndOrdersEachDay = async (req, res, next) => {
   let connection;
 
   try {
-    const { fromDate, toDate, search = "" } = req.query;
-
-    if (!fromDate || !toDate) {
-      return res.status(400).json({
-        success: false,
-        message: "From Date and To Date are required",
-      });
-    }
-
+    const { date, search = "" } = req.query;
     const page = parseInt(req.query.page || 1, 10);
     const limit = 10;
     const offset = (page - 1) * limit;
 
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: "Date is required",
+      });
+    }
+
     connection = await db.getConnection();
 
     // ----------------------------------------------------
-    // 🔍 SEARCH CONDITION
+    // 🔍 SEARCH CONDITIONS
     // ----------------------------------------------------
-    let searchCondition = "";
-    //let searchParams = [];
+    let searchInvoice = "";
+    let searchTakeaway = "";
+    let paramsInvoice = [date];
+    let paramsTakeaway = [date];
 
-    // if (search) {
-    //   searchCondition = `
-    //     AND (
-    //       LOWER(Customer_Name) LIKE ?
-    //       OR LOWER(Invoice_Id) LIKE ?
-    //       OR LOWER(Order_Id) LIKE ?
-    //     )
-    //   `;
-    //   searchParams = [
-    //     `%${search.toLowerCase()}%`,
-    //     `%${search.toLowerCase()}%`,
-    //     `%${search.toLowerCase()}%`,
-    //   ];
-    // }
-let dineSearchCondition = "";
-let takeawaySearchCondition = "";
-let searchParams = [];
+    if (search) {
+      const s = `%${search.trim().toLowerCase()}%`;
 
-if (search) {
-  const cleanSearch = search.trim().toLowerCase();
-  const s = `%${cleanSearch}%`;
+      searchInvoice = `
+        AND (
+          LOWER(Customer_Name) LIKE ?
+          OR LOWER(Customer_Phone) LIKE ?
+          OR LOWER(Invoice_Id) LIKE ?
+          OR LOWER(Order_Id) LIKE ?
+        )
+      `;
 
-  // 🔹 DINE-IN SEARCH
-  dineSearchCondition = `
-    AND (
-      LOWER(Customer_Name) LIKE ?
-      OR LOWER(Customer_Phone) LIKE ?
-      OR LOWER(Invoice_Id) LIKE ?
-      OR LOWER(Order_Id) LIKE ?
-    )
-  `;
+      searchTakeaway = `
+        AND (
+          LOWER(Customer_Name) LIKE ?
+          OR LOWER(Customer_Phone) LIKE ?
+          OR LOWER(Invoice_Id) LIKE ?
+          OR LOWER(Takeaway_Order_Id) LIKE ?
+        )
+      `;
 
-  // 🔹 TAKEAWAY SEARCH
-  takeawaySearchCondition = `
-    AND (
-      LOWER(Customer_Name) LIKE ?
-      OR LOWER(Customer_Phone) LIKE ?
-      OR LOWER(Invoice_Id) LIKE ?
-      OR LOWER(Takeaway_Order_Id) LIKE ?
-    )
-  `;
-
-  // ✅ EXACTLY 4 PARAMS FOR 4 ?
-  searchParams = [s, s, s, s];
-}
-
+      paramsInvoice.push(s, s, s, s);
+      paramsTakeaway.push(s, s, s, s);
+    }
 
     // ----------------------------------------------------
-    // 1️⃣ FETCH DINE-IN INVOICES
+    // 1️⃣ COUNT TOTAL (DINE + TAKEAWAY)
     // ----------------------------------------------------
-    // const [normalInvoices] = await connection.query(
-    //   `
-    //   SELECT *, 'dine' AS orderType
-    //   FROM invoices
-    //   WHERE DATE(created_at) BETWEEN ? AND ?
-    //   ${searchCondition}
-    //   ORDER BY created_at DESC
-    //   `,
-    //   [fromDate, toDate, ...searchParams]
-    // );
-    const [normalInvoices] = await connection.query(
-  `
-  SELECT *, 'dine' AS orderType
-  FROM invoices
-  WHERE DATE(created_at) BETWEEN ? AND ?
-  ${dineSearchCondition}
-  ORDER BY created_at DESC
-  `,
-  [fromDate, toDate, ...searchParams]
-);
-
-
-    // ----------------------------------------------------
-    // 2️⃣ FETCH TAKEAWAY INVOICES
-    // ----------------------------------------------------
-    // const [takeawayInvoices] = await connection.query(
-    //   `
-    //   SELECT *, 'takeaway' AS orderType
-    //   FROM takeaway_invoices
-    //   WHERE DATE(created_at) BETWEEN ? AND ?
-    //   ${searchCondition}
-    //   ORDER BY created_at DESC
-    //   `,
-    //   [fromDate, toDate, ...searchParams]
-    // );
-const [takeawayInvoices] = await connection.query(
-  `
-  SELECT *, 'takeaway' AS orderType
-  FROM takeaway_invoices
-  WHERE DATE(created_at) BETWEEN ? AND ?
-  ${takeawaySearchCondition}
-  ORDER BY created_at DESC
-  `,
-  [fromDate, toDate, ...searchParams]
-);
-
-    // ----------------------------------------------------
-    // 3️⃣ MERGE & SORT
-    // ----------------------------------------------------
-    const allInvoices = [...normalInvoices, ...takeawayInvoices].sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    const [countNormal] = await connection.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM invoices
+      WHERE DATE(created_at) = ?
+      ${searchInvoice}
+      `,
+      paramsInvoice
     );
 
-    const totalInvoices = allInvoices.length;
+    const [countTakeaway] = await connection.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM takeaway_invoices
+      WHERE DATE(created_at) = ?
+      ${searchTakeaway}
+      `,
+      paramsTakeaway
+    );
+
+    const totalInvoices = countNormal[0].total + countTakeaway[0].total;
     const totalPages = Math.ceil(totalInvoices / limit);
 
-    if (totalInvoices === 0) {
+    // ----------------------------------------------------
+    // 2️⃣ FETCH PAGINATED DATA (UNION ALL)
+    // ----------------------------------------------------
+   const [pagedInvoices] = await connection.query(
+  `
+  (
+    SELECT
+      inv.Invoice_Id,
+      inv.Order_Id,
+      inv.Customer_Id,
+      inv.Customer_Name,
+      inv.Customer_Phone,
+      inv.Amount,
+      inv.Service_Charge,
+      inv.Discount,
+      inv.Discount_Type,
+      inv.created_at,
+      inv.Invoice_Date,
+      'dine' AS orderType,
+      1 AS sortOrder,
+      NULL AS Takeaway_Order_Id
+    FROM invoices inv
+    WHERE DATE(inv.created_at) = ?
+    ${searchInvoice}
+  )
+  UNION ALL
+  (
+    SELECT
+      tk.Invoice_Id,
+      NULL AS Order_Id,
+      tk.Customer_Id,
+      tk.Customer_Name,
+      tk.Customer_Phone,
+      tk.Amount,
+       NULL AS Service_Charge,  -- ✅ PLACEHOLDER ADDED
+      tk.Discount,
+      tk.Discount_Type,
+      tk.created_at,
+      tk.Invoice_Date,
+      'takeaway' AS orderType,
+      2 AS sortOrder,
+      tk.Takeaway_Order_Id
+    FROM takeaway_invoices tk
+    WHERE DATE(tk.created_at) = ?
+    ${searchTakeaway}
+  )
+  ORDER BY sortOrder ASC, created_at ASC
+  LIMIT ? OFFSET ?
+  `,
+  [
+    ...paramsInvoice,
+    ...paramsTakeaway,
+    limit,
+    offset,
+  ]
+);
+
+
+    if (pagedInvoices.length === 0) {
       return res.status(200).json({
         success: true,
-        fromDate,
-        toDate,
+        date,
         page,
-        totalInvoices: 0,
-        totalPages: 0,
+        pageSize: limit,
+        totalInvoices,
+        totalPages,
         data: [],
       });
     }
 
     // ----------------------------------------------------
-    // 4️⃣ PAGINATION (JS LEVEL)
+    // 3️⃣ EXTRACT IDS
     // ----------------------------------------------------
-    const paginatedInvoices = allInvoices.slice(offset, offset + limit);
-
-    // ----------------------------------------------------
-    // 5️⃣ EXTRACT ORDER IDS
-    // ----------------------------------------------------
-    const dineOrderIds = paginatedInvoices
+    const dineOrderIds = pagedInvoices
       .filter(i => i.orderType === "dine")
       .map(i => i.Order_Id);
 
-    const takeawayOrderIds = paginatedInvoices
+    const takeawayOrderIds = pagedInvoices
       .filter(i => i.orderType === "takeaway")
       .map(i => i.Takeaway_Order_Id);
 
     // ----------------------------------------------------
-    // 6️⃣ FETCH ORDERS
+    // 4️⃣ FETCH ORDERS
     // ----------------------------------------------------
     const [orders] = dineOrderIds.length
       ? await connection.query(
@@ -3537,7 +3093,7 @@ const [takeawayInvoices] = await connection.query(
       : [[]];
 
     // ----------------------------------------------------
-    // 7️⃣ FETCH ITEMS
+    // 5️⃣ FETCH ITEMS
     // ----------------------------------------------------
     const [items] = dineOrderIds.length
       ? await connection.query(
@@ -3564,7 +3120,7 @@ const [takeawayInvoices] = await connection.query(
       : [[]];
 
     // ----------------------------------------------------
-    // 8️⃣ FETCH TABLES (DINE-IN ONLY)
+    // 6️⃣ FETCH TABLES (DINE-IN)
     // ----------------------------------------------------
     const [tables] = dineOrderIds.length
       ? await connection.query(
@@ -3579,9 +3135,548 @@ const [takeawayInvoices] = await connection.query(
       : [[]];
 
     // ----------------------------------------------------
-    // 9️⃣ FINAL MERGE
+    // 7️⃣ FINAL MERGE
     // ----------------------------------------------------
-    const finalData = paginatedInvoices.map(inv => {
+    const finalData = pagedInvoices.map(inv => {
+      if (inv.orderType === "dine") {
+        return {
+          invoice: inv,
+          order: orders.find(o => o.Order_Id === inv.Order_Id) || null,
+          items: items.filter(i => i.Order_Id === inv.Order_Id),
+          tables: tables.filter(t => t.Order_Id === inv.Order_Id),
+          orderType: "dine",
+        };
+      }
+
+      return {
+        invoice: inv,
+        order:
+          ordersTakeaway.find(o => o.Takeaway_Order_Id === inv.Takeaway_Order_Id) ||
+          null,
+        items: takeawayItems.filter(
+          i => i.Takeaway_Order_Id === inv.Takeaway_Order_Id
+        ),
+        tables: [],
+        orderType: "takeaway",
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      date,
+      page,
+      pageSize: limit,
+      totalInvoices,
+      totalPages,
+      data: finalData,
+    });
+
+  } catch (err) {
+    console.error("❌ Error:", err);
+    next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+// const getAllInvoicesOfOrdersAndTakeawaysInDateRange = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     const { fromDate, toDate, search = "" } = req.query;
+
+//     if (!fromDate || !toDate) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "From Date and To Date are required",
+//       });
+//     }
+
+//     const page = parseInt(req.query.page || 1, 10);
+//     const limit = 10;
+//     const offset = (page - 1) * limit;
+
+//     connection = await db.getConnection();
+
+//     // ----------------------------------------------------
+//     // 🔍 SEARCH CONDITION
+//     // ----------------------------------------------------
+//     let searchCondition = "";
+
+// let dineSearchCondition = "";
+// let takeawaySearchCondition = "";
+// let searchParams = [];
+
+// if (search) {
+//   const cleanSearch = search.trim().toLowerCase();
+//   const s = `%${cleanSearch}%`;
+
+//   // 🔹 DINE-IN SEARCH
+//   dineSearchCondition = `
+//     AND (
+//       LOWER(Customer_Name) LIKE ?
+//       OR LOWER(Customer_Phone) LIKE ?
+//       OR LOWER(Invoice_Id) LIKE ?
+//       OR LOWER(Order_Id) LIKE ?
+//     )
+//   `;
+
+//   // 🔹 TAKEAWAY SEARCH
+//   takeawaySearchCondition = `
+//     AND (
+//       LOWER(Customer_Name) LIKE ?
+//       OR LOWER(Customer_Phone) LIKE ?
+//       OR LOWER(Invoice_Id) LIKE ?
+//       OR LOWER(Takeaway_Order_Id) LIKE ?
+//     )
+//   `;
+
+//   // ✅ EXACTLY 4 PARAMS FOR 4 ?
+//   searchParams = [s, s, s, s];
+// }
+
+
+//     // ----------------------------------------------------
+//     // 1️⃣ FETCH DINE-IN INVOICES
+//     // ----------------------------------------------------
+//     // const [normalInvoices] = await connection.query(
+//     //   `
+//     //   SELECT *, 'dine' AS orderType
+//     //   FROM invoices
+//     //   WHERE DATE(created_at) BETWEEN ? AND ?
+//     //   ${searchCondition}
+//     //   ORDER BY created_at DESC
+//     //   `,
+//     //   [fromDate, toDate, ...searchParams]
+//     // );
+//     const [normalInvoices] = await connection.query(
+//   `
+//   SELECT *, 'dine' AS orderType
+//   FROM invoices
+//   WHERE DATE(created_at) BETWEEN ? AND ?
+//   ${dineSearchCondition}
+//   ORDER BY created_at DESC
+//   `,
+//   [fromDate, toDate, ...searchParams]
+// );
+
+
+//     // ----------------------------------------------------
+//     // 2️⃣ FETCH TAKEAWAY INVOICES
+//     // ----------------------------------------------------
+//     // const [takeawayInvoices] = await connection.query(
+//     //   `
+//     //   SELECT *, 'takeaway' AS orderType
+//     //   FROM takeaway_invoices
+//     //   WHERE DATE(created_at) BETWEEN ? AND ?
+//     //   ${searchCondition}
+//     //   ORDER BY created_at DESC
+//     //   `,
+//     //   [fromDate, toDate, ...searchParams]
+//     // );
+// const [takeawayInvoices] = await connection.query(
+//   `
+//   SELECT *, 'takeaway' AS orderType
+//   FROM takeaway_invoices
+//   WHERE DATE(created_at) BETWEEN ? AND ?
+//   ${takeawaySearchCondition}
+//   ORDER BY created_at DESC
+//   `,
+//   [fromDate, toDate, ...searchParams]
+// );
+// const [countNormal] = await connection.query(
+//   `
+//   SELECT COUNT(*) as total
+//   FROM invoices
+//   WHERE DATE(created_at) BETWEEN ? AND ?
+//   ${dineSearchCondition}
+//   `,
+//   [fromDate, toDate, ...searchParams]
+// );
+
+
+    
+// const [countTakeaway] = await connection.query(
+//   `
+//   SELECT COUNT(*) as total
+//   FROM takeaway_invoices
+//   WHERE DATE(created_at) BETWEEN ? AND ?
+//   ${takeawaySearchCondition}
+//   `,
+//   [fromDate, toDate, ...searchParams]
+// );
+
+//     // ----------------------------------------------------
+//     // 3️⃣ MERGE & SORT
+//     // ----------------------------------------------------
+//  const allInvoices = [...normalInvoices, ...takeawayInvoices].sort(
+//   (a, b) => {
+//     // 1️⃣ DINE FIRST
+//     if (a.orderType !== b.orderType) {
+//       return a.orderType === "dine" ? -1 : 1;
+//     }
+
+//     // 2️⃣ WITHIN SAME TYPE → SORT BY DATE DESC
+//     return new Date(b.created_at) - new Date(a.created_at);
+//   }
+// );
+
+
+// const totalInvoices=countNormal[0].total+countTakeaway[0].total;
+//     // const totalInvoices = allInvoices.length;
+//     const totalPages = Math.ceil(totalInvoices / limit);
+
+//     if (totalInvoices === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         fromDate,
+//         toDate,
+//         page,
+//         totalInvoices: 0,
+//         totalPages: 0,
+//         data: [],
+//       });
+//     }
+
+//     // ----------------------------------------------------
+//     // 4️⃣ PAGINATION (JS LEVEL)
+//     // ----------------------------------------------------
+//     const paginatedInvoices = allInvoices.slice(offset, offset + limit);
+
+//     // ----------------------------------------------------
+//     // 5️⃣ EXTRACT ORDER IDS
+//     // ----------------------------------------------------
+//     const dineOrderIds = paginatedInvoices
+//       .filter(i => i.orderType === "dine")
+//       .map(i => i.Order_Id);
+
+//     const takeawayOrderIds = paginatedInvoices
+//       .filter(i => i.orderType === "takeaway")
+//       .map(i => i.Takeaway_Order_Id);
+
+//     // ----------------------------------------------------
+//     // 6️⃣ FETCH ORDERS
+//     // ----------------------------------------------------
+//     const [orders] = dineOrderIds.length
+//       ? await connection.query(
+//           `SELECT * FROM orders WHERE Order_Id IN (?)`,
+//           [dineOrderIds]
+//         )
+//       : [[]];
+
+//     const [ordersTakeaway] = takeawayOrderIds.length
+//       ? await connection.query(
+//           `SELECT * FROM orders_takeaway WHERE Takeaway_Order_Id IN (?)`,
+//           [takeawayOrderIds]
+//         )
+//       : [[]];
+
+//     // ----------------------------------------------------
+//     // 7️⃣ FETCH ITEMS
+//     // ----------------------------------------------------
+//     const [items] = dineOrderIds.length
+//       ? await connection.query(
+//           `
+//           SELECT oi.Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
+//           FROM order_items oi
+//           JOIN add_food_item f ON f.Item_Id = oi.Item_Id
+//           WHERE oi.Order_Id IN (?)
+//           `,
+//           [dineOrderIds]
+//         )
+//       : [[]];
+
+//     const [takeawayItems] = takeawayOrderIds.length
+//       ? await connection.query(
+//           `
+//           SELECT oi.Takeaway_Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
+//           FROM order_takeaway_items oi
+//           JOIN add_food_item f ON f.Item_Id = oi.Item_Id
+//           WHERE oi.Takeaway_Order_Id IN (?)
+//           `,
+//           [takeawayOrderIds]
+//         )
+//       : [[]];
+
+//     // ----------------------------------------------------
+//     // 8️⃣ FETCH TABLES (DINE-IN ONLY)
+//     // ----------------------------------------------------
+//     const [tables] = dineOrderIds.length
+//       ? await connection.query(
+//           `
+//           SELECT ot.Order_Id, t.Table_Id, t.Table_Name
+//           FROM order_tables ot
+//           JOIN add_table t ON t.Table_Id = ot.Table_Id
+//           WHERE ot.Order_Id IN (?)
+//           `,
+//           [dineOrderIds]
+//         )
+//       : [[]];
+
+//     // ----------------------------------------------------
+//     // 9️⃣ FINAL MERGE
+//     // ----------------------------------------------------
+//     const finalData = paginatedInvoices.map(inv => {
+//       if (inv.orderType === "dine") {
+//         return {
+//           invoice: inv,
+//           order: orders.find(o => o.Order_Id === inv.Order_Id) || null,
+//           items: items.filter(i => i.Order_Id === inv.Order_Id),
+//           tables: tables.filter(t => t.Order_Id === inv.Order_Id),
+//           orderType: "dine",
+//         };
+//       }
+
+//       return {
+//         invoice: inv,
+//         order:
+//           ordersTakeaway.find(
+//             o => o.Takeaway_Order_Id === inv.Takeaway_Order_Id
+//           ) || null,
+//         items: takeawayItems.filter(
+//           i => i.Takeaway_Order_Id === inv.Takeaway_Order_Id
+//         ),
+//         tables: [],
+//         orderType: "takeaway",
+//       };
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       fromDate,
+//       toDate,
+//       page,
+//       totalInvoices,
+//       totalPages,
+//       pageSize: limit,
+//       data: finalData,
+//     });
+
+//   } catch (err) {
+//     console.error("❌ Error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+const getAllInvoicesOfOrdersAndTakeawaysInDateRange = async (req, res, next) => {
+  let connection;
+
+  try {
+    const { fromDate, toDate, search = "" } = req.query;
+
+    if (!fromDate || !toDate) {
+      return res.status(400).json({
+        success: false,
+        message: "From Date and To Date are required",
+      });
+    }
+
+    const page = parseInt(req.query.page || 1, 10);
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    connection = await db.getConnection();
+
+    // ----------------------------------------------------
+    // 🔍 SEARCH CONDITIONS
+    // ----------------------------------------------------
+    let dineSearchCondition = "";
+    let takeawaySearchCondition = "";
+    let searchParams = [];
+
+    if (search) {
+      const s = `%${search.trim().toLowerCase()}%`;
+
+      dineSearchCondition = `
+        AND (
+          LOWER(Customer_Name) LIKE ?
+          OR LOWER(Customer_Phone) LIKE ?
+          OR LOWER(Invoice_Id) LIKE ?
+          OR LOWER(Order_Id) LIKE ?
+        )
+      `;
+
+      takeawaySearchCondition = `
+        AND (
+          LOWER(Customer_Name) LIKE ?
+          OR LOWER(Customer_Phone) LIKE ?
+          OR LOWER(Invoice_Id) LIKE ?
+          OR LOWER(Takeaway_Order_Id) LIKE ?
+        )
+      `;
+
+      searchParams = [s, s, s, s];
+    }
+
+    // ----------------------------------------------------
+    // 1️⃣ COUNT TOTAL (DINE + TAKEAWAY)
+    // ----------------------------------------------------
+    const [countNormal] = await connection.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM invoices
+      WHERE DATE(created_at) BETWEEN ? AND ?
+      ${dineSearchCondition}
+      `,
+      [fromDate, toDate, ...searchParams]
+    );
+
+    const [countTakeaway] = await connection.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM takeaway_invoices
+      WHERE DATE(created_at) BETWEEN ? AND ?
+      ${takeawaySearchCondition}
+      `,
+      [fromDate, toDate, ...searchParams]
+    );
+
+    const totalInvoices = countNormal[0].total + countTakeaway[0].total;
+    const totalPages = Math.ceil(totalInvoices / limit);
+
+    if (totalInvoices === 0) {
+      return res.status(200).json({
+        success: true,
+        fromDate,
+        toDate,
+        page,
+        totalInvoices: 0,
+        totalPages: 0,
+        data: [],
+      });
+    }
+
+    // ----------------------------------------------------
+    // 2️⃣ FETCH PAGINATED DATA (UNION ALL)
+    // ----------------------------------------------------
+    const [pagedInvoices] = await connection.query(
+      `
+      (
+        SELECT
+          inv.Invoice_Id,
+          inv.Order_Id,
+          inv.Customer_Id,
+          inv.Customer_Name,
+          inv.Customer_Phone,
+          inv.Amount,
+          inv.Service_Charge,
+          inv.Discount,
+          inv.Discount_Type,
+          inv.created_at,
+          inv.Invoice_Date,
+          'dine' AS orderType,
+          1 AS sortOrder,
+          NULL AS Takeaway_Order_Id
+        FROM invoices inv
+        WHERE DATE(inv.created_at) BETWEEN ? AND ?
+        ${dineSearchCondition}
+      )
+      UNION ALL
+      (
+        SELECT
+          tk.Invoice_Id,
+          NULL AS Order_Id,
+          tk.Customer_Id,
+          tk.Customer_Name,
+          tk.Customer_Phone,
+          tk.Amount,
+          NULL AS Service_Charge,
+          tk.Discount,
+          tk.Discount_Type,
+          tk.created_at,
+          tk.Invoice_Date,
+          'takeaway' AS orderType,
+          2 AS sortOrder,
+          tk.Takeaway_Order_Id
+        FROM takeaway_invoices tk
+        WHERE DATE(tk.created_at) BETWEEN ? AND ?
+        ${takeawaySearchCondition}
+      )
+      ORDER BY sortOrder ASC, created_at DESC
+      LIMIT ? OFFSET ?
+      `,
+      [
+        fromDate, toDate, ...searchParams,
+        fromDate, toDate, ...searchParams,
+        limit, offset
+      ]
+    );
+
+    // ----------------------------------------------------
+    // 3️⃣ EXTRACT IDS
+    // ----------------------------------------------------
+    const dineOrderIds = pagedInvoices
+      .filter(i => i.orderType === "dine")
+      .map(i => i.Order_Id);
+
+    const takeawayOrderIds = pagedInvoices
+      .filter(i => i.orderType === "takeaway")
+      .map(i => i.Takeaway_Order_Id);
+
+    // ----------------------------------------------------
+    // 4️⃣ FETCH ORDERS
+    // ----------------------------------------------------
+    const [orders] = dineOrderIds.length
+      ? await connection.query(
+          `SELECT * FROM orders WHERE Order_Id IN (?)`,
+          [dineOrderIds]
+        )
+      : [[]];
+
+    const [ordersTakeaway] = takeawayOrderIds.length
+      ? await connection.query(
+          `SELECT * FROM orders_takeaway WHERE Takeaway_Order_Id IN (?)`,
+          [takeawayOrderIds]
+        )
+      : [[]];
+
+    // ----------------------------------------------------
+    // 5️⃣ FETCH ITEMS
+    // ----------------------------------------------------
+    const [items] = dineOrderIds.length
+      ? await connection.query(
+          `
+          SELECT oi.Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
+          FROM order_items oi
+          JOIN add_food_item f ON f.Item_Id = oi.Item_Id
+          WHERE oi.Order_Id IN (?)
+          `,
+          [dineOrderIds]
+        )
+      : [[]];
+
+    const [takeawayItems] = takeawayOrderIds.length
+      ? await connection.query(
+          `
+          SELECT oi.Takeaway_Order_Id, oi.Quantity, oi.Price, oi.Amount, f.Item_Name
+          FROM order_takeaway_items oi
+          JOIN add_food_item f ON f.Item_Id = oi.Item_Id
+          WHERE oi.Takeaway_Order_Id IN (?)
+          `,
+          [takeawayOrderIds]
+        )
+      : [[]];
+
+    // ----------------------------------------------------
+    // 6️⃣ FETCH TABLES (DINE-IN)
+    // ----------------------------------------------------
+    const [tables] = dineOrderIds.length
+      ? await connection.query(
+          `
+          SELECT ot.Order_Id, t.Table_Id, t.Table_Name
+          FROM order_tables ot
+          JOIN add_table t ON t.Table_Id = ot.Table_Id
+          WHERE ot.Order_Id IN (?)
+          `,
+          [dineOrderIds]
+        )
+      : [[]];
+
+    // ----------------------------------------------------
+    // 7️⃣ FINAL MERGE
+    // ----------------------------------------------------
+    const finalData = pagedInvoices.map(inv => {
       if (inv.orderType === "dine") {
         return {
           invoice: inv,
@@ -3611,9 +3706,9 @@ const [takeawayInvoices] = await connection.query(
       fromDate,
       toDate,
       page,
+      pageSize: limit,
       totalInvoices,
       totalPages,
-      pageSize: limit,
       data: finalData,
     });
 
@@ -3641,6 +3736,7 @@ const takeawayAddOrdersAndGenerateInvoices = async (req, res, next) => {
       Payment_Type,
       Final_Amount
     } = req.body;
+    console.log("req.body",req.body);
 const normalizedCustomerName =Customer_Name && Customer_Name.trim() !== ""
     ? Customer_Name.trim()
     : null;
@@ -3926,7 +4022,7 @@ kotItems.forEach(item => {
     Item_Status: item.Item_Status,
   });
 });
-await connection.commit();
+
 Object.entries(itemsByCategory).forEach(([category, items]) => {
   io.to(`category_${category}`).emit("new_kitchen_order", {
     KOT_Id,
@@ -3936,6 +4032,12 @@ Object.entries(itemsByCategory).forEach(([category, items]) => {
     items,
   });
 });
+await connection.commit();
+return res.status(200).json({
+      success: true,
+      message: "Invoice generated. Order completed.",
+      Invoice_Id,
+    });
 
   } catch (err) {
     if (connection) await connection.rollback();
@@ -3993,11 +4095,13 @@ const nextInvoiceNumber = async (req, res, next) => {
   }
 };
 
+
 const cancelTakeawayOrder = async (req, res, next) => {
   let connection;
 
   try {
     const { Takeaway_Order_Id } = req.params;
+
 
     if (!Takeaway_Order_Id) {
       return res.status(400).json({
@@ -4009,9 +4113,11 @@ const cancelTakeawayOrder = async (req, res, next) => {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    // 🔍 Check order exists & status
+    /* ---------- CHECK ORDER ---------- */
     const [existing] = await connection.query(
-      `SELECT Status FROM orders_takeaway WHERE Takeaway_Order_Id = ?`,
+      `SELECT Status 
+       FROM orders_takeaway 
+       WHERE Takeaway_Order_Id = ?`,
       [Takeaway_Order_Id]
     );
 
@@ -4031,21 +4137,97 @@ const cancelTakeawayOrder = async (req, res, next) => {
       });
     }
 
-    
-
-    // ✅ Cancel order
-    const [result] = await connection.query(
-      `UPDATE orders_takeaway 
+    /* ---------- CANCEL TAKEAWAY ORDER ---------- */
+    await connection.query(
+      `UPDATE orders_takeaway
        SET Status = 'cancelled', updated_at = NOW()
        WHERE Takeaway_Order_Id = ?`,
       [Takeaway_Order_Id]
     );
 
+    /* ---------- FETCH KOT ---------- */
+    const [kotRows] = await connection.query(
+      `SELECT KOT_Id 
+       FROM kitchen_orders 
+       WHERE Order_Id = ?`,
+      [Takeaway_Order_Id]
+    );
+
+    if (!kotRows.length) {
+      await connection.commit();
+      return res.status(200).json({
+        success: true,
+        message: "Order cancelled (no kitchen order)",
+      });
+    }
+
+    const KOT_Id = kotRows[0].KOT_Id;
+
+    /* ---------- FETCH CATEGORY NAMES (CORRECT JOIN) ---------- */
+    const [categoryRows] = await connection.query(
+      `
+      SELECT DISTINCT ac.Item_Category
+      FROM kitchen_order_items koi
+      JOIN add_food_item afi ON afi.Item_Id = koi.Item_Id
+      JOIN add_category ac ON ac.Item_Category = afi.Item_Category
+      WHERE koi.KOT_Id = ?
+      `,
+      [KOT_Id]
+    );
+
+    const categories = categoryRows.map(
+      row => row.Item_Category
+    );
+
+    /* ---------- CANCEL KITCHEN ORDER ---------- */
+    await connection.query(
+      `UPDATE kitchen_orders
+       SET Status = 'cancelled', updated_at = NOW()
+       WHERE KOT_Id = ?`,
+      [KOT_Id]
+    );
+
+    /* ---------- CANCEL KITCHEN ITEMS ---------- */
+    await connection.query(
+      `UPDATE kitchen_order_items
+       SET Item_Status = 'cancelled'
+       WHERE KOT_Id = ?`,
+      [KOT_Id]
+    );
+
+    /* ---------- 🔔 SOCKET NOTIFICATION (CATEGORY-WISE) ---------- */
+    // categories.forEach(category => {
+    //   io.to(`kitchen_${category}`).emit(
+    //     "takeaway_order_cancelled",
+    //     {
+    //       Takeaway_Order_Id,
+    //       KOT_Id,
+    //       category,
+    //       message: `Takeaway order ${Takeaway_Order_Id} cancelled`,
+    //     }
+    //   );
+    // });
+
+    categories.forEach(category => {
+  io.to(`kitchen_${category}`).emit(
+    "takeaway_order_cancelled",
+    {
+      Takeaway_Order_Id,
+      KOT_Id,
+      removeOrder: true,
+    }
+  );
+})
+ // 🔁 fallback (VERY IMPORTANT)
+    io.emit("takeaway_order_cancelled", {
+      Takeaway_Order_Id,
+      KOT_Id,
+      removeOrder: true,
+    });
     await connection.commit();
 
     return res.status(200).json({
       success: true,
-      affectedRows: result.affectedRows,
       message: "Takeaway order cancelled successfully",
     });
 
@@ -4058,721 +4240,140 @@ const cancelTakeawayOrder = async (req, res, next) => {
   }
 };
 
+const completeTakeawayOrder=async (req, res, next) => {
+  let connection;
+
+  try {
+    const { Takeaway_Order_Id } = req.params;
+
+
+    if (!Takeaway_Order_Id) {
+      return res.status(400).json({
+        success: false,
+        message: "Takeaway Order Id is required",
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    /* ---------- CHECK ORDER ---------- */
+    const [existing] = await connection.query(
+      `SELECT Status 
+       FROM orders_takeaway 
+       WHERE Takeaway_Order_Id = ?`,
+      [Takeaway_Order_Id]
+    );
+
+    if (!existing.length) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Takeaway order not found",
+      });
+    }
+
+    if (existing[0].Status === "completed") {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Order already cancelled",
+      });
+    }
+
+    /* ---------- CANCEL TAKEAWAY ORDER ---------- */
+    await connection.query(
+      `UPDATE orders_takeaway
+       SET Status = 'completed', updated_at = NOW()
+       WHERE Takeaway_Order_Id = ?`,
+      [Takeaway_Order_Id]
+    );
+
+    /* ---------- FETCH KOT ---------- */
+    const [kotRows] = await connection.query(
+      `SELECT KOT_Id 
+       FROM kitchen_orders 
+       WHERE Order_Id = ?`,
+      [Takeaway_Order_Id]
+    );
+
+    if (!kotRows.length) {
+      await connection.commit();
+      return res.status(200).json({
+        success: true,
+        message: "Order cancelled (no kitchen order)",
+      });
+    }
+
+    const KOT_Id = kotRows[0].KOT_Id;
+
+    /* ---------- FETCH CATEGORY NAMES (CORRECT JOIN) ---------- */
+    const [categoryRows] = await connection.query(
+      `
+      SELECT DISTINCT ac.Item_Category
+      FROM kitchen_order_items koi
+      JOIN add_food_item afi ON afi.Item_Id = koi.Item_Id
+      JOIN add_category ac ON ac.Item_Category = afi.Item_Category
+      WHERE koi.KOT_Id = ?
+      `,
+      [KOT_Id]
+    );
+
+   
+
+    /* ---------- CANCEL KITCHEN ORDER ---------- */
+    await connection.query(
+      `UPDATE kitchen_orders
+       SET Status = 'ready', updated_at = NOW()
+       WHERE KOT_Id = ?`,
+      [KOT_Id]
+    );
+
+    /* ---------- CANCEL KITCHEN ITEMS ---------- */
+    await connection.query(
+      `UPDATE kitchen_order_items
+       SET Item_Status = 'ready'
+       WHERE KOT_Id = ?`,
+      [KOT_Id]
+    );
+
+    
+
+//     categories.forEach(category => {
+//   io.to(`kitchen_${category}`).emit(
+//     "takeaway_order_cancelled",
+//     {
+//       Takeaway_Order_Id,
+//       KOT_Id,
+//       removeOrder: true,
+//     }
+//   );
+// })
+//  // 🔁 fallback (VERY IMPORTANT)
+    io.emit("takeaway_order_completed", {
+      Takeaway_Order_Id,
+      KOT_Id,
+      removeOrder: true,
+    });
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Takeaway order completed successfully",
+    });
+
+  } catch (err) {
+    if (connection) await connection.rollback();
+    console.error("❌ Error cancelling takeaway order:", err);
+    next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+}
 
 export {addNewCustomer,getAllCustomers,addOrder, getTablesHavingOrders, getTableOrderDetails, updateOrder, 
     confirmOrderBillPaidAndInvoiceGenerated,totalInvoicesEachDay,
     getAllInvoicesAndOrdersEachDay, takeawayAddOrdersAndGenerateInvoices,
     getAllInvoicesOfOrdersAndTakeawaysInDateRange
-,nextInvoiceNumber,cancelTakeawayOrder};
-
-
-// const updateOrder = async (req, res, next) => {
-//     let connection;
-
-//     try {
-//         const { Order_Id } = req.params;
-//         const { items, Sub_Total, Amount } = req.body;
-
-//         if (!Order_Id) return res.status(400).json({ success: false, message: "Order ID missing" });
-//         if (!items?.length) return res.status(400).json({ success: false, message: "At least one item is required" });
-
-//         connection = await db.getConnection();
-//         await connection.beginTransaction();
-
-//         // 1️⃣ UPDATE ORDER TOTALS
-//         await connection.query(
-//             `UPDATE orders SET Sub_Total = ?, Amount = ? WHERE Order_Id = ?`,
-//             [Sub_Total, Amount, Order_Id]
-//         );
-
-//         // 2️⃣ DELETE OLD ORDER ITEMS
-//         await connection.query(`DELETE FROM order_items WHERE Order_Id = ?`, [Order_Id]);
-
-//         // 3️⃣ MARK OLD KOT AS COMPLETED
-//         await connection.query(
-//             `UPDATE kitchen_orders SET Status = 'completed' WHERE Order_Id = ?`,
-//             [Order_Id]
-//         );
-
-//         // 4️⃣ CREATE NEW KOT
-//         const KOT_Id = await generateNextId(connection, "KOT", "KOT_Id", "kitchen_orders");
-
-//         await connection.query(
-//             `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status)
-//              VALUES (?, ?, 'pending')`,
-//             [KOT_Id, Order_Id]
-//         );
-
-//         // 5️⃣ CLEAR OLD KITCHEN ITEMS FOR SAFETY
-//         await connection.query(
-//             `DELETE FROM kitchen_order_items WHERE KOT_Id = ?`,
-//             [KOT_Id]
-//         );
-
-//         // 6️⃣ INSERT NEW ITEMS
-//         for (let item of items) {
-//             if (!item.Item_Name || item.Item_Name.trim() === "")
-//                 return res.status(400).json({ success: false, message: "Item name cannot be empty" });
-
-//             if (item.Item_Quantity <= 0)
-//                 return res.status(400).json({ success: false, message: "Quantity must be greater than 0" });
-
-//             // Fetch Item_Id
-//             const [dbItem] = await connection.query(
-//                 `SELECT Item_Id FROM add_food_item WHERE Item_Name = ? LIMIT 1`,
-//                 [item.Item_Name]
-//             );
-
-//             if (!dbItem.length)
-//                 return res.status(400).json({ success: false, message: `Item '${item.Item_Name}' not found` });
-
-//             const Item_Id = dbItem[0].Item_Id;
-
-//             // Insert Into order_items
-//             const Order_Item_Id = await generateNextId(connection, "ODRITM", "Order_Item_Id", "order_items");
-
-//             await connection.query(
-//                 `INSERT INTO order_items (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
-//                  VALUES (?, ?, ?, ?, ?, ?)`,
-//                 [Order_Item_Id, Order_Id, Item_Id, item.Item_Quantity, item.Item_Price, item.Amount]
-//             );
-
-//             // Insert Into Kitchen Items
-//             const KOT_Item_Id = await generateNextId(connection, "KOTITM", "KOT_Item_Id", "kitchen_order_items");
-
-//             await connection.query(
-//                 `INSERT INTO kitchen_order_items (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//                  VALUES (?, ?, ?, ?, ?, 'pending')`,
-//                 [KOT_Item_Id, KOT_Id, Item_Id, item.Item_Name, item.Item_Quantity]
-//             );
-//         }
-
-//         // 7️⃣ FETCH NEW KOT ITEMS FOR BROADCAST
-//         const [kotItems] = await connection.query(
-//             `SELECT Item_Name, Quantity, KOT_Item_Id FROM kitchen_order_items WHERE KOT_Id = ?`,
-//             [KOT_Id]
-//         );
-
-//         await connection.commit();
-
-//         // 8️⃣ Notify kitchen staff in real-time
-//         io.emit("new_kitchen_order", {
-//             KOT_Id,
-//             Order_Id,
-//             status: "pending",
-//             items: kotItems,
-//         });
-
-//         return res.status(200).json({
-//             success: true,
-//             message: "Order updated successfully",
-//             KOT_Id,
-//         });
-
-//     } catch (err) {
-//         if (connection) await connection.rollback();
-//         console.error("❌ Error updating order:", err);
-//         next(err);
-//     } finally {
-//         if (connection) connection.release();
-//     }
-// };
-// const updateOrder = async (req, res, next) => {
-//   let connection;
-
-//   try {
-//     const { Order_Id } = req.params;
-//       const { items, Sub_Total, Tax_Amount, Amount } = req.body;
-
-//     if (!Order_Id)
-//       return res.status(400).json({ success: false, message: "Order ID missing" });
-
-//     if (!items?.length)
-//       return res.status(400).json({ success: false, message: "Items required" });
-
-//     connection = await db.getConnection();
-//     await connection.beginTransaction();
-
-//     // 1️⃣ UPDATE ORDER TOTALS
-//     await connection.query(
-//       `UPDATE orders SET Sub_Total = ?, Amount = ? WHERE Order_Id = ?`,
-//       [Sub_Total, Amount, Order_Id]
-//     );
-
-//     // 2️⃣ DELETE OLD ORDER ITEMS (frontdesk)
-//     await connection.query(`DELETE FROM order_items WHERE Order_Id = ?`, [Order_Id]);
-
-//     // 3️⃣ CHECK IF ORDER ALREADY HAS A KOT
-//     const [[existingKOT]] = await connection.query(
-//       `SELECT KOT_Id FROM kitchen_orders WHERE Order_Id = ? LIMIT 1`,
-//       [Order_Id]
-//     );
-
-//     let KOT_Id;
-
-//     if (existingKOT) {
-//       KOT_Id = existingKOT.KOT_Id; // 🔥 REUSE OLD KOT
-//     } else {
-//       // Happens on very first order creation
-//       KOT_Id = await generateNextId(connection, "KOT", "KOT_Id", "kitchen_orders");
-//       await connection.query(
-//         `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status,updated_at) VALUES (?, ?,
-//          'pending', NOW())`,
-//         [KOT_Id, Order_Id]
-//       );
-//     }
-
-//     // 4️⃣ FETCH existing kitchen items to preserve status
-//     const [oldKitchenItems] = await connection.query(
-//       `SELECT Item_Id, Item_Status FROM kitchen_order_items WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     const statusMap = {};
-//     oldKitchenItems.forEach((item) => {
-//       statusMap[item.Item_Id] = item.Item_Status;
-//     });
-
-//     // 5️⃣ DELETE kitchen items — we will rebuild cleanly
-//     await connection.query(`DELETE FROM kitchen_order_items WHERE KOT_Id = ?`, [KOT_Id]);
-
-//     // 6️⃣ INSERT ALL ITEMS AGAIN (keeping previous statuses)
-//     for (let item of items) {
-//       const [dbItem] = await connection.query(
-//         `SELECT Item_Id FROM add_food_item WHERE Item_Name = ? LIMIT 1`,
-//         [item.Item_Name]
-//       );
-
-//       const Item_Id = dbItem[0].Item_Id;
-
-//       const Order_Item_Id = await generateNextId(connection, "ODRITM", "Order_Item_Id", "order_items");
-
-//       await connection.query(
-//         `INSERT INTO order_items 
-//          (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
-//          VALUES (?, ?, ?, ?, ?, ?)`,
-//         [
-//           Order_Item_Id,
-//           Order_Id,
-//           Item_Id,
-//           item.Item_Quantity,
-//           item.Item_Price,
-//           item.Amount,
-//         ]
-//       );
-
-//       // Keep old status or mark new items as pending
-//       const Item_Status = statusMap[Item_Id] || "pending";
-
-//       const KOT_Item_Id = await generateNextId(
-//         connection,
-//         "KOTITM",
-//         "KOT_Item_Id",
-//         "kitchen_order_items"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO kitchen_order_items
-//          (KOT_Item_Id, KOT_Id,  Item_Id, Item_Name, Quantity, Item_Status)
-//          VALUES (?, ?, ?, ?, ?, ?)`,
-//         [
-//           KOT_Item_Id,
-//           KOT_Id,
-          
-//           Item_Id,
-//           item.Item_Name,
-//           item.Item_Quantity,
-//           Item_Status,
-//         ]
-//       );
-//     }
-
-//     // 7️⃣ FETCH clean updated KOT items
-//     const [kotItems] = await connection.query(
-//       `SELECT KOT_Item_Id, Item_Id, Item_Name, Quantity, Item_Status 
-//        FROM kitchen_order_items WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     await connection.commit();
-
-//     // 8️⃣ SOCKET BROADCAST
-//     io.emit("kitchen_item_update", {
-//       KOT_Id,
-//       Order_Id,
-//       items: kotItems,
-//     });
-  
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Order updated successfully",
-//       KOT_Id,
-//     });
-
-//   } catch (err) {
-//     if (connection) await connection.rollback();
-//     console.error(err);
-//     next(err);
-//   } finally {
-//     if (connection) connection.release();
-//   }
-// };
-// const updateOrder = async (req, res, next) => {
-//   let connection;
-
-//   try {
-//     const { Order_Id } = req.params;
-//     const { items, Sub_Total, Amount } = req.body;
-
-//     if (!Order_Id)
-//       return res.status(400).json({ success: false, message: "Order ID missing" });
-
-//     if (!items?.length)
-//       return res.status(400).json({ success: false, message: "Items required" });
-
-//     connection = await db.getConnection();
-//     await connection.beginTransaction();
-
-//     // -------------------------------------------
-//     // 1️⃣ UPDATE ORDER TOTALS
-//     // -------------------------------------------
-//     await connection.query(
-//       `UPDATE orders SET Sub_Total = ?, Amount = ? WHERE Order_Id = ?`,
-//       [Sub_Total, Amount, Order_Id]
-//     );
-
-//     // -------------------------------------------
-//     // 2️⃣ CLEAR FRONTDESK order_items
-//     // -------------------------------------------
-//     await connection.query(`DELETE FROM order_items WHERE Order_Id = ?`, [Order_Id]);
-
-//     // -------------------------------------------
-//     // 3️⃣ FETCH OR CREATE KOT
-//     // -------------------------------------------
-//     const [[existingKOT]] = await connection.query(
-//       `SELECT KOT_Id FROM kitchen_orders WHERE Order_Id = ? LIMIT 1`,
-//       [Order_Id]
-//     );
-
-//     let KOT_Id;
-
-//     if (existingKOT) {
-//       KOT_Id = existingKOT.KOT_Id;
-//       await connection.query(
-//         `UPDATE kitchen_orders SET updated_at = NOW() WHERE KOT_Id = ?`,
-//         [KOT_Id]
-//       );
-//     } else {
-//       KOT_Id = await generateNextId(connection, "KOT", "KOT_Id", "kitchen_orders");
-//       await connection.query(
-//         `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status, updated_at)
-//          VALUES (?, ?, 'pending', NOW())`,
-//         [KOT_Id, Order_Id]
-//       );
-//     }
-
-//     // -------------------------------------------
-//     // 4️⃣ FETCH OLD KITCHEN ITEMS (preserve status)
-//     // -------------------------------------------
-//     const [oldKitchenRows] = await connection.query(
-//       `SELECT KOT_Item_Id, Item_Id, Item_Name, Quantity, Item_Status 
-//        FROM kitchen_order_items 
-//        WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     // Group old rows by Item_Id
-//     const oldMap = {};
-//     oldKitchenRows.forEach((row) => {
-//       if (!oldMap[row.Item_Id]) oldMap[row.Item_Id] = [];
-//       oldMap[row.Item_Id].push({
-//         Item_Name: row.Item_Name,
-//         Quantity: row.Quantity,
-//         Item_Status: row.Item_Status
-//       });
-//     });
-
-//     // -------------------------------------------
-//     // 5️⃣ DELETE previous kitchen_order_items
-//     // -------------------------------------------
-//     await connection.query(`DELETE FROM kitchen_order_items WHERE KOT_Id = ?`, [KOT_Id]);
-
-//     // -------------------------------------------
-//     // 6️⃣ RE-INSERT ITEMS WITH QUANTITY-BASED LOGIC
-//     // -------------------------------------------
-//     for (let item of items) {
-//       const { Item_Name, Item_Quantity, Item_Price, Amount: ItemAmount } = item;
-
-//       if (!Item_Name || Item_Name.trim() === "")
-//         return res.status(400).json({ success: false, message: "Item name empty" });
-
-//       if (Item_Quantity <= 0)
-//         return res.status(400).json({ success: false, message: "Invalid quantity" });
-
-//       // Lookup Item_Id
-//       const [dbItem] = await connection.query(
-//         `SELECT Item_Id FROM add_food_item WHERE Item_Name = ? LIMIT 1`,
-//         [Item_Name]
-//       );
-
-//       const Item_Id = dbItem[0].Item_Id;
-
-//       // Insert FRONTDESK rows
-//       const Order_Item_Id = await generateNextId(
-//         connection,
-//         "ODRITM",
-//         "Order_Item_Id",
-//         "order_items"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO order_items (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
-//          VALUES (?, ?, ?, ?, ?, ?)`,
-//         [
-//           Order_Item_Id,
-//           Order_Id,
-//           Item_Id,
-//           Item_Quantity,
-//           Item_Price,
-//           ItemAmount,
-//         ]
-//       );
-
-//       // -------------------------------------------
-//       // 🟩 PRESERVE OLD ROWS (same name & same item)
-//       // -------------------------------------------
-//       const oldRows = oldMap[Item_Id] || [];
-//       const oldCount = oldRows.length;
-//       const newQty = Item_Quantity;
-
-//       // First insert preserved rows
-//       for (let i = 0; i < Math.min(oldCount, newQty); i++) {
-//         const preserved = oldRows[i];
-
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
-
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, ?, ?)`,
-//           [
-//             KOT_Item_Id,
-//             KOT_Id,
-//             Item_Id,
-//             Item_Name,
-//             1,
-//             preserved.Item_Status,
-//           ]
-//         );
-//       }
-
-//       // -------------------------------------------
-//       // 🟥 ADD EXTRA NEW ROWS AS PENDING
-//       // -------------------------------------------
-//       const newRequired = newQty - oldCount;
-
-//       for (let i = 0; i < newRequired; i++) {
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
-
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, ?, 'pending')`,
-//           [
-//             KOT_Item_Id,
-//             KOT_Id,
-//             Item_Id,
-//             Item_Name,
-//             1,
-//           ]
-//         );
-//       }
-//     }
-
-//     // -------------------------------------------
-//     // 7️⃣ FETCH final cleaned KOT items for kitchen UI
-//     // -------------------------------------------
-//     const [kotItems] = await connection.query(
-//       `SELECT KOT_Item_Id, Item_Id, Item_Name, Quantity, Item_Status
-//        FROM kitchen_order_items 
-//        WHERE KOT_Id = ?`,
-//       [KOT_Id]
-//     );
-
-//     await connection.commit();
-
-//     // -------------------------------------------
-//     // 8️⃣ SOCKET BROADCAST
-//     // -------------------------------------------
-//     io.emit("kitchen_item_update", {
-//       KOT_Id,
-//       Order_Id,
-//       items: kotItems,
-//     });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Order updated successfully",
-//       KOT_Id,
-//     });
-
-//   } catch (err) {
-//     if (connection) await connection.rollback();
-//     console.error("❌ Update Order Error:", err);
-//     next(err);
-//   } finally {
-//     if (connection) connection.release();
-//   }
-// };
-// const addOrder = async (req, res, next) => {
-//   let connection;
-
-//   try {
-//     const {
-//       Customer_Name,
-//       Customer_Phone,
-//       userId,
-//       Table_Names,
-//       items,
-//       Sub_Total,
-//       Amount,
-//     } = req.body;
-
-//     /* ---------------- VALIDATIONS ---------------- */
-//     if (!userId || !Array.isArray(Table_Names) || Table_Names.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "User ID and table are required",
-//       });
-//     }
-
-//     if (!Array.isArray(items) || items.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "At least one item is required",
-//       });
-//     }
-
-//     if (!Customer_Name || !Customer_Phone) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Customer name and phone are required",
-//       });
-//     }
-
-//     for (const item of items) {
-//       if (!item.Item_Name || item.Item_Quantity <= 0) {
-//         return res.status(400).json({
-//           success: false,
-//           message: `Invalid item: ${item.Item_Name}`,
-//         });
-//       }
-//     }
-
-//     /* ---------------- DB START ---------------- */
-//     connection = await db.getConnection();
-//     await connection.beginTransaction();
-
-//     /* ---------------- CUSTOMER ---------------- */
-//     let Customer_Id;
-//     const [existingCustomer] = await connection.query(
-//       `SELECT Customer_Id FROM customers WHERE Customer_Phone = ? LIMIT 1`,
-//       [Customer_Phone]
-//     );
-
-//     if (existingCustomer.length > 0) {
-//       Customer_Id = existingCustomer[0].Customer_Id;
-//     } else {
-//       Customer_Id = await generateNextId(
-//         connection,
-//         "CUST",
-//         "Customer_Id",
-//         "customers"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO customers (Customer_Id, Customer_Name, Customer_Phone)
-//          VALUES (?, ?, ?)`,
-//         [Customer_Id, Customer_Name, Customer_Phone]
-//       );
-//     }
-
-//     /* ---------------- ORDER ---------------- */
-//     const Order_Id = await generateNextId(
-//       connection,
-//       "ODR",
-//       "Order_Id",
-//       "orders"
-//     );
-
-//     await connection.query(
-//       `INSERT INTO orders
-//        (Order_Id, User_Id, Customer_Id, Status, Sub_Total, Discount, Amount, Payment_Status)
-//        VALUES (?, ?, ?, 'hold', ?, 0, ?, 'pending')`,
-//       [Order_Id, userId, Customer_Id, Sub_Total, Amount]
-//     );
-
-//     /* ---------------- TABLES ---------------- */
-//     for (const tableName of Table_Names) {
-//       const [tbl] = await connection.query(
-//         `SELECT Table_Id, Status FROM add_table WHERE Table_Name = ?`,
-//         [tableName]
-//       );
-
-//       if (!tbl.length) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           success: false,
-//           message: "Table not found",
-//         });
-//       }
-
-//       if (tbl[0].Status === "occupied") {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           success: false,
-//           message: "Table already occupied",
-//         });
-//       }
-
-//       const Order_Table_Id = await generateNextId(
-//         connection,
-//         "OTB",
-//         "Order_Table_Id",
-//         "order_tables"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO order_tables (Order_Table_Id, Order_Id, Table_Id)
-//          VALUES (?, ?, ?)`,
-//         [Order_Table_Id, Order_Id, tbl[0].Table_Id]
-//       );
-
-//       await connection.query(
-//         `UPDATE add_table SET Status='occupied', Start_Time=NOW()
-//          WHERE Table_Id = ?`,
-//         [tbl[0].Table_Id]
-//       );
-//     }
-
-//     /* ---------------- KOT ---------------- */
-//     const KOT_Id = await generateNextId(
-//       connection,
-//       "KOT",
-//       "KOT_Id",
-//       "kitchen_orders"
-//     );
-
-//     await connection.query(
-//       `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status)
-//        VALUES (?, ?, 'pending')`,
-//       [KOT_Id, Order_Id]
-//     );
-
-//     /* ---------------- ITEMS ---------------- */
-//     for (const item of items) {
-//       const [[dbItem]] = await connection.query(
-//         `SELECT Item_Id, Item_Category
-//          FROM add_food_item
-//          WHERE Item_Name = ? LIMIT 1`,
-//         [item.Item_Name]
-//       );
-
-//       if (!dbItem) {
-//         await connection.rollback();
-//         return res.status(400).json({
-//           success: false,
-//           message: `Item not found: ${item.Item_Name}`,
-//         });
-//       }
-
-//       const Item_Id = dbItem.Item_Id;
-//       const Category = dbItem.Item_Category;
-
-//       /* ---------- order_items ---------- */
-//       const Order_Item_Id = await generateNextId(
-//         connection,
-//         "ODRITM",
-//         "Order_Item_Id",
-//         "order_items"
-//       );
-
-//       await connection.query(
-//         `INSERT INTO order_items
-//          (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
-//          VALUES (?, ?, ?, ?, ?, ?)`,
-//         [
-//           Order_Item_Id,
-//           Order_Id,
-//           Item_Id,
-//           item.Item_Quantity,
-//           item.Item_Price,
-//           item.Amount,
-//         ]
-//       );
-
-//       /* ---------- kitchen_order_items (1 row per qty) ---------- */
-//       for (let i = 0; i < item.Item_Quantity; i++) {
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
-
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, 1, 'pending')`,
-//           [
-//             KOT_Item_Id,
-//             KOT_Id,
-//             Item_Id,
-//             item.Item_Name,
-//           ]
-//         );
-//       }
-
-//       /* 🔔 SOCKET → CATEGORY STAFF ONLY */
-//       io.to(`category_${Category}`).emit("new_kitchen_order", {
-//         KOT_Id,
-//         Order_Id,
-//         Category,
-//         items: [
-//           {
-//             Item_Name: item.Item_Name,
-//             Quantity: item.Item_Quantity,
-//           },
-//         ],
-//       });
-//     }
-
-//     await connection.commit();
-
-//     return res.status(201).json({
-//       success: true,
-//       message: "Order created successfully",
-//       Order_Id,
-//       KOT_Id,
-//     });
-
-//   } catch (err) {
-//     if (connection) await connection.rollback();
-//     console.error("❌ Add Order Error:", err);
-//     next(err);
-//   } finally {
-//     if (connection) connection.release();
-//   }
-// };
+,nextInvoiceNumber,cancelTakeawayOrder,completeTakeawayOrder};
 

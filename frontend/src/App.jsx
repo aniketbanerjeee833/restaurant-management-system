@@ -46,8 +46,7 @@ const InventoryEdit = lazy(() => import('./pages/Purchase/InventoryEdit'));
 
 
 const AddFoodItem = lazy(() => import('./pages/Sale/AddFoodItem'));
-const SaleView = lazy(() => import('./pages/Sale/SaleView'));
-const NewSaleEdit = lazy(() => import('./pages/Sale/NewSaleEdit'));
+
 const AllFoodItemsList = lazy(() => import('./pages/Sale/AllFoodItemsList'));
 
 
@@ -124,18 +123,32 @@ function PublicRoute() {
 function RouterWrapper({ userRole }) {
   const location = useLocation();
   console.log(location, userRole);
+    const isPublicInvoice =
+    /^\/((TK)?INV\d+|\d{1,10})$/i.test(location.pathname);
   const hideHeader = location.pathname === "/login" || 
   location.pathname.startsWith("/day-wise-report") ||
   location.pathname.startsWith("/date-range-report") ||
   location.pathname.startsWith("/material/material-view")||
   location.pathname.startsWith("/order/day-wise-invoices-order-report")||
-  location.pathname.startsWith("/party/party-sales-purchases-details");
+  location.pathname.startsWith("/party/party-sales-purchases-details")||
+  isPublicInvoice;
+;
 
   return (
     <>
       {!hideHeader && <Header />}
-    <Suspense fallback={<Spinner size="lg" text="Loading Dashboard..." />}>
+      <Suspense
+  fallback={
+    hideHeader ? null : <Spinner size="lg" text="Loading Dashboard..." />
+  }
+>
+
+    {/* <Suspense fallback={<Spinner size="lg" text="Loading Dashboard..." />}> */}
         <Routes>
+                 <Route
+          path="/:Invoice_Id"
+          element={<InvoicePublicView/>}
+        />
           {/* Public Route: Login */}
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<Login />} />
@@ -259,14 +272,7 @@ function RouterWrapper({ userRole }) {
               
               }
             />
-             <Route
-              path="/new/sale/edit/:id"
-              element={
-               
-                  <NewSaleEdit/>
-              
-              }
-            />
+           
               <Route
               path="/new/all-new-food-items"
               element={
@@ -275,14 +281,7 @@ function RouterWrapper({ userRole }) {
                 </Layout>
               }
             />
-              <Route
-              path="/sale/view/:id"
-              element={
-               
-                  <SaleView />
              
-              }
-            />
             <Route
               path="/inventory/add"
               element={
@@ -510,10 +509,7 @@ function RouterWrapper({ userRole }) {
             </>
               )}
 
-               <Route
-          path="/invoice/view/:token"
-          element={<InvoicePublicView/>}
-        />
+        
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
@@ -528,7 +524,9 @@ export default function App() {
   const { data: userMe, isLoading } = useGetUserQuery();
 
   // ⛔ Prevent router from rendering repeatedly
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>
+     <Spinner size="lg" text="Loading ..." />
+  </div>;
 
   // ❌ Not logged in → redirect userRole=null
   const role = userMe?.user?.role || null;

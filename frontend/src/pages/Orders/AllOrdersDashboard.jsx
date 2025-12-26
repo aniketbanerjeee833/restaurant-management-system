@@ -762,7 +762,8 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
 
     const totalInvoices = invoicesEachDay[dateStr] || 0;
     const totalTakeawayInvoices = takeawayInvoicesEachDay[dateStr] || 0;
-
+const cancelledTakeawayInvoices =
+  cancelledTakeawayInvoicesEachDay[dateStr] || 0;
     days.push(
       <div
         key={d}
@@ -792,7 +793,7 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
             <span
               style={{ color: "red" }}
               className="
-                text-[10px] sm:text-[13px] md:text-[15px]
+                text-[8px] sm:text-[12px] md:text-[12px]
                 font-medium leading-tight break-words
               "
             >
@@ -805,22 +806,22 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
             <span
               style={{ color: "blue" }}
               className="
-                text-[10px] sm:text-[13px] md:text-[15px]
+                text-[8px] sm:text-[12px] md:text-[12px]
                 font-medium leading-tight break-words
               "
             >
               Takeaways: {totalTakeawayInvoices}
             </span>
           )}
-          {cancelledTakeawayInvoicesEachDay > 0 && (
+          {cancelledTakeawayInvoices > 0 && (
             <span
               style={{ color: "red" }}
               className="
-                text-[10px] sm:text-[13px] md:text-[15px]
+                text-[8px] sm:text-[12px] md:text-[12px]
                 font-medium leading-tight break-words
               "
             >
-              Cancelled Takeaways: {cancelledTakeawayInvoicesEachDay}
+              Cancel : {cancelledTakeawayInvoices}
             </span>
           )}
         </div>

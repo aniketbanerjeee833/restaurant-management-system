@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 
-
 export const orderApi = createApi({
   reducerPath: "orderApi",
   baseQuery: fetchBaseQuery({
@@ -149,6 +148,14 @@ nextInvoiceNumber: builder.query({
       }),
     }),
 
+    completeTakeawayOrder: builder.mutation({
+      query: (Takeaway_Order_Id) => ({
+        url: `/order/complete-takeaway-order/${Takeaway_Order_Id}`,
+        method: "PATCH",
+        
+      }),
+    }),
+
 
 })
 })
@@ -161,4 +168,5 @@ useTotalInvoicesEachDayQuery,
 useGetAllInvoicesAndOrdersEachDayQuery,
 useGetAllInvoicesOfOrdersAndTakeawaysInDateRangeQuery,
 useTakeawayAddOrdersAndGenerateInvoicesMutation,useNextInvoiceNumberQuery,
-useGenerateSmsMutation,useGenerateSmsForTakeawayMutation,useCancelTakeawayOrderMutation} = orderApi
+useGenerateSmsMutation,useGenerateSmsForTakeawayMutation,useCancelTakeawayOrderMutation
+,useCompleteTakeawayOrderMutation} = orderApi

@@ -7,7 +7,7 @@ import itemRoutes from "./routes/itemRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 
 import purchaseRoutes from "./routes/purchaseRoutes.js";
-import saleRoutes from "./routes/saleRoutes.js";
+
 import staffRoutes from "./routes/staffRoutes.js";
 import tableRoutes from "./routes/tableRoutes.js";
 import foodRoutes from "./routes/foodItemRoutes.js";
@@ -143,6 +143,7 @@ app.use(cors({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/public", express.static(path.join(process.cwd(), "public")));
 
 
 app.use("/api/user",userRoutes)
@@ -151,7 +152,7 @@ app.use("/api/report", reportRoutes);
 app.use("/api/party", partyRoutes);
 app.use("/api/item", itemRoutes);
 app.use("/api/purchase", purchaseRoutes);
-app.use("/api/sale", saleRoutes);
+// app.use("/api/sale", saleRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/food-item",foodRoutes)
 

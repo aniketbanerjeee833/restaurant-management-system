@@ -529,7 +529,7 @@ console.log("payload:", payload);
                       type="button"
                       onClick={() => navigate("/inventory/all-inventories")}
                       className="text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#ff0000" }}
+                      style={{ backgroundColor: "black" }}
                     >
                       Back
                     </button>
@@ -538,7 +538,7 @@ console.log("payload:", payload);
                       type="button"
                       onClick={() => navigate("/inventory/all-inventories")}
                       className="text-white py-2 px-4 rounded"
-                      style={{ backgroundColor: "#ff0000" }}
+                      style={{ backgroundColor: "red" }}
                     >
                       All Purchases
                     </button>
@@ -1885,7 +1885,7 @@ console.log("payload:", payload);
 
                       onClick={() => navigate("/inventory/all-inventories")}
                       className=" text-white font-bold py-2 px-4 rounded"
-                      style={{ backgroundColor: "#ff0000" }}
+                      style={{ backgroundColor: "black" }}
                     >
                       Cancel
                     </button>

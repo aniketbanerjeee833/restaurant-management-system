@@ -6,6 +6,7 @@ import { Eye } from 'lucide-react';
 
 export default function PartySalesPurchasesDetails() {
      const TAX_TYPES = {
+        "None":"GST 0%",
         "GST0": "GST 0%",
         "GST0.25": "GST 0.25%",
         "GST3": "GST 3%",
@@ -126,7 +127,7 @@ const purchases = partyDetails?.purchases ?? [];
         type="button"
         onClick={() => navigate("/party/all-parties")}
         className="text-white font-bold py-2 px-4 rounded"
-        style={{ backgroundColor: "#ff0000" }}
+        style={{ backgroundColor: "black" }}
       >
         Back
       </button>
@@ -262,7 +263,7 @@ const purchases = partyDetails?.purchases ?? [];
                                                  <tr key={index}>
                                                      <td>{index + 1}</td>
                                                      
-                                                     <td>{item?.name}</td>
+                                                     <td>{item?.Material_Name}</td>
                                                      {/* <td>{item?.Item_HSN}</td> */}
                                                      <td>{item?.Quantity}</td>
                                                      <td>{item?.Item_Unit}</td>

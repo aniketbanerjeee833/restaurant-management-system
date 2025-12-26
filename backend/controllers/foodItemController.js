@@ -144,7 +144,7 @@ const getAllFoodItems = async (req, res, next) => {
         // ==========================================================
         if (!page && !search) {
             const [rows] = await connection.query(
-                `SELECT * FROM add_food_item ORDER BY created_at DESC`
+                `SELECT * FROM add_food_item ORDER BY LOWER(Item_Name) ASC`
             );
 
             return res.status(200).json({
@@ -451,16 +451,16 @@ const editSingleFoodItem = async (req, res, next) => {
             Item_Name,
             Item_Category,
             Item_Price,
-            Item_Quantity,
+            
             Tax_Type,
             Tax_Amount,
             Amount
         } = req.body;
 
         // 4) Simple validation (manual)
-        if (!Item_Name || !Item_Category || !Item_Price || !Item_Quantity) {
+        if (!Item_Name ) {
             return res.status(400).json({
-                message: "Item_Name, Item_Category, Item_Price, and Item_Quantity are required."
+                message: "Item_Name are required."
             });
         }
 
@@ -483,14 +483,14 @@ const editSingleFoodItem = async (req, res, next) => {
         await connection.query(
             `UPDATE add_food_item 
              SET Item_Name=?, Item_Category=?, Item_Price=?, 
-                 Item_Quantity=?, Tax_Type=?, Tax_Amount=?, Amount=?, 
+                  Tax_Type=?, Tax_Amount=?, Amount=?, 
                  Item_Image=?, updated_at=NOW()
              WHERE Item_Id=?`,
             [
                 Item_Name,
                 Item_Category,
                 Number(Item_Price),
-                Number(Item_Quantity),
+                
                 Tax_Type || "None",
                 Number(Tax_Amount) || 0,
                 Number(Amount) || 0,

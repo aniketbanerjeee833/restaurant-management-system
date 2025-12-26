@@ -104,7 +104,7 @@ const[selectedStaff,setSelectedStaff]=useState(null)
 
                             <th>Phone Number</th>
 
-                            <th>View</th>
+                            {/* <th>View</th> */}
                             <th>Edit</th>
                             {/* <th>Delete</th> */}
                           </tr>
@@ -123,15 +123,14 @@ const[selectedStaff,setSelectedStaff]=useState(null)
                               <td>{user?.phone}</td>
 
 
-                              <td>
+                              {/* <td>
                                  <Eye style={{ cursor: "pointer",
                                   backgroundColor: "transparent",
                                                                       color: "#ff0000"
                                                                     }} />
-                                {/* <Link to={`/staff/view/${user.id}`}>
-                                  <i className="fa fa-eye" aria-hidden="true"></i>
-                                </Link> */}
-                              </td>
+                               
+                                
+                              </td> */}
                               <td>
                                     <SquarePen
                                     onClick={()=>{

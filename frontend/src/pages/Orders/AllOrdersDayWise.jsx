@@ -41,7 +41,7 @@ const [page, setPage] = useState(1);
   // Filter invoices
    //const invoiceData=allInvoicesAndOrderEachDay?.data??[]
    const invoiceData = allInvoicesAndOrderEachDay?.data ?? [];
-
+console.log(allInvoicesAndOrderEachDay,"allInvoicesAndOrderEachDay");
 const dineInvoices = invoiceData.filter(
   inv => inv.invoice.orderType === "dine"
 );
@@ -131,7 +131,7 @@ console.log(isExpanded,"isExpanded");
 
       {/* Total invoices */}
       <h4 className="text-uppercase mt-2 text-gray-700">
-        Total Invoices: {invoiceData?.length}
+        Total Invoices: {allInvoicesAndOrderEachDay?.totalInvoices}
       </h4>
     </div>
 
@@ -383,8 +383,13 @@ console.log(isExpanded,"isExpanded");
                                   fontSize: '14px'
                                 }}>
                                   <span style={{ color: '#666' }}>Discount:</span>
+                                  
                                   <span style={{ fontWeight: '500' }}>
-                                    ₹{parseFloat(data?.invoice?.Discount).toFixed(2)}
+                                    {data?.invoice?.Discount_Type === 'percentage' ? 
+                                    `${data?.invoice?.Discount}%`  :
+                                     `₹${parseFloat(data?.invoice?.Discount).toFixed(2)} `}
+                                    {/* ₹{parseFloat(data?.invoice?.Discount).toFixed(2)} */}
+                                  
                                   </span>
                                 </div>
                               )}
@@ -696,7 +701,10 @@ console.log(isExpanded,"isExpanded");
                                 }}>
                                   <span style={{ color: '#666' }}>Discount:</span>
                                   <span style={{ fontWeight: '500' }}>
-                                    ₹{parseFloat(data?.invoice?.Discount).toFixed(2)}
+                                    {data?.invoice?.Discount_Type === 'percentage' ? 
+                                    `${data?.invoice?.Discount}%`  :
+                                     `₹${parseFloat(data?.invoice?.Discount).toFixed(2)} `}
+                                    {/* ₹{parseFloat(data?.invoice?.Discount).toFixed(2)} */}
                                   </span>
                                 </div>
                               )}
@@ -760,6 +768,7 @@ console.log(isExpanded,"isExpanded");
                 </div>}
                   <div className="flex justify-center align-center space-x-2 p-4">
                                 <button type="button"
+                              
                                     onClick={() => handlePreviousPage()}
                                     disabled={page === 1}
                                     className={`px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded

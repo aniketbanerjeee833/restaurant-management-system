@@ -297,23 +297,7 @@ export default function MaterialsRelease() {
     return (
         <>
 
-{/* 
-            <div className="sb2-2-2">
-                <ul>
-                    <li>
-                       
-                        <NavLink style={{ display: "flex", flexDirection: "row" }}
-                            to="/home"
 
-                        >
-                            <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-                           
-                            Dashboard
-                        </NavLink>
-                    </li>
-
-                </ul>
-            </div> */}
 
             {/* Main Content */}
             <div className="sb2-2-3" >
@@ -404,9 +388,10 @@ export default function MaterialsRelease() {
 
 
 
-                                    <div 
-                                    className="table-responsive table-desi mt-4">
-                                        <table className="table table-hover">
+                                    <div style={{height:"100%"}}
+                                    className=" mt-4">
+                                        <table style={{height:"100%"}}
+                                        className="table table-hover">
                                             <thead>
                                                 <tr>
 
@@ -549,7 +534,11 @@ export default function MaterialsRelease() {
                                                                                             <td className="px-3 py-2">{it.name}</td>
 
                                                                                             <td className="px-3 py-2 text-gray-600">{it.reorder_level}</td>
-                                                                                            <td className="px-3 py-2 text-gray-600">{it.current_stock}</td>
+                                                                                            <td className="px-3 py-2 text-gray-600">
+                                                                                                             {it?.current_stock
+                                      ? `${it.current_stock} ${units[it.current_stock_unit] || ""}`
+                                      : "N/A"}
+                                                                                            </td>
                                                                                             {/* <td style={{color:"transparent"}}
               className={`px-3 py-2 ${it.Stock_Quantity <= 0 ? "text-red-500" : "text-green-500"}`}>
                 {it.Stock_Quantity || 0}</td> */}

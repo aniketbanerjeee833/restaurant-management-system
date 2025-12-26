@@ -930,7 +930,7 @@ const getKitchenOrders = async (req, res, next) => {
       WHERE
         koi.KOT_Id IN (?)
         AND fi.Item_Category IN (?)
-        AND koi.Item_Status != 'ready'
+        AND koi.Item_Status NOT IN('ready', 'cancelled')
       ORDER BY koi.KOT_Item_Id ASC
       `,
       [kotIds, categories]

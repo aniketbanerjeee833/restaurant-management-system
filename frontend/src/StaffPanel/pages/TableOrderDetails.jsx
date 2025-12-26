@@ -24,6 +24,7 @@ import OrderDetailsModal from "../../components/Modal/OrderDetailsModal";
 import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
 import { useDispatch } from "react-redux";
 import { kitchenStaffApi } from "../../redux/api/KitchenStaff/kitchenStaffApi";
+import { useMemo } from "react";
 
 const socket = io("http://localhost:4000", {
   transports: ["websocket"],
@@ -74,8 +75,9 @@ const formatTime = (time) => {
 
     const categoryRefs = useRef([]); // store refs for category dropdowns
     const itemRefs = useRef([]);     // store refs for item dropdowns
-
-
+ const [activeCategory, setActiveCategory] = useState('All');
+  const lastCategoryRef = useRef(activeCategory);
+const[searchTerm,setSearchTerm]=useState("");
     const navigate = useNavigate();
  
    
@@ -92,7 +94,7 @@ const formatTime = (time) => {
         }
     ]);
         const [cart, setCart] = useState({});
-    const [activeCategory, setActiveCategory] = useState('All');
+  
 const { data: categories } = useGetAllCategoriesQuery()
 //console.log(categories,"categories");
   //const existingCategories=categories?.map((category) => category.Item_Category);
@@ -299,11 +301,35 @@ useEffect(() => {
     });
 
 
-    const filteredItems = activeCategory === 'All'
-        ? items
-        : items?.filter(item => item?.Item_Category === activeCategory);
+    // const filteredItems = activeCategory === 'All'
+    //     ? items
+    //     : items?.filter(item => item?.Item_Category === activeCategory);
 
+   const filteredItems = useMemo(() => {
+     if (!items) return [];
    
+     const categoryChanged = lastCategoryRef.current !== activeCategory;
+   
+     const result = items.filter((item) => {
+       const matchesCategory =
+         activeCategory === "All" ||
+         item.Item_Category === activeCategory;
+   
+       // 🔥 Ignore search when category JUST changed
+       const matchesSearch =
+         categoryChanged
+           ? true
+           : !searchTerm.trim() ||
+             item.Item_Name.toLowerCase().includes(searchTerm.toLowerCase());
+   
+       return matchesCategory && matchesSearch;
+     });
+   
+     // update ref AFTER filtering
+     lastCategoryRef.current = activeCategory;
+   
+     return result;
+   }, [items, activeCategory, searchTerm]);
 // console.log(filteredItems,"filteredItems",cart)
     const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
 const itemRowMap = useRef({});
@@ -582,12 +608,7 @@ console.log(itemsValues,cart);
                                     </div>
 
                                     {/* RIGHT BUTTON SECTION */}
-                                    {/* <div className="
-      w-full sm:w-auto 
-      flex flex-wrap sm:flex-nowrap 
-      justify-start sm:justify-end 
-      gap-3
-    "> */}
+      
                                 <div className="
        w-full flex justify-center items-center sm:w-auto 
        flex flex-wrap sm:flex-nowrap 
@@ -615,14 +636,19 @@ console.log(itemsValues,cart);
 
                                 </div>
                             </div>
-                            <div style={{ padding: "0", backgroundColor: "#f1f1f19d" }} className="tab-inn">
+                            <div style={{ padding: "0", backgroundColor: "#f1f1f19d" }} 
+                            className="tab-inn">
                                 <form onSubmit={handleSubmit(onSubmit)}>
 
 
 <div className="w-full mt-2 mb-2">
       {/* ⭐ SELECTED TABLES — Centered on large screens, stacked on mobile */}
-      <div className="mb-6">
-        <div className="flex flex-col lg:flex-row lg:justify-center lg:items-center gap-2">
+      <div className=" grid
+  grid-rows-2 grid-cols-1
+  md:grid-rows-1 md:grid-cols-3
+  p-2 mt-0 gap-2 w-full heading-wrapper
+ mb-4">
+        <div className="flex flex-col lg:flex-row gap-2">
           {selectedTables?.length > 0 ? (
             <>
               {/* Mobile: Stack vertically */}
@@ -653,6 +679,16 @@ console.log(itemsValues,cart);
             <p className="text-gray-500 text-center w-full py-4">No tables selected</p>
           )}
         </div>
+  <div className="sm:visible"></div>
+                      <div className="w-full ">
+      <input
+        type="text"
+        placeholder="Search ..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full"
+      />
+    </div>
       </div>
 
       {/* ⭐ KITCHEN ITEMS GRID */}
@@ -1855,162 +1891,4 @@ console.log(itemsValues,cart);
 
     //                                     </div>
     //                                 </div>
-}{/* <div className="relative">
-    <div
-        className="flex flex-row border rounded-md bg-white cursor-pointer h-[3rem]"
-        onClick={() => setOpen((prev) => !prev)}
-    >
-        <input
-            type="text"
-            placeholder="Search tables..."
-            value={tableSearch}
-            onChange={(e) => {
-                const value = e.target.value;
-                setTableSearch(value);
-                setOpen(true);
-            }}
-            onClick={(e) => {
-                e.stopPropagation();
-                setOpen(true);
-            }}
-            onBlur={() => {
-                setTimeout(() => setOpen(false), 150);
-            }}
-            className="w-full outline-none py-1 px-2 text-gray-900"
-            style={{ marginTop: "4px", border: "none", height: "2rem" }}
-        />
-
-        <span className="absolute right-0 px-3 top-1/3 text-gray-700">
-            ▼
-        </span>
-    </div>
-
-    {open && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-
-            {tables?.tables
-                ?.filter((table) =>
-                    table.Table_Name.toLowerCase().includes(tableSearch.toLowerCase())
-                )
-                .map((table, i) => {
-                    const isSelected = selectedTables.includes(table.Table_Name);
-                    const isAvailable = table.Status === "available";
-
-                    return (
-                        <div
-                            key={i}
-                            onClick={() => {
-                                if (!isAvailable) return; // ❌ Prevent clicking occupied tables
-
-                                let updatedSelection;
-
-                                if (isSelected) {
-                                    updatedSelection = selectedTables.filter(
-                                        (t) => t !== table.Table_Name
-                                    );
-                                } else {
-                                    updatedSelection = [...selectedTables, table.Table_Name];
-                                }
-
-                                setSelectedTables(updatedSelection);
-
-                                setValue("Table_Names", updatedSelection, {
-                                    shouldValidate: true,
-                                    shouldDirty: true,
-                                });
-                            }}
-                            className={`px-3 py-2 flex justify-between items-center 
-                                ${isAvailable ? "cursor-pointer hover:bg-gray-100" : "bg-gray-200 cursor-not-allowed"} 
-                                ${isSelected && isAvailable ? "bg-blue-100" : ""}
-                            `}
-                        >
-                           
-                            <span className={`${!isAvailable ? "text-gray-500" : ""}`}>
-                                {table.Table_Name}
-                                {!isAvailable && (
-                                    <span className="ml-2 text-red-500 text-xs">(occupied)</span>
-                                )}
-                            </span>
-
-                          
-                            {isSelected && isAvailable && (
-                                <span className="text-blue-600 font-bold">✔</span>
-                            )}
-                        </div>
-                    );
-                })}
-
-            {tables?.tables?.filter((table) =>
-                table.Table_Name.toLowerCase().includes(tableSearch.toLowerCase())
-            ).length === 0 && (
-                <p className="px-3 py-2 text-gray-500">No table found</p>
-            )}
-        </div>
-    )}
-</div> */}
-
-// useEffect(() => {
-//   socket.on("frontend_kot_update", (data) => {
-//     console.log("📢 Frontend received KOT update:", data);
-
-//     // Show toast popup
-//     toast.info(`KOT ${data.KOT_Id}: item updated`);
-
-//     // Store notification for UI
-//     setKotNotifications((prev) => [
-//       ...prev,
-//       {
-//         KOT_Id: data.KOT_Id,
-//         message: data.message,
-//         time: new Date().toLocaleTimeString(),
-//       },
-//     ]);
-//   });
-
-//   return () => {
-//     socket.off("frontend_kot_update");
-//   };
-// }, []);
-
-// useEffect(() => {
-//   if(tableOrderDetails){
-//     setKotNotifications(tableOrderDetails?.items);
-//   }
-// }, [tableOrderDetails]);
-// useEffect(() => {
-//   socket.on("frontend_kot_update", (data) => {
-//     console.log("📢 Frontend received KOT update:", data);
-
-//     toast.info(`${data.itemName} → ${data.status}`);
-
-//     setKotNotifications((prev) => [
-//       ...prev,
-//       {
-//         itemName: data.itemName,
-//         status: data.status,
-//         KOT_Id: data.KOT_Id,
-//         time: data.time,
-//       },
-//     ]);
-//   });
-
-//   return () => socket.off("frontend_kot_update");
-// }, []);
-// useEffect(() => {
-//   if (tableOrderDetails?.kitchenItems) {
-   
-
-//         setKotNotifications(
-//       tableOrderDetails?.kitchenItems?.map((it) => ({
-//         KOT_Id: tableOrderDetails.KOT_Id,
-//         KOT_Item_Id: it.KOT_Item_Id,
-//         itemName: it.Item_Name,
-//         status: it.Item_Status || "pending",
-//         time: null,
-//       }))
-//     );
-//   }
-// }, [tableOrderDetails]);
-
-
-
+}

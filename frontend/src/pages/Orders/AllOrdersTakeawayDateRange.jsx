@@ -80,17 +80,7 @@ const takeAwayInvoices = invoiceData?.filter(
   // console.log(filteredInvoices)
   return (
     <>
-      {/* <div className="sb2-2-2">
-        <ul>
-          <li>
-            <a style={{ display: "flex", flexDirection: "row" }} href="/home">
-              <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-              Dashboard
-            </a>
-          </li>
-        </ul>
-      </div> */}
-
+    
       <div className="sb2-2-3">
         {!isLoadingInvoicesAndOrdersInDateRange ?(<div className="row" style={{ margin: "0px" }}>
           <div className="col-md-12">
@@ -122,7 +112,7 @@ const takeAwayInvoices = invoiceData?.filter(
 
       {/* Total invoices */}
       <h4 className="text-uppercase mt-2 text-gray-700">
-        Total Invoices: {invoiceData?.length}
+        Total Invoices: {allInvoicesAndOrderInDateRange?.totalInvoices}
       </h4>
     </div>
 
@@ -393,8 +383,15 @@ const takeAwayInvoices = invoiceData?.filter(
                                   fontSize: '14px'
                                 }}>
                                   <span style={{ color: '#666' }}>Discount:</span>
-                                  <span style={{ fontWeight: '500' }}>
+                                  {/* <span style={{ fontWeight: '500' }}>
                                     ₹{parseFloat(data?.invoice?.Discount).toFixed(2)}
+                                  </span> */}
+                                  <span style={{ fontWeight: '500' }}>
+                                    {data?.invoice?.Discount_Type === 'percentage' ? 
+                                    `${data?.invoice?.Discount}%`  :
+                                     `₹${parseFloat(data?.invoice?.Discount).toFixed(2)} `}
+                                    {/* ₹{parseFloat(data?.invoice?.Discount).toFixed(2)} */}
+                                  
                                   </span>
                                 </div>
                               )}
@@ -579,17 +576,6 @@ const takeAwayInvoices = invoiceData?.filter(
                             </div> */}
                           </div>
 
-                          {/* Amount */}
-                          {/* <div className="" style={{ marginBottom: '10px' }}>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff0000' }}>
-                                ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#666' }}>
-                                {data.items?.length || 0} items
-                              </div>
-                            </div>
-                          </div> */}
                            <div className="flex justify-end gap-2"  style={{ marginBottom: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff0000' }}>
@@ -614,18 +600,7 @@ const takeAwayInvoices = invoiceData?.filter(
                             
                           </div>
                            {/* Icon */}
-                           {/* <div className="justify-items-end" style={{ marginBottom: '10px' }}>
-                            <div style={{ textAlign: 'right' }}>
-
-                              <ChevronDown  onClick={() => toggleExpand(data?.invoice?.Invoice_Id)}/>
-                              {/* <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff0000' }}>
-                                ₹{parseFloat(data.invoice.Amount).toFixed(2)}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#666' }}>
-                                {data.items?.length || 0} items
-                              </div> 
-                            </div>
-                          </div> */}
+                         
                         </div>
                       </div>
 
@@ -720,8 +695,15 @@ const takeAwayInvoices = invoiceData?.filter(
                                   fontSize: '14px'
                                 }}>
                                   <span style={{ color: '#666' }}>Discount:</span>
-                                  <span style={{ fontWeight: '500' }}>
+                                  {/* <span style={{ fontWeight: '500' }}>
                                     ₹{parseFloat(data?.invoice?.Discount).toFixed(2)}
+                                  </span> */}
+                                    <span style={{ fontWeight: '500' }}>
+                                    {data?.invoice?.Discount_Type === 'percentage' ? 
+                                    `${data?.invoice?.Discount}%`  :
+                                     `₹${parseFloat(data?.invoice?.Discount).toFixed(2)} `}
+                                    {/* ₹{parseFloat(data?.invoice?.Discount).toFixed(2)} */}
+                                  
                                   </span>
                                 </div>
                               )}

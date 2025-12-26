@@ -144,26 +144,47 @@ const addPurchase = async (req, res, next) => {
 
     const activeFY = fy[0].Financial_Year; 
         // Insert Master
+        // await connection.execute(
+        //     `INSERT INTO add_purchase 
+        //     (Party_Id, Purchase_Id, Bill_Number, Bill_Date,Financial_Year, State_Of_Supply,
+        //     Total_Amount, Total_Paid, Balance_Due, Payment_Type, Reference_Number,
+        //     created_at, updated_at)
+        //     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        //     [
+        //         Party_Id,
+        //         newPurchaseId,
+        //         Bill_Number,
+        //         Bill_Date,
+        //         activeFY,
+        //         State_Of_Supply,
+        //         Total_Amount,
+        //         Total_Paid,
+        //         Balance_Due,
+        //         Payment_Type,
+        //         Reference_Number
+        //     ]
+        // );
         await connection.execute(
-            `INSERT INTO add_purchase 
-            (Party_Id, Purchase_Id, Bill_Number, Bill_Date,financial_year, State_Of_Supply,
-            Total_Amount, Total_Paid, Balance_Due, Payment_Type, Reference_Number,
-            created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-            [
-                Party_Id,
-                newPurchaseId,
-                Bill_Number,
-                Bill_Date,
-                activeFY,
-                State_Of_Supply,
-                Total_Amount,
-                Total_Paid,
-                Balance_Due,
-                Payment_Type,
-                Reference_Number
-            ]
-        );
+  `INSERT INTO add_purchase 
+  (Party_Id, Purchase_Id, Bill_Number, Bill_Date, Financial_Year, State_Of_Supply,
+   Total_Amount, Total_Paid, Balance_Due, Payment_Type, Reference_Number,
+   created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+  [
+    Party_Id,
+    newPurchaseId,
+    Bill_Number,
+    Bill_Date,
+    activeFY,
+    State_Of_Supply,
+    Total_Amount,
+    Total_Paid,
+    Balance_Due,
+    Payment_Type,
+    Reference_Number   // 👈 THIS WAS MISSING
+  ]
+);
+
 
         // 3️⃣ Next PIT ID
         const [maxRow] = await connection.query(

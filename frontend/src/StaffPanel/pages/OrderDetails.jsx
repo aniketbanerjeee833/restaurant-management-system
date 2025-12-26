@@ -2,10 +2,11 @@
 import  { useState, useEffect } from 'react';
 import {  Clock,  Armchair } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { orderApi, useCancelTakeawayOrderMutation, useGetTablesHavingOrdersQuery } from '../../redux/api/Staff/orderApi';
+import { orderApi, useCancelTakeawayOrderMutation, useCompleteTakeawayOrderMutation, useGetTablesHavingOrdersQuery } from '../../redux/api/Staff/orderApi';
 import { io } from 'socket.io-client';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
+import { kitchenStaffApi } from '../../redux/api/KitchenStaff/kitchenStaffApi';
 const socket = io("http://localhost:4000", {
   transports: ["websocket"],
 });
@@ -31,7 +32,7 @@ export default function OrderDetails() {
 // const [kotNotifications, setKotNotifications] = useState([]);
 const { data: tableHavingOrders, refetch } = useGetTablesHavingOrdersQuery();
 const[takeawayCancelOrder,{isLoading:isTakeawayCancelOrderLoading}]=useCancelTakeawayOrderMutation();
-// const [displayOrders, setDisplayOrders] = useState([]);
+const[takeawayCompleteOrder,{isLoading:isTakeawayCompleteOrderLoading}]=useCompleteTakeawayOrderMutation();
 
   // const {data:tableHavingOrders} = useGetTablesHavingOrdersQuery()
  useEffect(() => {
@@ -201,7 +202,7 @@ try{
   const response=await takeawayCancelOrder(Takeaway_Order_Id).unwrap();
   console.log("Takeaway order cancelled response:", response);
   dispatch(orderApi.util.invalidateTags(["Order"]));
- 
+ dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
   toast.success("Takeaway Order Cancelled Successfully!");
 }catch(error){
   console.error("Error cancelling takeaway order:", error);
@@ -209,6 +210,19 @@ try{
 
 };
 
+const handleCompleteTakeawayOrder = async(Takeaway_Order_Id) => {
+
+  console.log("Takeaway order completed:",Takeaway_Order_Id);
+try{
+  const response=await takeawayCompleteOrder(Takeaway_Order_Id).unwrap();
+  console.log("Takeaway order completed response:", response);
+  dispatch(orderApi.util.invalidateTags(["Order"]));
+ dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+  toast.success("Takeaway Order Completed Successfully!");
+}catch(error){
+  console.error("Error completing takeaway order:", error);
+}
+}
 console.log(filteredTables)
 console.log("KOT Notifications:", kotNotifications);
 
@@ -231,7 +245,7 @@ console.log("KOT Notifications:", kotNotifications);
                   </div>
 
                   {/* RIGHT BUTTON SECTION */}
-                                                   <div className="
+                    <div className="
       w-full sm:w-auto 
       flex flex-wrap sm:flex-nowrap 
       justify-start sm:justify-end 
@@ -328,50 +342,7 @@ console.log("KOT Notifications:", kotNotifications);
     )}
 
    
- {/* 🟦 TAKEAWAY ORDER CARD */}
-{/* {order?.orderType === "takeaway" && (
-  <>
-  
-    <h4 className="text-xl font-bold text-gray-800 mb-3">
-      Takeaway Order #{order?.Takeaway_Order_Id}
-    </h4>
 
-  
-    <div className="border-t pt-3 flex justify-between items-center mb-4">
-      <span className="text-sm text-gray-600">Amount:</span>
-      <span className="text-xl font-bold text-teal-600">₹{order?.Amount}</span>
-    </div>
-
-    {kotNotifications[order?.Takeaway_Order_Id] && (
-      <div className="bg-gray-100 rounded p-2 mt-2">
-        <h4 className="text-sm font-bold mb-1 text-gray-700">
-          Kitchen Updates:
-        </h4>
-
-        {kotNotifications[order?.Takeaway_Order_Id].map((item) => (
-          <div
-            key={item.KOT_Item_Id}
-            className="flex justify-between py-1 border-b last:border-none"
-          >
-            <span className="text-gray-800 text-sm">{item?.itemName}</span>
-
-            <span
-              className={`text-xs font-bold ${
-                item?.status === "ready"
-                  ? "text-green-600"
-                  : item?.status === "preparing"
-                  ? "text-orange-500"
-                  : "text-gray-600"
-              }`}
-            >
-              {item?.status}
-            </span>
-          </div>
-        ))}
-      </div>
-    )}
-  </>
-)} */}
 
   </div>
 ))}
@@ -416,7 +387,10 @@ console.log("KOT Notifications:", kotNotifications);
 <div className=" flex justify-end  w-full gap-2 mb-2">
   
   {/* Status Badge */}
-  <span
+  <button
+  type="button"
+    disabled={isTakeawayCompleteOrderLoading}
+    onClick={()=>handleCompleteTakeawayOrder(order?.Takeaway_Order_Id)}
     className={`px-3 py-1  text-center text-xs font-semibold text-white capitalize
       ${
         order?.Status === "hold"
@@ -426,8 +400,8 @@ console.log("KOT Notifications:", kotNotifications);
           : "bg-red-500"
       }`}
   >
-    {order?.Status}
-  </span>
+    {isTakeawayCompleteOrderLoading ? "Completing..." : order?.Status}
+  </button>
 
   {/* Cancel Button */}
   <button

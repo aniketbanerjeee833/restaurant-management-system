@@ -121,5 +121,5 @@ function fileFilter(req, file, cb) {
 export const foodUpload = multer({
     storage,
     fileFilter,
-    limits: { fileSize: 1 * 1024 * 1024 },
+    limits: { fileSize: 5 * 1024 * 1024 },
 });

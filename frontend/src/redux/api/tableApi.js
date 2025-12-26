@@ -20,6 +20,16 @@ export const tableApi = createApi({
       }),
       invalidatesTags: ["Table"],
     }),
+
+    updateTable: builder.mutation({
+      query: ({ Table_Id, body }) => ({
+        url: `table/update-table/${Table_Id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Table"],
+    }),
+
  
 getAllTables: builder.query({
   query: ({ page = null, search = "" } = {}) => {
@@ -50,4 +60,4 @@ getAllTables: builder.query({
   }),
 });
 
-export const { useAddTableMutation, useGetAllTablesQuery } = tableApi;
+export const { useAddTableMutation,useUpdateTableMutation, useGetAllTablesQuery } = tableApi;

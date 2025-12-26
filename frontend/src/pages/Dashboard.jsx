@@ -1,8 +1,9 @@
 import  { useState } from 'react';
 
-import { TrendingUp,  Armchair, Handbag, CalendarDays, Filter, X } from 'lucide-react';
+import { TrendingUp,  Armchair, Handbag, CalendarDays, Filter, X, ChefHat } from 'lucide-react';
 
 import {  
+  useGetItemsSoldEachDayQuery,
     useGetTotalSalesPurchasesReceivablesPayablesProfitQuery } from '../redux/api/dashboardApi';
 
 import { useTotalInvoicesEachDayQuery } from '../redux/api/Staff/orderApi';
@@ -662,7 +663,9 @@ const formatDateDDMMYYYY = (dateStr) => {
 
   //const[selectedYear, setSelectedYear] = useState("2025");
 
-
+const{data:itemsSoldEachDay}=useGetItemsSoldEachDayQuery(selectedDate)
+const topSellingItems = itemsSoldEachDay?.data ?? [];
+console.log(itemsSoldEachDay,"itemsSoldEachDay");
 // const {data: salesPurchasesProfitData} =
 //    useGetAllSalesAndPurchasesYearWiseQuery({year:selectedYear})
  
@@ -678,6 +681,13 @@ useGetTotalSalesPurchasesReceivablesPayablesProfitQuery(selectedDate)
     // const profitMargin=totalSalesPurchasesReceivablesPayablesProfit?.profit
      
      
+//  const topSellingItems = [
+//     { name: 'Chicken Biryani', qtySold: 120, revenue: 24000, contribution: 18 },
+//     { name: 'Butter Chicken', qtySold: 95, revenue: 18050, contribution: 14 },
+//     { name: 'Paneer Tikka', qtySold: 90, revenue: 13500, contribution: 10 },
+//     { name: 'Dal Makhani', qtySold: 85, revenue: 10200, contribution: 8 },
+//     { name: 'Tandoori Roti', qtySold: 280, revenue: 8400, contribution: 6 }
+//   ];
 
 
 
@@ -867,7 +877,8 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
 
     const totalInvoices = invoicesEachDay[dateStr] || 0;
     const totalTakeawayInvoices = takeawayInvoicesEachDay[dateStr] || 0;
-
+const cancelledTakeawayInvoices =
+  cancelledTakeawayInvoicesEachDay[dateStr] || 0;
     days.push(
       <div
         key={d}
@@ -897,7 +908,7 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
             <span
               style={{ color: "red" }}
               className="
-                text-[10px] sm:text-[13px] md:text-[15px]
+               text-[8px] sm:text-[12px] md:text-[12px]
                 font-medium leading-tight break-words
               "
             >
@@ -910,22 +921,22 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
             <span
               style={{ color: "blue" }}
               className="
-                text-[10px] sm:text-[13px] md:text-[15px]
+                    text-[8px] sm:text-[12px] md:text-[12px]
                 font-medium leading-tight break-words
               "
             >
               Takeaways: {totalTakeawayInvoices}
             </span>
           )}
-             {cancelledTakeawayInvoicesEachDay > 0 && (
+             {cancelledTakeawayInvoices > 0 && (
             <span
               style={{ color: "red" }}
               className="
-                text-[10px] sm:text-[13px] md:text-[15px]
+                text-[8px] sm:text-[12px] md:text-[12px]
                 font-medium leading-tight break-words
               "
             >
-              Cancelled Takeaways: {cancelledTakeawayInvoicesEachDay}
+              Cancelled Takeaways: {cancelledTakeawayInvoices}
             </span>
           )}
         </div>
@@ -978,7 +989,7 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
     </div>
   </div>
                       <div className="grid grid-cols-1 p-2
-                      md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                      md:grid-cols-2 lg:grid-cols-3 gap-6 mb-2">
                         <StatCard
                           title="Total Sales"
                           value={totalSalesPurchasesReceivablesPayablesProfit?.total_sales || 0}
@@ -1016,9 +1027,46 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
                           color={profitMargin > 0 ? "bg-green-600" : "bg-red-600"}
                         /> */}
                       </div>
+                         {/* <div className="p-4 bg-gradient-to-r from-green-50 to-white">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <ChefHat size={20} className="text-green-600" />
+                Top Selling Items
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Item</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-700">Qty</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Revenue</th>
+                  
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {topSellingItems && topSellingItems?.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">{item?.Item_Name}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">{item?.sold_count}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-green-600">₹{item?.total_price.toLocaleString()}</td>
+                       {/* <td className="px-4 py-3 text-right">
+                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
+                          {item.contribution}%
+                        </span>
+                      </td>  
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div> */}
                       </div>
              {/* Header with month and nav */}
-              <div style={{border:"none",padding:"0px"}} 
+           
+ 
+                 {/* <div className="tab-inn border-b border-gray-200">
+         
+          </div> */}
+             <div style={{border:"none",padding:"0px"}} 
               className="inn-title ">
              <div className="flex flex-col sm:flex-row items-center 
              justify-between mb-4 mt-4 mx-auto px-4 gap-3">
@@ -1054,7 +1102,6 @@ const DineTakeawayStatCard = ({ title, value, icon: Icon, color }) => {
                </div>
              </div>
              </div>
- 
              {/* Calendar grid */}
              <div className="tab-inn">
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

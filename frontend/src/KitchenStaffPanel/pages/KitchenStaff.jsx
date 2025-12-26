@@ -46,7 +46,7 @@ console.log(user);
 
 useEffect(() => {
   if (!Array.isArray(kitchenOrders?.orders)) return;
-  refetch();
+  // refetch();
   // API is already category-filtered
   const pendingOrders = kitchenOrders.orders.filter(
     (o) => o.Status === "pending"
@@ -174,17 +174,41 @@ const onOrderUpdated = (updated) => {
       toast.info(`Order ${KOT_Id} closed`);
     };
 
+      const onTakeawayCancelled = ({ Takeaway_Order_Id, KOT_Id }) => {
+    setOrders(prev =>
+      prev.filter(
+        o =>
+          o.KOT_Id !== KOT_Id &&        // ✅ primary
+          o.Order_Id !== Takeaway_Order_Id // ✅ fallback
+      )
+    );
+
+    toast.info(`Takeaway order ${Takeaway_Order_Id} cancelled`);
+  };
+
     socket.on("new_kitchen_order", onNewOrder);
     socket.on("kitchen_order_updated", onOrderUpdated);
     socket.on("kitchen_order_removed", onOrderRemoved);
+    socket.on("takeaway_order_cancelled", onTakeawayCancelled);
 
     return () => {
       socket.off("new_kitchen_order", onNewOrder);
       socket.off("kitchen_order_updated", onOrderUpdated);
       socket.off("kitchen_order_removed", onOrderRemoved);
+      socket.off("takeaway_order_cancelled", onTakeawayCancelled);
     };
   }, [socket]);
 
+// useEffect(() => {
+//   socket.on("takeaway_order_cancelled", ({ Takeaway_Order_Id }) => {
+//     setOrders(prev =>
+//       prev.filter(o => o.Takeaway_Order_Id !== Takeaway_Order_Id)
+//     );
+//     toast.info(`Order ${Takeaway_Order_Id} cancelled`);
+//   });
+
+//   return () => socket.off("takeaway_order_cancelled");
+// }, [socket]);
 
 
   console.log("🍽 Kitchen Orders:", orders);

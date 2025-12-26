@@ -17,6 +17,7 @@ import { userApi } from '../../redux/api/userApi';
 
 
 
+
 export default function EditStaffModal({selectedStaff,onClose}) {
    //const{userId,staffId} = useSelector((state) => state.user)
    const[showPassword, setShowPassword] = useState("");
@@ -59,14 +60,20 @@ const categoryRef = useRef();
 useEffect(() => {
   if (!selectedStaff) return;
 
-  const normalizedCategories =
-    selectedStaff.role === "kitchen-staff"
-      ? Array.isArray(selectedStaff.categories)
-        ? selectedStaff.categories
-        : typeof selectedStaff.categories === "string"
-        ? selectedStaff.categories.split(",").map(c => c.trim())
-        : []
-      : [];
+ const normalizedCategories =
+  selectedStaff.role === "kitchen-staff"
+    ? Array.isArray(selectedStaff.categories)
+      ? selectedStaff.categories
+          .flatMap(cat =>
+            typeof cat === "string"
+              ? cat.split(",").map(c => c.trim())
+              : []
+          )
+      : typeof selectedStaff.categories === "string"
+      ? selectedStaff.categories.split(",").map(c => c.trim())
+      : []
+    : [];
+
 
   reset({
    
@@ -107,7 +114,7 @@ const onSubmit = async (data) => {
 
 try {
   const res = await editStaff(payload).unwrap();
-  // dispatch(userApi.util(invalidateTags(["User"])));
+ dispatch(userApi.util.invalidateTags(["User"]));
   console.log("Response from backend:", res);
   toast.success(res.message || "Staf Updated!");
   onClose();
@@ -210,12 +217,12 @@ try {
     padding: "1rem", // ensures spacing on small screens
   }}
 >
-    <div
+    <div style={{height:"100%"}}
       className="bg-white 
-      w-full
+      w-full h-full
        max-w-4xl rounded-lg 
-      shadow-lg p-6 
-    overflow-hidden max-h-[90vh]
+      shadow-lg p-4
+    overflow-hidden 
       "
     >
        
@@ -237,7 +244,8 @@ try {
       </div>
            
              
-              <div className="tab-inn">
+              <div style={{paddingBottom:"5px"}}
+              className="tab-inn">
                <form  className=" gap-6" onSubmit={handleSubmit(onSubmit)}>
 
                   <div className="row flex gap-4">
@@ -267,9 +275,9 @@ try {
 
   {/* ================= ROLE ================= */}
   <div className="flex flex-col items-start ">
-     <span className="active">
+     {/* <span className="active">
         Role <span className="text-red-500">*</span>
-      </span>
+      </span> */}
 
     <select
   
@@ -299,11 +307,11 @@ try {
 
   {/* ================= CATEGORIES ================= */}
   {selectedRole === "kitchen-staff" && (
-    <div ref={categoryRef} className="relative">
+    <div ref={categoryRef}  className="relative h-full">
 
-      <span className="active">
+      {/* <span className="active">
         Assign Categories <span className="text-red-500">*</span>
-      </span>
+      </span> */}
 
       {/* INPUT + CHIPS */}
       <div
@@ -367,7 +375,7 @@ try {
       {/* DROPDOWN */}
       {categoryOpen && (
         <div className="absolute z-20 mt-1 
-        w-full bg-white border rounded shadow max-h-48 overflow-y-auto">
+        w-full bg-white border rounded shadow max-h-full overflow-y-auto">
 
           {categories
             ?.filter(

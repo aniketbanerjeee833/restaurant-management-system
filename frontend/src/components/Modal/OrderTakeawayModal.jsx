@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGenerateSmsForTakeawayMutation,  useNextInvoiceNumberQuery, useTakeawayAddOrdersAndGenerateInvoicesMutation } from "../../redux/api/Staff/orderApi";
+import { orderApi, useGenerateSmsForTakeawayMutation,  useNextInvoiceNumberQuery, useTakeawayAddOrdersAndGenerateInvoicesMutation } from "../../redux/api/Staff/orderApi";
 import { toast } from "react-toastify";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
 import { kitchenStaffApi } from "../../redux/api/KitchenStaff/kitchenStaffApi";
+import { tableApi } from "../../redux/api/tableApi";
 
 
 
@@ -142,58 +143,6 @@ const handleShareSMS = async () => {
     toast.error(err?.data?.message || "Failed to send SMS");
   }
 };
-// const handleConfirmBillAndGenerateInvoice = async () => {
-//   // ✅ MUST OPEN FIRST — browser rule
-//   const printWindow = window.open("", "_blank", "width=320,height=600");
-
-//   if (!printWindow) {
-//     toast.error("Please allow pop-ups to print invoice");
-//     return;
-//   }
-
-//   try {
-//     const payload = {
-//       userId: user?.User_Id,
-//       items: orderDetails?.items,
-//       Sub_Total: orderDetails?.Sub_Total,
-//       Amount: orderDetails?.Sub_Total,
-//       Final_Amount: invoiceDetails?.Final_Amount,
-//       Customer_Name: invoiceDetails.Customer_Name,
-//       Customer_Phone: invoiceDetails.Customer_Phone,
-//       Discount: invoiceDetails.Discount,
-//       Discount_Type: invoiceDetails.Discount_Type,
-//       Payment_Type: invoiceDetails.Payment_Type,
-//     };
-
-//     await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
-
-//     toast.success("Invoice Generated & Bill Paid!");
-//     dispatch(orderApi.util.invalidateTags(["Order"]));
-
-//     // ✅ Now render into already-opened window
-//     // renderInvoiceHTML(printWindow);
-//    renderInvoiceHTML(printWindow);
-
-//     // ✅ WAIT for DOM paint
-//     setTimeout(() => {
-//       printWindow.focus();
-//       printWindow.print();
-//     }, 500);
-
-//     // ✅ navigate AFTER print
-//     setTimeout(() => {
-//       onClose();
-//       navigate("/staff/orders/all-orders");
-//     }, 1000);
-//     navigate("/staff/orders/all-orders");
-//     onClose();
-
-//   } catch (error) {
-//     onClose();
-//     console.error(error);
-//     toast.error(error?.data?.message || "Failed to generate invoice");
-//   }
-// };
 
 const handleConfirmBillAndGenerateInvoice = async () => {
   // const printWindow = window.open("", "_blank", "width=320,height=600");
@@ -216,15 +165,20 @@ const handleConfirmBillAndGenerateInvoice = async () => {
       Payment_Type: invoiceDetails?.Payment_Type,
     };
 
-    await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
-
-    // renderInvoiceHTML(printWindow);
+    const response=await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
+    console.log(response,"response");
     printInvoiceWindow();
+    toast.success("Invoice Generated & Bill Paid!");
+    dispatch(tableApi.util.invalidateTags(["Table"]));
+    dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+    dispatch(orderApi.util.invalidateTags(["Order"]));
+    // renderInvoiceHTML(printWindow);
+    
     onClose();
     navigate("/staff/orders/all-orders");
 
   } catch (err) {
-   
+   console.error(err);
     toast.error("Failed to generate invoice");
   }
 };
@@ -801,6 +755,14 @@ const html = `
   }
 
   w.document.write(html);
+//   w.document.write(`
+//   <button onclick="window.print()" 
+//     style="position:fixed;top:10px;right:10px;padding:8px 12px;
+//            background:#ff0000;color:white;border:none;border-radius:4px;
+//            font-size:14px;cursor:pointer;z-index:9999;">
+//       Print
+//   </button>
+// `);
   w.document.close();
 };
 

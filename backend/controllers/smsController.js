@@ -16,7 +16,18 @@ async function generateNextId(connection, prefix, column, table) {
 
   return prefix + num.toString().padStart(5, "0");
 }
+async function generateNextInvoiceId(connection, prefix, column, table) {
+  const [rows] = await connection.query(
+    `SELECT ${column} FROM ${table} ORDER BY id DESC LIMIT 1`
+  );
 
+  if (rows.length === 0) return prefix + "001";
+
+  const lastId = rows[0][column];
+  const num = parseInt(lastId.replace(prefix, ""), 10) + 1;
+
+  return prefix + num.toString().padStart(3, "0");
+}
  const generateSms = async (req, res, next) => {
   let connection;
 
@@ -71,8 +82,8 @@ async function generateNextId(connection, prefix, column, table) {
     }
 
     /* ---------------- INVOICE ---------------- */
-    const Invoice_Id = await generateNextId(connection, "INV", "Invoice_Id", "invoices");
-
+    // const Invoice_Id = await generateNextInvoiceId(connection, "IN", "Invoice_Id", "invoices");
+  const Invoice_Id = await generateNextId(connection, "INV", "Invoice_Id", "invoices");
     await connection.query(
       `INSERT INTO invoices
        (Invoice_Id, Order_Id, Invoice_Date, Financial_Year,
@@ -144,6 +155,8 @@ async function generateNextId(connection, prefix, column, table) {
       io.emit("kitchen_order_removed", { KOT_Id });
     }
 
+// ✅ Commit only after SMS success
+await connection.commit();
 
 
     /* ---------------- SMS ---------------- */
@@ -152,7 +165,9 @@ async function generateNextId(connection, prefix, column, table) {
 // const restaurantName = "Hello Guys Shakuntala Park";
 const totalAmount = Number(Final_Amount).toFixed(2);
 const billNumber = Invoice_Id; // or invoice display number
-const invoiceLink = `${"http://localhost:5173"}/${billNumber}`
+// const invoiceLink = `http://localhost:4000/api/staff/order/${billNumber}`;
+// const invoiceLink = `https://ancoinnovation.com/b/${billNumber}`
+//  const invoiceLink = `${"http://localhost:5173"}/${billNumber}`
 // const invoiceLink = `${"http://localhost:5173"}/invoice/view/${billNumber}`;
 // const invoiceLink = `https://ancoinnovation.com/restaurant-mangement-system/invoice/view/${Public_Token}`;
 
@@ -163,23 +178,28 @@ const smsMessage = `Hi, Your bill from Hello Guys Shakuntala Park : Total Rs.${t
     const smsSent = await sendSMS(Customer_Phone, smsMessage);
 
 // ❌ If SMS rejected → rollback
-if (!smsSent) {
-  await connection.rollback();
-  return res.status(400).json({
-    success: false,
-    message: "SMS rejected by gateway. Please try again.",
-  });
-}
+// if (!smsSent) {
+//   await connection.rollback();
+//   return res.status(400).json({
+//     success: false,
+//     message: "SMS rejected by gateway. Please try again.",
+//   });
+// }
+ return res.status(200).json({
+      success: true,
+      message: smsSent
+        ? "Invoice generated & SMS sent successfully"
+        : "Invoice generated but SMS failed",
+      Invoice_Id,
+      smsSent,
+    });
 
-// ✅ Commit only after SMS success
-await connection.commit();
-
-return res.status(200).json({
-  success: true,
-  message: "Invoice generated & SMS sent successfully",
-  Invoice_Id,
-  Invoice_Public_Link_Id,
-});
+// return res.status(200).json({
+//   success: true,
+//   message: "Invoice generated & SMS sent successfully",
+//   Invoice_Id,
+//   Invoice_Public_Link_Id,
+// });
 
 
   } catch (err) {
@@ -192,15 +212,662 @@ return res.status(200).json({
 };
 
 
-const getPublicInvoiceHtml = async (req, res, next) => {
-  try {
+
+// const getPublicInvoiceHtml = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     const { Invoice_Id } = req.params;
+
+//     if (!Invoice_Id) {
+//       return res.status(400).send("Invoice Id is required");
+//     }
+
+//     connection = await db.getConnection();
+
+//     let invoiceDetails = null;
+//     let orderItems = [];
+//     let orderType = null;
+
+//     /* --------------------------------------------------
+//        1️⃣ CHECK DINE-IN INVOICE
+//     -------------------------------------------------- */
+//     const [[dineInvoice]] = await connection.query(
+//       `SELECT * FROM invoices WHERE Invoice_Id = ? LIMIT 1`,
+//       [Invoice_Id]
+//     );
+
+//     if (dineInvoice) {
+//       orderType = "dinein";
+//       invoiceDetails = dineInvoice;
+
+//       const [items] = await connection.query(
+//         `
+//         SELECT 
+//           oi.Quantity AS Item_Quantity,
+//           oi.Amount,
+//           fi.Item_Name
+//         FROM order_items oi
+//         JOIN add_food_item fi ON fi.Item_Id = oi.Item_Id
+//         WHERE oi.Order_Id = ?
+//         `,
+//         [dineInvoice.Order_Id]
+//       );
+
+//       orderItems = items;
+//     }
+
+//     /* --------------------------------------------------
+//        2️⃣ CHECK TAKEAWAY INVOICE (IF NOT DINE-IN)
+//     -------------------------------------------------- */
+//     if (!invoiceDetails) {
+//       const [[takeawayInvoice]] = await connection.query(
+//         `SELECT * FROM takeaway_invoices WHERE Invoice_Id = ? LIMIT 1`,
+//         [Invoice_Id]
+//       );
+
+//       if (takeawayInvoice) {
+//         orderType = "takeaway";
+//         invoiceDetails = takeawayInvoice;
+
+//         const [items] = await connection.query(
+//           `
+//           SELECT 
+//             oti.Quantity AS Item_Quantity,
+//             oti.Amount,
+//             fi.Item_Name
+//           FROM order_takeaway_items oti
+//           JOIN add_food_item fi ON fi.Item_Id = oti.Item_Id
+//           WHERE oti.Takeaway_Order_Id = ?
+//           `,
+//           [takeawayInvoice.Takeaway_Order_Id]
+//         );
+
+//         orderItems = items;
+//       }
+//     }
+
+//     /* --------------------------------------------------
+//        3️⃣ IF NO INVOICE FOUND
+//     -------------------------------------------------- */
+//     if (!invoiceDetails) {
+//       return res.status(404).send("Invoice not found");
+//     }
+
+//     /* --------------------------------------------------
+//        4️⃣ DATE / TIME / TOTAL
+//     -------------------------------------------------- */
+//     const total = Number(
+//       invoiceDetails.Amount ||
+//       invoiceDetails.Final_Amount ||
+//       0
+//     );
+
+//     const invoiceDate = new Date(invoiceDetails.Invoice_Date);
+
+//     const getCurrentDate = () =>
+//       invoiceDate.toLocaleDateString("en-GB");
+
+//     const getCurrentTime = () =>
+//       invoiceDate.toLocaleTimeString("en-US", {
+//         hour: "2-digit",
+//         minute: "2-digit",
+//         hour12: true,
+//       });
+
+//     /* --------------------------------------------------
+//        5️⃣ BUILD HTML
+//     -------------------------------------------------- */
+// const html = ` 
+// <!DOCTYPE html>
+// <html>
+//   <head>
+//     <title>Invoice - ${Invoice_Id}</title>
+//     <meta charset="UTF-8">
     
-    // 🔴 fetch invoiceDetails, orderDetails, invoiceNumberData, total here
-    // (you already have this logic elsewhere)
-const { Invoice_Id } = req.params;
+//     <style>
+//       * {
+//         margin: 0;
+//         padding: 0;
+//         box-sizing: border-box;
+//       }
+      
+//       body { 
+//         font-family: 'Courier New', Courier, monospace;
+//         font-size: 11px;
+//         line-height: 1.3;
+//         color: #000;
+//         width: 2.5in;
+//         margin: 0 auto;
+//         padding: 0;
+//       }
+      
+//       .invoice {
+//         width: 2.5in;
+//         padding: 8px;
+//       }
+
+//       .header-center { 
+//         text-align: center; 
+//         margin-bottom: 8px;
+//         border-bottom: 1px dashed #000;
+//         padding-bottom: 8px;
+//       }
+      
+         
+//           .logo { 
+//             width: 60px; 
+//             height: auto; 
+//             margin-bottom: 4px;
+//             padding: 5px;
+//             background-color: black;
+//           }
+//       .brand { 
+//         font-size: 16px; 
+//         font-weight: bold; 
+//         text-transform: uppercase;
+//         letter-spacing: 1px;
+//         margin-bottom: 2px;
+//       }
+      
+//       .line { 
+//         border-top: 1px dashed #000; 
+//         margin: 6px 0;
+//       }
+      
+//       .line-solid {
+//         border-top: 1px solid #000;
+//         margin: 6px 0;
+//       }
+
+//       .info-row {
+//         display: flex;
+//         justify-content: space-between;
+//         margin: 2px 0;
+//         font-size: 10px;
+//       }
+      
+//       .info-label {
+//         font-weight: bold;
+//       }
+
+//       .items-header {
+//         display: flex;
+//         justify-content: space-between;
+//         font-weight: bold;
+//         border-bottom: 1px solid #000;
+//         padding: 4px 0;
+//         font-size: 10px;
+//       }
+      
+//       .item-row {
+//         display: flex;
+//         justify-content: space-between;
+//         padding: 3px 0;
+//         border-bottom: 1px dashed #ddd;
+//         font-size: 10px;
+//       }
+      
+//       .item-name {
+//         flex: 1;
+//         padding-right: 8px;
+//         word-wrap: break-word;
+//       }
+      
+//       .item-qty {
+//         width: 30px;
+//         text-align: center;
+//       }
+      
+//       .item-amount {
+//         width: 55px;
+//         text-align: right;
+//         font-weight: bold;
+//       }
+
+//       .summary {
+//         margin-top: 8px;
+//         font-size: 11px;
+//       }
+      
+//       .summary-row {
+//         display: flex;
+//         justify-content: space-between;
+//         padding: 3px 0;
+//       }
+      
+//       .summary-row.total {
+//         font-size: 13px;
+//         font-weight: bold;
+//         border-top: 1px solid #000;
+//         border-bottom: 2px solid #000;
+//         margin-top: 4px;
+//         padding: 5px 0;
+//       }
+
+//       .footer {
+//         text-align: center;
+//         margin-top: 10px;
+//         padding-top: 8px;
+//         border-top: 1px dashed #000;
+//         font-size: 10px;
+//       }
+      
+//       .footer-title {
+//         font-weight: bold;
+//         margin-bottom: 4px;
+//         font-size: 11px;
+//       }
+
+//       @media print {
+//         body {
+//           width: 2.5in;
+//           margin: 0;
+//           padding: 0;
+//         }
+        
+//         .invoice {
+//           width: 2.5in;
+//           padding: 8px;
+//         }
+        
+//         @page {
+//           size: 2.5in auto;
+//           margin: 0;
+//         }
+//       }
+//     </style>
+//   </head>
+//   <body>
+//     <div class="invoice">
+
+//       <!-- HEADER -->
+//       <div class="header-center">
+//         <img src="/public/images/restaurant-logo.png" class="logo" alt="Logo" />
+//         <div class="brand">HELLO GUYS</div>
+//       </div>
+
+//       <!-- CUSTOMER INFO -->
+//       <div class="info-row">
+//         <span><span class="info-label">Customer:</span> ${invoiceDetails.Customer_Name || "Walk-in"}</span>
+//       </div>
+
+//       ${invoiceDetails.Customer_Phone ? `
+//       <div class="info-row">
+//         <span><span class="info-label">Phone:</span> ${invoiceDetails.Customer_Phone}</span>
+//       </div>
+//       ` : ""}
+
+//       <div class="line"></div>
+
+//       <!-- DATE / TIME / INVOICE -->
+//       <div class="info-row">
+//         <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+//         <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+//       </div>
+//       <div class="info-row">
+//         <span><span class="info-label">Invoice:</span> ${Invoice_Id}</span>
+//       </div>
+
+//       <div class="line-solid"></div>
+
+//       <!-- ITEMS HEADER -->
+//       <div class="items-header">
+//         <div style="width:30px;">#</div>
+//         <div class="item-name">ITEM</div>
+//         <div class="item-qty">QTY</div>
+//         <div class="item-amount">AMOUNT</div>
+//       </div>
+
+//       <!-- ITEMS -->
+//       ${
+//         orderItems.map((it, i) => `
+//           <div class="item-row">
+//             <div style="width:30px;">${i + 1}</div>
+//             <div class="item-name">${it.Item_Name}</div>
+//             <div class="item-qty">${it.Item_Quantity}</div>
+//             <div class="item-amount">₹${Number(it.Amount).toFixed(2)}</div>
+//           </div>
+//         `).join("")
+//       }
+
+//       <div class="line-solid"></div>
+
+//       <!-- SUMMARY -->
+//       <div class="summary">
+//         <div class="summary-row total">
+//           <span>TOTAL</span>
+//           <span>₹${total.toFixed(2)}</span>
+//         </div>
+//       </div>
+
+//       <!-- FOOTER -->
+//       <div class="footer">
+//         <div class="footer-title">THANK YOU!</div>
+//         <div>Please Visit Again</div>
+//       </div>
+
+//     </div>
+
+//    <!-- DOWNLOAD BUTTON -->
+   
+
+
+
+
+//   </body>
+// </html>
+// `;
+
+//     res.setHeader("Content-Type", "text/html; charset=UTF-8");
+//     res.setHeader("Cache-Control", "no-store");
+
+//     return res.status(200).send(html);
+
+//   } catch (err) {
+//     console.error("❌ Invoice HTML error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+// const getPublicInvoiceHtml = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     const { Invoice_Id } = req.params;
+
+//     if (!Invoice_Id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invoice Id is required",
+//       });
+//     }
+
+//     connection = await db.getConnection();
+
+//     let invoiceDetails = null;
+//     let orderItems = [];
+//     let orderType = null;
+//     let orderTypeLabel = null; // ✅ NEW
+
+//     /* ---------------- 1️⃣ DINE-IN INVOICE ---------------- */
+//     const [[dineInvoice]] = await connection.query(
+//       `SELECT * FROM invoices WHERE Invoice_Id = ? LIMIT 1`,
+//       [Invoice_Id]
+//     );
+
+//     if (dineInvoice) {
+//       orderType = "dinein";
+//       orderTypeLabel = "DINE-IN"; // ✅ ADD
+//       invoiceDetails = dineInvoice;
+
+//       const [items] = await connection.query(
+//         `
+//         SELECT 
+//           fi.Item_Name,
+//           oi.Quantity AS Item_Quantity,
+//           oi.Amount,
+//           oi.Service_Charge,
+//           oi.Discount,
+//           oi.Discount_Type
+//         FROM order_items oi
+//         JOIN add_food_item fi ON fi.Item_Id = oi.Item_Id
+//         WHERE oi.Order_Id = ?
+//         `,
+//         [dineInvoice.Order_Id]
+//       );
+
+//       orderItems = items;
+//     }
+
+//     /* ---------------- 2️⃣ TAKEAWAY INVOICE ---------------- */
+//     if (!invoiceDetails) {
+//       const [[takeawayInvoice]] = await connection.query(
+//         `SELECT * FROM takeaway_invoices WHERE Invoice_Id = ? LIMIT 1`,
+//         [Invoice_Id]
+//       );
+
+//       if (takeawayInvoice) {
+//         orderType = "takeaway";
+//         orderTypeLabel = "TAKEAWAY"; // ✅ ADD
+//         invoiceDetails = takeawayInvoice;
+
+//         const [items] = await connection.query(
+//           `
+//           SELECT 
+//             fi.Item_Name,
+//             oti.Quantity AS Item_Quantity,
+//             oti.Amount,
+//             oti.Service_Charge,
+//             oti.Discount,
+//             oti.Discount_Type
+//           FROM order_takeaway_items oti
+//           JOIN add_food_item fi ON fi.Item_Id = oti.Item_Id
+//           WHERE oti.Takeaway_Order_Id = ?
+//           `,
+//           [takeawayInvoice.Takeaway_Order_Id]
+//         );
+
+//         orderItems = items;
+//       }
+//     }
+
+//     /* ---------------- 3️⃣ NOT FOUND ---------------- */
+//     if (!invoiceDetails) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Invoice not found",
+//       });
+//     }
+// const totalAmount =
+//   Number(invoiceDetails.Amount) ||
+//   Number(invoiceDetails.Final_Amount) ||
+//   0;
+
+// const serviceCharge = Number(invoiceDetails.Service_Charge || 0);
+// const discount = Number(invoiceDetails.Discount || 0);
+
+// // ✅ Backward calculation
+// const subTotal = totalAmount - serviceCharge + discount;
+//     /* ---------------- 4️⃣ RESPONSE ---------------- */
+//     return res.status(200).json({
+//       success: true,
+//       orderType,          // "dinein" | "takeaway"
+//       orderTypeLabel,     // "DINE-IN" | "TAKEAWAY" ✅
+//       invoice: {
+
+//         Invoice_Id: invoiceDetails.Invoice_Id,
+//         Customer_Name: invoiceDetails.Customer_Name,
+//         Customer_Phone: invoiceDetails.Customer_Phone,
+//         Invoice_Date: invoiceDetails.Invoice_Date,
+//         Discount: invoiceDetails.Discount,
+//         Discount_Type: invoiceDetails.Discount_Type,
+//         Service_Charge: invoiceDetails.Service_Charge,
+//          Sub_Total: Number(subTotal.toFixed(2)),  
+//         Total:
+//           Number(invoiceDetails.Amount) ||
+//           Number(invoiceDetails.Final_Amount) ||
+//           0,
+//       },
+//       items: orderItems,
+//     });
+
+//   } catch (err) {
+//     console.error("❌ Invoice fetch error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+
+// const getPublicInvoiceHtml = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     const { Invoice_Id } = req.params;
+
+//     if (!Invoice_Id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invoice Id is required",
+//       });
+//     }
+
+//     connection = await db.getConnection();
+
+//     let invoiceDetails = null;
+//     let orderItems = [];
+//     let orderType = null;
+//     let orderTypeLabel = null;
+
+//     /* =====================================================
+//        1️⃣ DINE-IN INVOICE
+//     ===================================================== */
+//     const [[dineInvoice]] = await connection.query(
+//       `SELECT * FROM invoices WHERE Invoice_Id = ? LIMIT 1`,
+//       [Invoice_Id]
+//     );
+
+//     if (dineInvoice) {
+//       orderType = "dinein";
+//       orderTypeLabel = "DINE-IN";
+//       invoiceDetails = dineInvoice;
+
+//       const [items] = await connection.query(
+//         `
+//         SELECT 
+//           fi.Item_Name,
+//           oi.Quantity AS Item_Quantity,
+//           oi.Amount
+//         FROM order_items oi
+//         JOIN add_food_item fi ON fi.Item_Id = oi.Item_Id
+//         WHERE oi.Order_Id = ?
+//         `,
+//         [dineInvoice.Order_Id]
+//       );
+
+//       orderItems = items;
+//     }
+
+//     /* =====================================================
+//        2️⃣ TAKEAWAY INVOICE
+//     ===================================================== */
+//     if (!invoiceDetails) {
+//       const [[takeawayInvoice]] = await connection.query(
+//         `SELECT * FROM takeaway_invoices WHERE Invoice_Id = ? LIMIT 1`,
+//         [Invoice_Id]
+//       );
+
+//       if (takeawayInvoice) {
+//         orderType = "takeaway";
+//         orderTypeLabel = "TAKEAWAY";
+//         invoiceDetails = takeawayInvoice;
+
+//         const [items] = await connection.query(
+//           `
+//           SELECT 
+//             fi.Item_Name,
+//             oti.Quantity AS Item_Quantity,
+//             oti.Amount
+//           FROM order_takeaway_items oti
+//           JOIN add_food_item fi ON fi.Item_Id = oti.Item_Id
+//           WHERE oti.Takeaway_Order_Id = ?
+//           `,
+//           [takeawayInvoice.Takeaway_Order_Id]
+//         );
+
+//         orderItems = items;
+//       }
+//     }
+
+//     /* =====================================================
+//        3️⃣ NOT FOUND
+//     ===================================================== */
+//     if (!invoiceDetails) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Invoice not found",
+//       });
+//     }
+
+//     /* =====================================================
+//        4️⃣ AMOUNT + DISCOUNT CALCULATION (✔ CORRECT)
+//     ===================================================== */
+//     const finalAmount = Number(
+//       invoiceDetails.Amount ?? invoiceDetails.Final_Amount ?? 0
+//     );
+
+//     const serviceCharge = Number(invoiceDetails.Service_Charge ?? 0);
+//     const discountInput = Number(invoiceDetails.Discount ?? 0);
+//     const discountType = invoiceDetails.Discount_Type; // "percentage" | "amount"
+
+//     let subTotal = 0;
+//     let discountValue = 0;
+
+//     // 🧠 CASE 1: PERCENTAGE DISCOUNT
+//     if (discountType === "percentage" && discountInput > 0) {
+//       const discountRate = discountInput / 100;
+
+//       // Reverse percentage discount
+//       subTotal = (finalAmount - serviceCharge) / (1 - discountRate);
+//       discountValue = subTotal * discountRate;
+//     }
+
+//     // 🧠 CASE 2: FLAT AMOUNT DISCOUNT
+//     else if (discountType === "amount" && discountInput > 0) {
+//       discountValue = discountInput;
+//       subTotal = finalAmount - serviceCharge + discountValue;
+//     }
+
+//     // 🧠 CASE 3: NO DISCOUNT
+//     else {
+//       subTotal = finalAmount - serviceCharge;
+//       discountValue = 0;
+//     }
+
+//     subTotal = Math.max(subTotal, 0);
+
+//     /* =====================================================
+//        5️⃣ RESPONSE
+//     ===================================================== */
+//     return res.status(200).json({
+//       success: true,
+//       orderType,
+//       orderTypeLabel,
+//       invoice: {
+//         Invoice_Id: invoiceDetails.Invoice_Id,
+//         Customer_Name: invoiceDetails.Customer_Name,
+//         Customer_Phone: invoiceDetails.Customer_Phone,
+//         Invoice_Date: invoiceDetails.Invoice_Date,
+
+//         Sub_Total: Number(subTotal.toFixed(2)),
+//         Discount: Number(discountValue.toFixed(2)),
+//         Discount_Type: discountType,
+//         Service_Charge: Number(serviceCharge.toFixed(2)),
+//         Total: Number(finalAmount.toFixed(2)),
+//       },
+//       items: orderItems,
+//     });
+
+//   } catch (err) {
+//     console.error("❌ Invoice fetch error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+const getPublicInvoiceHtml = async (req, res, next) => {
+  let connection;
+
+  try {
+    const { Invoice_Id } = req.params;
 
     if (!Invoice_Id) {
-      return res.status(400).send("Invoice Id is required");
+      return res.status(400).json({
+        success: false,
+        message: "Invoice Id is required",
+      });
     }
 
     connection = await db.getConnection();
@@ -208,10 +875,9 @@ const { Invoice_Id } = req.params;
     let invoiceDetails = null;
     let orderItems = [];
     let orderType = null;
+    let orderTypeLabel = null;
 
-    /* --------------------------------------------------
-       1️⃣ CHECK DINE-IN INVOICE
-    -------------------------------------------------- */
+    /* ================= DINE-IN ================= */
     const [[dineInvoice]] = await connection.query(
       `SELECT * FROM invoices WHERE Invoice_Id = ? LIMIT 1`,
       [Invoice_Id]
@@ -219,15 +885,12 @@ const { Invoice_Id } = req.params;
 
     if (dineInvoice) {
       orderType = "dinein";
+      orderTypeLabel = "DINE-IN";
       invoiceDetails = dineInvoice;
 
-      // Fetch dine-in items
       const [items] = await connection.query(
         `
-        SELECT 
-          oi.Quantity AS Item_Quantity,
-          oi.Amount,
-          fi.Item_Name
+        SELECT fi.Item_Name, oi.Quantity AS Item_Quantity, oi.Amount
         FROM order_items oi
         JOIN add_food_item fi ON fi.Item_Id = oi.Item_Id
         WHERE oi.Order_Id = ?
@@ -238,9 +901,7 @@ const { Invoice_Id } = req.params;
       orderItems = items;
     }
 
-    /* --------------------------------------------------
-       2️⃣ CHECK TAKEAWAY INVOICE (IF NOT DINE-IN)
-    -------------------------------------------------- */
+    /* ================= TAKEAWAY ================= */
     if (!invoiceDetails) {
       const [[takeawayInvoice]] = await connection.query(
         `SELECT * FROM takeaway_invoices WHERE Invoice_Id = ? LIMIT 1`,
@@ -249,14 +910,12 @@ const { Invoice_Id } = req.params;
 
       if (takeawayInvoice) {
         orderType = "takeaway";
+        orderTypeLabel = "TAKEAWAY";
         invoiceDetails = takeawayInvoice;
 
         const [items] = await connection.query(
           `
-          SELECT 
-            oti.Quantity AS Item_Quantity,
-            oti.Amount,
-            fi.Item_Name
+          SELECT fi.Item_Name, oti.Quantity AS Item_Quantity, oti.Amount
           FROM order_takeaway_items oti
           JOIN add_food_item fi ON fi.Item_Id = oti.Item_Id
           WHERE oti.Takeaway_Order_Id = ?
@@ -268,291 +927,71 @@ const { Invoice_Id } = req.params;
       }
     }
 
-    /* --------------------------------------------------
-       3️⃣ IF NO INVOICE FOUND
-    -------------------------------------------------- */
     if (!invoiceDetails) {
-      return res.status(404).send("Invoice not found");
+      return res.status(404).json({
+        success: false,
+        message: "Invoice not found",
+      });
     }
 
-    /* --------------------------------------------------
-       4️⃣ CALCULATE TOTAL
-    -------------------------------------------------- */
-    const total = Number(invoiceDetails.Amount || invoiceDetails.Final_Amount || 0);
+    /* ================= CALCULATION ================= */
 
-    const getCurrentDate = () =>
-      new Date(invoiceDetails.Invoice_Date).toLocaleDateString("en-GB");
+    const subTotal = orderItems.reduce(
+      (sum, item) => sum + Number(item.Amount || 0),
+      0
+    );
 
-    const getCurrentTime = () =>
-      new Date(invoiceDetails.Invoice_Date).toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
+    const serviceCharge = Number(invoiceDetails.Service_Charge || 0);
+    const discountInput = Number(invoiceDetails.Discount || 0); // 👈 staff input
+    const discountType = invoiceDetails.Discount_Type;
 
-    const html = ` 
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
-        <meta charset="UTF-8">
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body { 
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
-            line-height: 1.3;
-            color: #000;
-            width: 2.5in;
-            margin: 0 auto;
-            padding: 0;
-          }
-          
-          .invoice {
-            width: 2.5in;
-            padding: 8px;
-          }
+    let discountValue = 0;
 
-          .header-center { 
-            text-align: center; 
-            margin-bottom: 8px;
-            border-bottom: 1px dashed #000;
-            padding-bottom: 8px;
-          }
-          
-          .logo { 
-            width: 60px; 
-            height: auto; 
-            margin-bottom: 4px;
-          }
-          
-          .brand { 
-            font-size: 16px; 
-            font-weight: bold; 
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 2px;
-          }
-          
-          .line { 
-            border-top: 1px dashed #000; 
-            margin: 6px 0;
-          }
-          
-          .line-solid {
-            border-top: 1px solid #000;
-            margin: 6px 0;
-          }
+    if (discountType === "percentage" && discountInput > 0) {
+      discountValue = subTotal * (discountInput / 100);
+    } else if (discountType === "amount" && discountInput > 0) {
+      discountValue = discountInput;
+    }
 
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 2px 0;
-            font-size: 10px;
-          }
-          
-          .info-label {
-            font-weight: bold;
-          }
+    discountValue = Math.min(discountValue, subTotal);
 
-          .items-header {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            border-bottom: 1px solid #000;
-            padding: 4px 0;
-            font-size: 10px;
-          }
-          
-          .item-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 3px 0;
-            border-bottom: 1px dashed #ddd;
-            font-size: 10px;
-          }
-          
-          .item-name {
-            flex: 1;
-            padding-right: 8px;
-            word-wrap: break-word;
-          }
-          
-          .item-qty {
-            width: 30px;
-            text-align: center;
-          }
-          
-          .item-price {
-            width: 50px;
-            text-align: right;
-          }
-          
-          .item-amount {
-            width: 55px;
-            text-align: right;
-            font-weight: bold;
-          }
+    const finalTotal =
+      subTotal - discountValue + serviceCharge;
 
-          .summary {
-            margin-top: 8px;
-            font-size: 11px;
-          }
-          
-          .summary-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 3px 0;
-          }
-          
-          .summary-row.total {
-            font-size: 13px;
-            font-weight: bold;
-            border-top: 1px solid #000;
-            border-bottom: 2px solid #000;
-            margin-top: 4px;
-            padding: 5px 0;
-          }
+    /* ================= RESPONSE ================= */
+    return res.status(200).json({
+      success: true,
+      orderType,
+      orderTypeLabel,
+      invoice: {
+        Invoice_Id: invoiceDetails.Invoice_Id,
+        Customer_Name: invoiceDetails.Customer_Name,
+        Customer_Phone: invoiceDetails.Customer_Phone,
+        Invoice_Date: invoiceDetails.Invoice_Date,
 
-          .footer {
-            text-align: center;
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px dashed #000;
-            font-size: 10px;
-          }
-          
-          .footer-title {
-            font-weight: bold;
-            margin-bottom: 4px;
-            font-size: 11px;
-          }
+        Sub_Total: Number(subTotal.toFixed(2)),
 
-          @media print {
-            body {
-              width: 2.5in;
-              margin: 0;
-              padding: 0;
-            }
-            
-            .invoice {
-              width: 2.5in;
-              padding: 8px;
-            }
-            
-            @page {
-              size: 2.5in auto;
-              margin: 0;
-            }
-            
-            .no-print {
-              display: none !important;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="invoice">
+        // 👇 EXACT UI INPUT
+        Discount: discountInput,
+        Discount_Type: discountType,
 
-          <div class="header-center">
-            <img src="/logo.png" class="logo" alt="Logo" />
-            <div class="brand">${invoiceDetails?.Store_Name ?? "HELLO GUYS"}</div>
-          </div>
+        // 👇 ACTUAL MONEY DEDUCTED
+        Discount_Value: Number(discountValue.toFixed(2)),
 
-          <div class="info-row">
-            <span><span class="info-label">Customer:</span> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</span>
-          </div>
-          ${invoiceDetails?.Customer_Phone ? `
-          <div class="info-row">
-            <span><span class="info-label">Phone:</span> ${invoiceDetails.Customer_Phone}</span>
-          </div>
-          ` : ''}
-          
-          <div class="line"></div>
-
-          <div class="info-row">
-            <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
-            <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
-          </div>
-          <div class="info-row">
-            <span><span class="info-label">Invoice:</span> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</span>
-          </div>
-
-          <div class="line-solid"></div>
-
-          <div class="items-header">
-            <div style="width: 30px;">#</div>
-            <div class="item-name">ITEM</div>
-            <div class="item-qty">QTY</div>
-            <div class="item-amount">AMOUNT</div>
-          </div>
-
-          ${
-            (orderDetails?.items || []).map((it, i) => `
-              <div class="item-row">
-                <div style="width: 30px;">${i + 1}</div>
-                <div class="item-name">${it.Item_Name ?? "-"}</div>
-                <div class="item-qty">${it.Item_Quantity ?? 1}</div>
-                <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
-              </div>
-            `).join("")
-          }
-
-          <div class="line-solid"></div>
-
-          <div class="summary">
-            <div class="summary-row">
-              <span>Subtotal</span>
-              <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
-            </div>
-            ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
-            <div class="summary-row">
-              <span>Service Charge</span>
-              <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
-            </div>
-            ` : ''}
-            ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
-            <div class="summary-row">
-              <span>Discount</span>
-              <span>${
-                invoiceDetails.Discount_Type === "percentage"
-                  ? `${invoiceDetails.Discount}%`
-                  : `₹${invoiceDetails.Discount}`
-              }</span>
-            </div>
-            ` : ''}
-            <div class="summary-row total">
-              <span>TOTAL</span>
-              <span>₹${Number(total).toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div class="footer">
-            <div class="footer-title">THANK YOU!</div>
-            <div>Please Visit Again</div>
-          </div>
-
-        </div>
-      </body>
-    </html>
-  `;
-
-    // ✅ IMPORTANT HEADERS
-    res.setHeader("Content-Type", "text/html; charset=UTF-8");
-    res.setHeader("Cache-Control", "no-store");
-
-    return res.status(200).send(html);
+        Service_Charge: Number(serviceCharge.toFixed(2)),
+        Total: Number(finalTotal.toFixed(2)),
+      },
+      items: orderItems,
+    });
 
   } catch (err) {
-    console.error("Invoice HTML error:", err);
+    console.error("❌ Invoice fetch error:", err);
     next(err);
+  } finally {
+    if (connection) connection.release();
   }
 };
+
 
 const generateSmsForTakeaway=async (req, res, next) => {
    let connection;
@@ -849,7 +1288,7 @@ await connection.query(
     Public_Token,
   ]
 );
-
+await connection.commit();
     /* ---------------- ORDER & KITCHEN ---------------- */
  
 
@@ -858,8 +1297,11 @@ await connection.query(
  
 const totalAmount = Number(Final_Amount).toFixed(2);
 const billNumber = Invoice_Id; // or invoice display number
-
-const invoiceLink = `${"http://localhost:5173"}/invoice/view/${billNumber}`;
+// const invoiceLink = `https://ancoinnovation.com/b/${billNumber}`
+//  const invoiceLink = `${"http://localhost:5173"}/${billNumber}`
+//  const invoiceLink = `${"http://localhost:5173"}/${billNumber}`
+// const invoiceLink = `http://localhost:4000/api/staff/order/${billNumber}`;
+// const invoiceLink = `${"http://localhost:5173"}/invoice/view/${billNumber}`;
 // const invoiceLink = `https://ancoinnovation.com/restaurant-mangement-system/invoice/view/${Public_Token}`;
 
 // Hi, Your bill from Hello Guys Shakuntala Park : Total Rs.{#var#} (incl. Tax). Bill No. {#var#}. View full details: {#var#} CLPLSE.
@@ -869,24 +1311,38 @@ const smsMessage = `Hi, Your bill from Hello Guys Shakuntala Park : Total Rs.${t
     const smsSent = await sendSMS(Customer_Phone, smsMessage);
 
 // ❌ If SMS rejected → rollback
-if (!smsSent) {
-  await connection.rollback();
-  return res.status(400).json({
-    success: false,
-    message: "SMS rejected by gateway. Please try again.",
-  });
-}
-
+// if (!smsSent) {
+//   await connection.rollback();
+//   return res.status(400).json({
+//     success: false,
+//     message: "SMS rejected by gateway. Please try again.",
+//   });
+// }
+//  return res.status(200).json({
+//       success: true,
+//       message: smsSent
+//         ? "Invoice generated & SMS sent successfully"
+//         : "Invoice generated but SMS failed",
+//       Invoice_Id,
+//       smsSent,
+//     });
 // ✅ Commit only after SMS success
-await connection.commit();
 
-return res.status(200).json({
-  success: true,
-  message: "Invoice generated & SMS sent successfully",
-  Invoice_Id,
-  Invoice_Public_Link_Id,
-});
 
+// return res.status(200).json({
+//   success: true,
+//   message: "Invoice generated & SMS sent successfully",
+//   Invoice_Id,
+//   Invoice_Public_Link_Id,
+// });
+  return res.status(200).json({
+      success: true,
+      message: smsSent
+        ? "Invoice generated & SMS sent successfully"
+        : "Invoice generated but SMS failed",
+      Invoice_Id,
+      smsSent,
+    });
 
   } catch (err) {
     if (connection) await connection.rollback();
@@ -898,3 +1354,380 @@ return res.status(200).json({
 }
 
 export { generateSms,getPublicInvoiceHtml ,generateSmsForTakeaway};
+
+
+
+
+
+
+
+
+
+
+
+
+// const getPublicInvoiceHtml = async (req, res, next) => {
+//   let connection;
+//   try {
+    
+//     // 🔴 fetch invoiceDetails, orderDetails, invoiceNumberData, total here
+//     // (you already have this logic elsewhere)
+// const { Invoice_Id } = req.params;
+
+//     if (!Invoice_Id) {
+//       return res.status(400).send("Invoice Id is required");
+//     }
+
+//     connection = await db.getConnection();
+
+//     let invoiceDetails = null;
+//     let orderItems = [];
+//     let orderType = null;
+
+//     /* --------------------------------------------------
+//        1️⃣ CHECK DINE-IN INVOICE
+//     -------------------------------------------------- */
+//     const [[dineInvoice]] = await connection.query(
+//       `SELECT * FROM invoices WHERE Invoice_Id = ? LIMIT 1`,
+//       [Invoice_Id]
+//     );
+
+//     if (dineInvoice) {
+//       orderType = "dinein";
+//       invoiceDetails = dineInvoice;
+
+//       // Fetch dine-in items
+//       const [items] = await connection.query(
+//         `
+//         SELECT 
+//           oi.Quantity AS Item_Quantity,
+//           oi.Amount,
+//           fi.Item_Name
+//         FROM order_items oi
+//         JOIN add_food_item fi ON fi.Item_Id = oi.Item_Id
+//         WHERE oi.Order_Id = ?
+//         `,
+//         [dineInvoice.Order_Id]
+//       );
+
+//       orderItems = items;
+//     }
+
+//     /* --------------------------------------------------
+//        2️⃣ CHECK TAKEAWAY INVOICE (IF NOT DINE-IN)
+//     -------------------------------------------------- */
+//     if (!invoiceDetails) {
+//       const [[takeawayInvoice]] = await connection.query(
+//         `SELECT * FROM takeaway_invoices WHERE Invoice_Id = ? LIMIT 1`,
+//         [Invoice_Id]
+//       );
+
+//       if (takeawayInvoice) {
+//         orderType = "takeaway";
+//         invoiceDetails = takeawayInvoice;
+
+//         const [items] = await connection.query(
+//           `
+//           SELECT 
+//             oti.Quantity AS Item_Quantity,
+//             oti.Amount,
+//             fi.Item_Name
+//           FROM order_takeaway_items oti
+//           JOIN add_food_item fi ON fi.Item_Id = oti.Item_Id
+//           WHERE oti.Takeaway_Order_Id = ?
+//           `,
+//           [takeawayInvoice.Takeaway_Order_Id]
+//         );
+
+//         orderItems = items;
+//       }
+//     }
+
+//     /* --------------------------------------------------
+//        3️⃣ IF NO INVOICE FOUND
+//     -------------------------------------------------- */
+//     if (!invoiceDetails) {
+//       return res.status(404).send("Invoice not found");
+//     }
+
+//     /* --------------------------------------------------
+//        4️⃣ CALCULATE TOTAL
+//     -------------------------------------------------- */
+//     const total = Number(invoiceDetails.Amount || invoiceDetails.Final_Amount || 0);
+
+//     const getCurrentDate = () =>
+//       new Date(invoiceDetails.Invoice_Date).toLocaleDateString("en-GB");
+
+//     const getCurrentTime = () =>
+//       new Date(invoiceDetails.Invoice_Date).toLocaleTimeString("en-US", {
+//         hour: "2-digit",
+//         minute: "2-digit",
+//         hour12: true,
+//       });
+
+//     const html = ` 
+//     <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+//         <meta charset="UTF-8">
+//         <style>
+//           * {
+//             margin: 0;
+//             padding: 0;
+//             box-sizing: border-box;
+//           }
+          
+//           body { 
+//             font-family: 'Courier New', Courier, monospace;
+//             font-size: 11px;
+//             line-height: 1.3;
+//             color: #000;
+//             width: 2.5in;
+//             margin: 0 auto;
+//             padding: 0;
+//           }
+          
+//           .invoice {
+//             width: 2.5in;
+//             padding: 8px;
+//           }
+
+//           .header-center { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+          
+//           .logo { 
+//             width: 60px; 
+//             height: auto; 
+//             margin-bottom: 4px;
+//           }
+          
+//           .brand { 
+//             font-size: 16px; 
+//             font-weight: bold; 
+//             text-transform: uppercase;
+//             letter-spacing: 1px;
+//             margin-bottom: 2px;
+//           }
+          
+//           .line { 
+//             border-top: 1px dashed #000; 
+//             margin: 6px 0;
+//           }
+          
+//           .line-solid {
+//             border-top: 1px solid #000;
+//             margin: 6px 0;
+//           }
+
+//           .info-row {
+//             display: flex;
+//             justify-content: space-between;
+//             margin: 2px 0;
+//             font-size: 10px;
+//           }
+          
+//           .info-label {
+//             font-weight: bold;
+//           }
+
+//           .items-header {
+//             display: flex;
+//             justify-content: space-between;
+//             font-weight: bold;
+//             border-bottom: 1px solid #000;
+//             padding: 4px 0;
+//             font-size: 10px;
+//           }
+          
+//           .item-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//             border-bottom: 1px dashed #ddd;
+//             font-size: 10px;
+//           }
+          
+//           .item-name {
+//             flex: 1;
+//             padding-right: 8px;
+//             word-wrap: break-word;
+//           }
+          
+//           .item-qty {
+//             width: 30px;
+//             text-align: center;
+//           }
+          
+//           .item-price {
+//             width: 50px;
+//             text-align: right;
+//           }
+          
+//           .item-amount {
+//             width: 55px;
+//             text-align: right;
+//             font-weight: bold;
+//           }
+
+//           .summary {
+//             margin-top: 8px;
+//             font-size: 11px;
+//           }
+          
+//           .summary-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//           }
+          
+//           .summary-row.total {
+//             font-size: 13px;
+//             font-weight: bold;
+//             border-top: 1px solid #000;
+//             border-bottom: 2px solid #000;
+//             margin-top: 4px;
+//             padding: 5px 0;
+//           }
+
+//           .footer {
+//             text-align: center;
+//             margin-top: 10px;
+//             padding-top: 8px;
+//             border-top: 1px dashed #000;
+//             font-size: 10px;
+//           }
+          
+//           .footer-title {
+//             font-weight: bold;
+//             margin-bottom: 4px;
+//             font-size: 11px;
+//           }
+
+//           @media print {
+//             body {
+//               width: 2.5in;
+//               margin: 0;
+//               padding: 0;
+//             }
+            
+//             .invoice {
+//               width: 2.5in;
+//               padding: 8px;
+//             }
+            
+//             @page {
+//               size: 2.5in auto;
+//               margin: 0;
+//             }
+            
+//             .no-print {
+//               display: none !important;
+//             }
+//           }
+//         </style>
+//       </head>
+//       <body>
+//         <div class="invoice">
+
+//           <div class="header-center">
+//             <img src="/public/images/logo.png" class="logo" alt="Logo" />
+//             <div class="brand"> "HELLO GUYS"</div>
+//           </div>
+
+//           <div class="info-row">
+//             <span><span class="info-label">Customer:</span> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</span>
+//           </div>
+//           ${invoiceDetails?.Customer_Phone ? `
+//           <div class="info-row">
+//             <span><span class="info-label">Phone:</span> ${invoiceDetails.Customer_Phone}</span>
+//           </div>
+//           ` : ''}
+          
+//           <div class="line"></div>
+
+//           <div class="info-row">
+//             <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+//             <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+//           </div>
+//           <div class="info-row">
+//             <span><span class="info-label">Invoice:</span> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</span>
+//           </div>
+
+//           <div class="line-solid"></div>
+
+//           <div class="items-header">
+//             <div style="width: 30px;">#</div>
+//             <div class="item-name">ITEM</div>
+//             <div class="item-qty">QTY</div>
+//             <div class="item-amount">AMOUNT</div>
+//           </div>
+
+//           ${
+//             (orderDetails?.items || []).map((it, i) => `
+//               <div class="item-row">
+//                 <div style="width: 30px;">${i + 1}</div>
+//                 <div class="item-name">${it.Item_Name ?? "-"}</div>
+//                 <div class="item-qty">${it.Item_Quantity ?? 1}</div>
+//                 <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
+//               </div>
+//             `).join("")
+//           }
+
+//           <div class="line-solid"></div>
+
+//           <div class="summary">
+//             <div class="summary-row">
+//               <span>Subtotal</span>
+//               <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
+//             </div>
+//             ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
+//             <div class="summary-row">
+//               <span>Service Charge</span>
+//               <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
+//             </div>
+//             ` : ''}
+//             ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
+//             <div class="summary-row">
+//               <span>Discount</span>
+//               <span>${
+//                 invoiceDetails.Discount_Type === "percentage"
+//                   ? `${invoiceDetails.Discount}%`
+//                   : `₹${invoiceDetails.Discount}`
+//               }</span>
+//             </div>
+//             ` : ''}
+//             <div class="summary-row total">
+//               <span>TOTAL</span>
+//               <span>₹${Number(total).toFixed(2)}</span>
+//             </div>
+//           </div>
+
+//           <div class="footer">
+//             <div class="footer-title">THANK YOU!</div>
+//             <div>Please Visit Again</div>
+//           </div>
+
+//         </div>
+//       </body>
+//     </html>
+//   `;
+
+//     // ✅ IMPORTANT HEADERS
+//     res.setHeader("Content-Type", "text/html; charset=UTF-8");
+//     res.setHeader("Cache-Control", "no-store");
+
+//     return res.status(200).send(html);
+
+//   } catch (err) {
+//     console.error("Invoice HTML error:", err);
+//     next(err);
+//   }finally {
+//     if (connection) connection.release();
+
+//   }
+// };

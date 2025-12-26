@@ -914,10 +914,166 @@ const getPartyWiseItemsSoldAndPurchased = async (req, res, next) => {
 }
 
 
+//TOP SELLING ITEMS
+
+// const getItemsSoldEachDay=async(req,res,next)=>{
+//   let connection;
+//   try{
+//        const page = parseInt(req.query.page || 1, 10);
+//     const limit = 10;
+//     const offset = (page - 1) * limit;
+//      const selectedDate =
+//       req.query.date || new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+//     const [itemsSoldEachDayFromDineIn] = await db.query(`
+//       SELECT 
+//         add_food_item.Item_Id,
+//         add_food_item.Item_Name,
+//         order_items.Quantity as sold_count,
+//        order_items.Amount as total_price
+
+      
+//       FROM add_food_item 
+//       LEFT JOIN order_items
+//         ON add_food_item.Item_Id = order_items.Item_Id
+     
+//       WHERE DATE(order_items.created_at) = ?
+    
+      
+//       ORDER BY sold_count DESC
+//       LIMIT ${limit}
+//       OFFSET ${offset}
+//     `
+//     , [selectedDate]);
+//         const [itemsSoldEachDayFromTakeaway] = await db.query(`
+//       SELECT 
+//         add_food_item.Item_Id,
+//         add_food_item.Item_Name,
+//         order_items_takeaway.Quantity as sold_count,
+//        order_items_takeaway.Amount as total_price
+      
+//       FROM add_food_item 
+//       LEFT JOIN order_items_takeaway
+//         ON add_food_item.Item_Id = order_items_takeaway.Item_Id
+     
+//       WHERE DATE(order_items_takeaway.created_at) = ?
+    
+    
+//       ORDER BY sold_count DESC
+//       LIMIT ${limit}
+//       OFFSET ${offset}
+//     `
+//     , [selectedDate]);
+
+//     const itemsSoldEachDay = [...itemsSoldEachDayFromDineIn,...itemsSoldEachDayFromTakeaway];
+// let items=new Map()
+// itemsSoldEachDay.forEach((item)=>{
+
+//   if(!items.has(item.Item_Id)){
+//     items.set(item.Item_Id,{Item_Id:item.Item_Id,Item_Name:item.Item_Name,
+//       sold_count:item.sold_count,total_price:item.total_price})
+//   }else{
+//     items.get(item.Item_Id).sold_count+=item.sold_count;
+//     items.get(item.Item_Id).total_price+=item.total_price
+//   }
+// })
+//     // itemsSoldEachDay.forEach((item) => {
+//     //  it
+
+//     // })
+//     return res.status(200).json({
+//       success: true,
+//       data: items,
+//       currentPage: page,
+//       pageSize: limit
+//     });
+//   }catch(err){
+//     if(connection){
+//       connection.release();
+//     }
+//     console.error("❌ Error getting top selling items:", err);
+//     next(err);
+//   }finally{
+//     if(connection){
+//       connection.release();
+//     }
+//   }
+// }
+const getItemsSoldEachDay = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page || 1, 10);
+    const limit = 10;
+    const offset = (page - 1) * limit;
+    const selectedDate =
+      req.query.date || new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+
+    // ----------------------------------------------------
+    // 1️⃣ COUNT TOTAL DISTINCT ITEMS SOLD
+    // ----------------------------------------------------
+    const [countResult] = await db.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM (
+        SELECT Item_Id FROM order_items WHERE DATE(created_at) = ?
+        UNION
+        SELECT Item_Id FROM order_takeaway_items WHERE DATE(created_at) = ?
+      ) x
+      `,
+      [selectedDate, selectedDate]
+    );
+
+    const totalItems = countResult[0].total;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // ----------------------------------------------------
+    // 2️⃣ FETCH AGGREGATED ITEM SALES (DINE + TAKEAWAY)
+    // ----------------------------------------------------
+    const [rows] = await db.query(
+      `
+      SELECT 
+        f.Item_Id,
+        f.Item_Name,
+        SUM(t.sold_qty) AS sold_count,
+        SUM(t.total_amount) AS total_price
+      FROM (
+        SELECT Item_Id, Quantity AS sold_qty, Amount AS total_amount
+        FROM order_items
+        WHERE DATE(created_at) = ?
+
+        UNION ALL
+
+        SELECT Item_Id, Quantity AS sold_qty, Amount AS total_amount
+        FROM order_takeaway_items
+        WHERE DATE(created_at) = ?
+      ) t
+      JOIN add_food_item f ON f.Item_Id = t.Item_Id
+      GROUP BY f.Item_Id, f.Item_Name
+      ORDER BY sold_count DESC
+      LIMIT ? OFFSET ?
+      `,
+      [selectedDate, selectedDate, limit, offset]
+    );
+
+    return res.status(200).json({
+      success: true,
+      date: selectedDate,
+      currentPage: page,
+      pageSize: limit,
+      totalItems,
+      totalPages,
+      data: rows,
+    });
+
+  } catch (err) {
+    console.error("❌ Error getting items sold each day:", err);
+    next(err);
+  }
+};
+
 export { getAllSalesAndPurchasesYearWise ,
   getCategoriesWiseItemCount,
   getTotalSalesPurchasesReceivablesPayablesProfit,
   getPartyWiseSalesAndPurchases,eachItemHistory,
 
   getItemsSoldCount,
-  getPartyWiseItemsSoldAndPurchased};
+  getPartyWiseItemsSoldAndPurchased,
+  getItemsSoldEachDay };

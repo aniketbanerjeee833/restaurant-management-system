@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useConfirmOrderBillPaidAndInvoiceGeneratedMutation, useGenerateSmsMutation, useNextInvoiceNumberQuery } from "../../redux/api/Staff/orderApi";
+import { orderApi, useConfirmOrderBillPaidAndInvoiceGeneratedMutation, useGenerateSmsMutation, useNextInvoiceNumberQuery } from "../../redux/api/Staff/orderApi";
 import { toast } from "react-toastify";
 import { tableApi } from "../../redux/api/tableApi";
 import { useDispatch } from "react-redux";
@@ -16,7 +16,7 @@ export default function OrderDetailsModal({ onClose, orderDetails,orderId }) {
     const{data:invoiceNumberData}=useNextInvoiceNumberQuery();
 
     const[customerDetails,setCustomerDetails]=useState({})
-    // console.log(invoiceNumberData,"invoiceNumberData");
+    console.log(invoiceNumberData,"invoiceNumberData");
 
     useEffect(() => {
       setCustomerDetails({
@@ -126,6 +126,7 @@ const handleConfirmBillAndGenerateInvoice = async () => {
     // Refresh UI & close modal
     dispatch(tableApi.util.invalidateTags(["Table"]));
     dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+    dispatch(orderApi.util.invalidateTags(["Order"]));
     onClose();
   navigate("/staff/orders/all-orders");
 
@@ -457,14 +458,14 @@ const html = `
 w.document.write(html);
 
 // Add Print Button inside the new window
-w.document.write(`
-  <button onclick="window.print()" 
-    style="position:fixed;top:10px;right:10px;padding:8px 12px;
-           background:#ff0000;color:white;border:none;border-radius:4px;
-           font-size:14px;cursor:pointer;z-index:9999;">
-      Print
-  </button>
-`);
+// w.document.write(`
+//   <button onclick="window.print()" 
+//     style="position:fixed;top:10px;right:10px;padding:8px 12px;
+//            background:#ff0000;color:white;border:none;border-radius:4px;
+//            font-size:14px;cursor:pointer;z-index:9999;">
+//       Print
+//   </button>
+// `);
 
 w.document.close();
   // w.document.open();

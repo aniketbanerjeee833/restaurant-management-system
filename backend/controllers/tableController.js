@@ -85,11 +85,18 @@ const getAllTables = async (req, res, next) => {
     let params = [];
 
     // 🔍 Search condition
-    if (search) {
-      whereClause = "WHERE LOWER(table_name) LIKE ?";
-      params.push(`%${search}%`);
+    // if (search) {
+    //   whereClause = "WHERE Table_Name OR Table_Capacity LIKE ?";
+    //   params.push(`%${search}%`);
+    // }
+if (search) {
+      whereClause = `
+        WHERE LOWER(Table_Name) LIKE ?
+           OR CAST(Table_Capacity AS CHAR) LIKE ?
+      `;
+      const like = `%${search}%`;
+      params.push(like, like);
     }
-
     // =====================================================
     // CASE 1 : ❌ No page & ❌ No search -> Fetch ALL tables
     // =====================================================
@@ -171,7 +178,37 @@ const getAllTables = async (req, res, next) => {
 };
 
 
+const updateTable = async (req, res, next) => {
+  let connection;
+  try {
+    connection = await db.getConnection();
+
+    const { Table_Id } = req.params;
+    const {  Table_Name, Table_Capacity } = req.body;
+    if(!Table_Id || !Table_Name || !Table_Capacity){
+      return res.status(400).json({
+        success: false,
+        message: "Table Id, Table Name and Table Capacity are required",
+      });
+    }
+
+    await connection.query(
+      `UPDATE add_table SET Table_Name = ?, Table_Capacity = ?, updated_at = NOW() WHERE Table_Id = ?`,
+      [Table_Name, Table_Capacity, Table_Id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Table updated successfully",
+    });
+  } catch (err) {
+    console.error("❌ Error updating table:", err);
+    next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+};
 
 
 
-export {addTable,getAllTables}
+export {addTable,getAllTables,updateTable}

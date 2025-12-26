@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useGetUserQuery, useLogoutUserMutation } from "../../redux/api/userApi";
 import "./Header.css";
 import { toast } from "react-toastify";
@@ -9,12 +9,15 @@ import { LogOut,ChevronUp, ChevronDown, TableOfContents } from 'lucide-react';
 const Header = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
  const[mobileViewSideBarOpen, setMobileViewSideBarOpen] = useState(false);
+ const location=useLocation();
+const isOrderPage = location.pathname.startsWith("/staff/orders/add");
+const isTakeawayPage = location.pathname.startsWith("/staff/orders-takeaway/add");
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
    //const dispatch = useDispatch();
    const IconComponent = dropdownOpen ? ChevronUp : ChevronDown;
   const { data: userMe,  } = useGetUserQuery();
-  console.log(userMe,"userMe");
+  // console.log(userMe,"userMe");
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -193,7 +196,7 @@ className="w-full flex flex-wrap items-center justify-between header sm:mt-0">
       Add Food Item
     </button>}
 
-    {userMe?.user?.role==="staff" &&<button
+    {/* {userMe?.user?.role==="staff" &&<button
       type="button"
       style={{backgroundColor:"red"}}
       onClick={() => navigate("/staff/orders/add")}
@@ -201,9 +204,38 @@ className="w-full flex flex-wrap items-center justify-between header sm:mt-0">
       sm:px-4 rounded"
     >
      Order
-    </button>}
 
-    {userMe?.user?.role==="staff" && <button
+    </button>} */}
+    {userMe?.user?.role === "staff" && (
+  <button
+    type="button"
+    onClick={() => navigate("/staff/orders/add")}
+    className={`text-white text-sm sm:text-base font-semibold py-2 px-3 sm:px-4 rounded
+      ${isOrderPage ? "opacity-40 cursor-not-allowed" : "opacity-100"}
+    `}
+    style={{ backgroundColor: "red" }}
+    // disabled={isTakeawayPage}
+  >
+    Order
+  </button>
+)}
+
+{userMe?.user?.role === "staff" && (
+  <button
+    type="button"
+    onClick={() => navigate("/staff/orders-takeaway/add")}
+    className={`text-white text-sm sm:text-base font-semibold py-2 px-3 sm:px-4 rounded
+      ${isTakeawayPage ? "opacity-40 cursor-not-allowed" : "opacity-100"}
+    `}
+    style={{ backgroundColor: "black" }}
+    // disabled={isOrderPage}
+  >
+    Takeaway
+  </button>
+)}
+
+
+    {/* {userMe?.user?.role==="staff" && <button
       type="button"
        style={{backgroundColor:"black"}}
       onClick={() => navigate("/staff/orders-takeaway/add")}
@@ -211,7 +243,7 @@ className="w-full flex flex-wrap items-center justify-between header sm:mt-0">
       rounded "
     >
       Takeaway
-    </button>}
+    </button>} */}
    {userMe?.user?.role==="kitchen-staff" && <button
       type="button"
        style={{backgroundColor:"black"}}

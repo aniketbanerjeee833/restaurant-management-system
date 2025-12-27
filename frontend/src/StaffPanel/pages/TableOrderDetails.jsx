@@ -785,11 +785,11 @@ console.log(itemsValues,cart);
                                             
                                               const unavailable = item.is_available === 0; //  unavailable items
                                             
-  const minQty = minQuantityOfItems.get(item.Item_Id) || 0;
-  const currentQty = Number(cart[item.Item_Id] || 0);
+  // const minQty = minQuantityOfItems.get(item.Item_Id) || 0;
+  // const currentQty = Number(cart[item.Item_Id] || 0);
 
-  const disableMinus =
-    unavailable || currentQty <= minQty;
+  // const disableMinus =
+  //   unavailable || currentQty <= minQty;
 
                                               return (
                                                 <div
@@ -870,7 +870,7 @@ console.log(itemsValues,cart);
                                                     <div className="flex items-center justify-between bg-[#4CA1AF10] rounded-md p-1.5">
                                             
                                                       {/* MINUS BUTTON */}
-                                                      {/* <button
+                                                      <button
                                                         type="button"
                                                         disabled={unavailable || cart[item.Item_Id] === 0}
                                                         onClick={() =>
@@ -886,8 +886,8 @@ console.log(itemsValues,cart);
                                                         `}
                                                       >
                                                         <Minus className="w-3 h-3" />
-                                                      </button> */}
-                                                             <button
+                                                      </button>
+                                                             {/* <button
                                                         type="button"
                                                           
                                                  disabled={disableMinus||unavailable || Number(cart[item.Item_Id] || 0) === 0}
@@ -896,10 +896,7 @@ console.log(itemsValues,cart);
                                                     updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
                                                               }
           
-                                                        // onClick={() =>
-                                                        //   !unavailable &&
-                                                        //   updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
-                                                        // }
+                                                        
                                                          className={`
       w-7 h-7 flex items-center justify-center rounded-md shadow transition
       ${disableMinus
@@ -907,16 +904,10 @@ console.log(itemsValues,cart);
         : "bg-white hover:bg-gray-100 text-[#ff0000]"
       }
     `}
-                                                        // className={`
-                                                        //   w-7 h-7 flex items-center justify-center rounded-md shadow transition
-                                                        //   ${unavailable || Number(cart[item.Item_Id] || 0) === 0
-                                                        //     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                                        //     : "bg-white hover:bg-gray-100 text-[#ff0000]"
-                                                        //   }
-                                                        // `}
+                                                        
                                                       >
                                                         <Minus className="w-3 h-3" />
-                                                      </button>
+                                                      </button> */}
                                             
                                                       {/* QUANTITY DISPLAY */}
                                                       <span className="text-base font-semibold text-gray-800 px-2">
@@ -950,8 +941,8 @@ console.log(itemsValues,cart);
                                               );
                                             })}
                                             
-                                                                                            </div>
-                                                                                        </div>
+                                                                  </div>
+                                                          </div>
  
                                                 <div className="
                                                     fixed bottom-0 left-0 w-full 

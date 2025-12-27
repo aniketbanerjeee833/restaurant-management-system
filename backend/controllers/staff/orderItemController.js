@@ -1195,11 +1195,13 @@ const updateOrder = async (req, res, next) => {
     const { Order_Id } = req.params;
     const { items, Sub_Total, Amount } = req.body;
 
-    if (!Order_Id)
+    if (!Order_Id) {
       return res.status(400).json({ success: false, message: "Order ID missing" });
+    }
 
-    if (!Array.isArray(items) || items.length === 0)
+    if (!Array.isArray(items)) {
       return res.status(400).json({ success: false, message: "Items required" });
+    }
 
     connection = await db.getConnection();
     await connection.beginTransaction();
@@ -1221,7 +1223,6 @@ const updateOrder = async (req, res, next) => {
     );
 
     let KOT_Id;
-
     if (existingKOT) {
       KOT_Id = existingKOT.KOT_Id;
     } else {
@@ -1234,61 +1235,105 @@ const updateOrder = async (req, res, next) => {
     }
 
     /* ---------------------------------------------------
-       3️⃣ FETCH EXISTING KITCHEN ITEMS (PRESERVE)
+       3️⃣ FETCH EXISTING FRONTDESK ITEMS
+    --------------------------------------------------- */
+    const [existingOrderItems] = await connection.query(
+      `SELECT oi.Item_Id, oi.Quantity, afi.Item_Name
+       FROM order_items oi
+       JOIN add_food_item afi ON oi.Item_Id = afi.Item_Id
+       WHERE oi.Order_Id = ?`,
+      [Order_Id]
+    );
+
+    const existingOrderMap = {};
+    existingOrderItems.forEach(row => {
+      existingOrderMap[row.Item_Id] = {
+        name: row.Item_Name,
+        quantity: Number(row.Quantity),
+      };
+    });
+
+    /* ---------------------------------------------------
+       4️⃣ BUILD NEW ITEMS MAP (FROM FRONTEND)
+    --------------------------------------------------- */
+    const newItemMap = {};
+    items.forEach(item => {
+      if (item.Item_Name && item.Item_Quantity > 0) {
+        newItemMap[item.Item_Name] = Number(item.Item_Quantity);
+      }
+    });
+
+    /* ---------------------------------------------------
+       5️⃣ FIND REMOVED ITEMS
+    --------------------------------------------------- */
+    const removedItemIds = [];
+
+    for (const [itemId, data] of Object.entries(existingOrderMap)) {
+      const stillExists = items.some(i => i.Item_Name === data.name);
+      if (!stillExists) {
+        removedItemIds.push(itemId);
+      }
+    }
+
+    /* ---------------------------------------------------
+       6️⃣ DELETE REMOVED ITEMS (FRONTDESK + KITCHEN)
+    --------------------------------------------------- */
+    if (removedItemIds.length > 0) {
+      await connection.query(
+        `DELETE FROM order_items
+         WHERE Order_Id = ? AND Item_Id IN (?)`,
+        [Order_Id, removedItemIds]
+      );
+
+      await connection.query(
+        `DELETE FROM kitchen_order_items
+         WHERE KOT_Id = ? AND Item_Id IN (?)`,
+        [KOT_Id, removedItemIds]
+      );
+    }
+
+    /* ---------------------------------------------------
+       7️⃣ CLEAR & REINSERT FRONTDESK ITEMS
+    --------------------------------------------------- */
+    await connection.query(
+      `DELETE FROM order_items WHERE Order_Id = ?`,
+      [Order_Id]
+    );
+
+    /* ---------------------------------------------------
+       8️⃣ FETCH EXISTING KITCHEN ITEMS (QTY MAP)
     --------------------------------------------------- */
     const [existingKitchenItems] = await connection.query(
-  `SELECT Item_Id, SUM(Quantity) as qty
-   FROM kitchen_order_items
-   WHERE KOT_Id = ?
-   GROUP BY Item_Id`,
-  [KOT_Id]
-);
+      `SELECT Item_Id, SUM(Quantity) AS qty
+       FROM kitchen_order_items
+       WHERE KOT_Id = ?
+       GROUP BY Item_Id`,
+      [KOT_Id]
+    );
 
-const existingMap = {};
-existingKitchenItems.forEach(r => {
-  existingMap[r.Item_Id] = Number(r.qty) || 0;
-});
-
-    // const [existingKitchenItems] = await connection.query(
-    //   `SELECT Item_Id, COUNT(*) as cnt
-    //    FROM kitchen_order_items
-    //    WHERE KOT_Id = ?
-    //    GROUP BY Item_Id`,
-    //   [KOT_Id]
-    // );
-
-    // const existingMap = {};
-    // existingKitchenItems.forEach(r => {
-    //   existingMap[r.Item_Id] = r.cnt;
-    // });
+    const kitchenQtyMap = {};
+    existingKitchenItems.forEach(row => {
+      kitchenQtyMap[row.Item_Id] = Number(row.qty) || 0;
+    });
 
     /* ---------------------------------------------------
-       4️⃣ CLEAR & REINSERT FRONTDESK order_items
-    --------------------------------------------------- */
-    await connection.query(`DELETE FROM order_items WHERE Order_Id = ?`, [Order_Id]);
-
-    /* ---------------------------------------------------
-       5️⃣ CATEGORY-WISE NOTIFICATION MAP
+       9️⃣ SOCKET NOTIFICATION MAP
     --------------------------------------------------- */
     const notifyByCategory = {};
 
     /* ---------------------------------------------------
-       6️⃣ PROCESS ITEMS
+       🔟 PROCESS ITEMS
     --------------------------------------------------- */
-
-    /* ---------------------------------------------------
-   3️⃣ FETCH EXISTING KITCHEN ITEMS (QTY-BASED)
---------------------------------------------------- */
-
-
     for (const item of items) {
       const { Item_Name, Item_Quantity, Item_Price, Amount: ItemAmount } = item;
 
       if (!Item_Name || Item_Quantity <= 0) continue;
 
-      // Lookup item
       const [[dbItem]] = await connection.query(
-        `SELECT Item_Id, Item_Category FROM add_food_item WHERE Item_Name = ? LIMIT 1`,
+        `SELECT Item_Id, Item_Category
+         FROM add_food_item
+         WHERE Item_Name = ?
+         LIMIT 1`,
         [Item_Name]
       );
 
@@ -1297,7 +1342,7 @@ existingKitchenItems.forEach(r => {
       const Item_Id = dbItem.Item_Id;
       const Category = dbItem.Item_Category;
 
-      /* --------- Insert FRONTDESK item --------- */
+      /* --------- FRONTDESK INSERT --------- */
       const Order_Item_Id = await generateNextId(
         connection,
         "ODRITM",
@@ -1312,85 +1357,50 @@ existingKitchenItems.forEach(r => {
         [Order_Item_Id, Order_Id, Item_Id, Item_Quantity, Item_Price, ItemAmount]
       );
 
-      /* --------- Determine NEW quantity --------- */
-//       const alreadyExists = existingMap[Item_Id] || 0;
-//       const toInsert = Item_Quantity - alreadyExists;
+      /* --------- KITCHEN DELTA LOGIC --------- */
+      const oldQty = kitchenQtyMap[Item_Id] || 0;
+      const newQty = Item_Quantity - oldQty;
 
-//       if (toInsert <= 0) continue; // nothing new for kitchen
+      if (newQty <= 0) continue;
 
-//       // for (let i = 0; i < toInsert; i++) {
-//         const KOT_Item_Id = await generateNextId(
-//           connection,
-//           "KOTITM",
-//           "KOT_Item_Id",
-//           "kitchen_order_items"
-//         );
+      const KOT_Item_Id = await generateNextId(
+        connection,
+        "KOTITM",
+        "KOT_Item_Id",
+        "kitchen_order_items"
+      );
 
-//         await connection.query(
-//           `INSERT INTO kitchen_order_items
-//            (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-//            VALUES (?, ?, ?, ?, ?, 'pending')`,
-//           [KOT_Item_Id, KOT_Id, Item_Id, Item_Name,toInsert]
-//         );
+      await connection.query(
+        `INSERT INTO kitchen_order_items
+         (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
+         VALUES (?, ?, ?, ?, ?, 'pending')`,
+        [KOT_Item_Id, KOT_Id, Item_Id, Item_Name, newQty]
+      );
 
-//         if (!notifyByCategory[Category]) {
-//           notifyByCategory[Category] = [];
-//         }
-//         notifyByCategory[Category].push({
-//   KOT_Item_Id,
-//   Item_Id,
-//   Item_Name,
-//   Item_Category: Category,
-//   Quantity: 1,
-//   Item_Status: "pending"
-// });
-// 🔥 KITCHEN DELTA LOGIC
-  const alreadyQty = existingMap[Item_Id] || 0;
-  const newQty = Item_Quantity - alreadyQty;
-
-  if (newQty <= 0) continue;
-
-  const KOT_Item_Id = await generateNextId(
-    connection,
-    "KOTITM",
-    "KOT_Item_Id",
-    "kitchen_order_items"
-  );
-
-  await connection.query(
-    `INSERT INTO kitchen_order_items
-     (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-     VALUES (?, ?, ?, ?, ?, 'pending')`,
-    [KOT_Item_Id, KOT_Id, Item_Id, Item_Name, newQty]
-  );
-
-  notifyByCategory[Category] ??= [];
-  notifyByCategory[Category].push({
-    KOT_Item_Id,
-    Item_Id,
-    Item_Name,
-    Item_Category: Category,
-    Quantity: newQty,
-    Item_Status: "pending",
-  });
-
-       
-      // }
+      notifyByCategory[Category] ??= [];
+      notifyByCategory[Category].push({
+        KOT_Item_Id,
+        Item_Id,
+        Item_Name,
+        Item_Category: Category,
+        Quantity: newQty,
+        Item_Status: "pending",
+      });
     }
 
     /* ---------------------------------------------------
-       7️⃣ COMMIT TRANSACTION
+       1️⃣1️⃣ COMMIT
     --------------------------------------------------- */
     await connection.commit();
 
     /* ---------------------------------------------------
-       8️⃣ SOCKET: CATEGORY-WISE NOTIFICATION
+       1️⃣2️⃣ SOCKET NOTIFY (CATEGORY-WISE)
     --------------------------------------------------- */
     Object.entries(notifyByCategory).forEach(([category, items]) => {
       io.to(`category_${category}`).emit("new_kitchen_order", {
         KOT_Id,
         Order_Id,
-        Order_Type: "dinein", // ✅ IMPORTANT
+        Order_Type: "dinein",
         Status: "pending",
         items,
       });
@@ -1410,6 +1420,187 @@ existingKitchenItems.forEach(r => {
     if (connection) connection.release();
   }
 };
+
+// const updateOrder = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     const { Order_Id } = req.params;
+//     const { items, Sub_Total, Amount } = req.body;
+
+//     if (!Order_Id)
+//       return res.status(400).json({ success: false, message: "Order ID missing" });
+
+//     if (!Array.isArray(items) || items.length === 0)
+//       return res.status(400).json({ success: false, message: "Items required" });
+
+//     connection = await db.getConnection();
+//     await connection.beginTransaction();
+
+//     /* ---------------------------------------------------
+//        1️⃣ UPDATE ORDER TOTALS
+//     --------------------------------------------------- */
+//     await connection.query(
+//       `UPDATE orders SET Sub_Total = ?, Amount = ? WHERE Order_Id = ?`,
+//       [Sub_Total, Amount, Order_Id]
+//     );
+
+//     /* ---------------------------------------------------
+//        2️⃣ FETCH OR CREATE KOT
+//     --------------------------------------------------- */
+//     const [[existingKOT]] = await connection.query(
+//       `SELECT KOT_Id FROM kitchen_orders WHERE Order_Id = ? LIMIT 1`,
+//       [Order_Id]
+//     );
+
+//     let KOT_Id;
+
+//     if (existingKOT) {
+//       KOT_Id = existingKOT.KOT_Id;
+//     } else {
+//       KOT_Id = await generateNextId(connection, "KOT", "KOT_Id", "kitchen_orders");
+//       await connection.query(
+//         `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status)
+//          VALUES (?, ?, 'pending')`,
+//         [KOT_Id, Order_Id]
+//       );
+//     }
+
+//     /* ---------------------------------------------------
+//        3️⃣ FETCH EXISTING KITCHEN ITEMS (PRESERVE)
+//     --------------------------------------------------- */
+//     const [existingKitchenItems] = await connection.query(
+//   `SELECT Item_Id, SUM(Quantity) as qty
+//    FROM kitchen_order_items
+//    WHERE KOT_Id = ?
+//    GROUP BY Item_Id`,
+//   [KOT_Id]
+// );
+
+// const existingMap = {};
+// existingKitchenItems.forEach(r => {
+//   existingMap[r.Item_Id] = Number(r.qty) || 0;
+// });
+
+  
+
+//     /* ---------------------------------------------------
+//        4️⃣ CLEAR & REINSERT FRONTDESK order_items
+//     --------------------------------------------------- */
+//     await connection.query(`DELETE FROM order_items WHERE Order_Id = ?`, [Order_Id]);
+
+//     /* ---------------------------------------------------
+//        5️⃣ CATEGORY-WISE NOTIFICATION MAP
+//     --------------------------------------------------- */
+//     const notifyByCategory = {};
+
+//     /* ---------------------------------------------------
+//        6️⃣ PROCESS ITEMS
+//     --------------------------------------------------- */
+
+//     /* ---------------------------------------------------
+//    3️⃣ FETCH EXISTING KITCHEN ITEMS (QTY-BASED)
+// --------------------------------------------------- */
+
+
+//     for (const item of items) {
+//       const { Item_Name, Item_Quantity, Item_Price, Amount: ItemAmount } = item;
+
+//       if (!Item_Name || Item_Quantity <= 0) continue;
+
+//       // Lookup item
+//       const [[dbItem]] = await connection.query(
+//         `SELECT Item_Id, Item_Category FROM add_food_item WHERE Item_Name = ? LIMIT 1`,
+//         [Item_Name]
+//       );
+
+//       if (!dbItem) continue;
+
+//       const Item_Id = dbItem.Item_Id;
+//       const Category = dbItem.Item_Category;
+
+//       /* --------- Insert FRONTDESK item --------- */
+//       const Order_Item_Id = await generateNextId(
+//         connection,
+//         "ODRITM",
+//         "Order_Item_Id",
+//         "order_items"
+//       );
+
+//       await connection.query(
+//         `INSERT INTO order_items
+//          (Order_Item_Id, Order_Id, Item_Id, Quantity, Price, Amount)
+//          VALUES (?, ?, ?, ?, ?, ?)`,
+//         [Order_Item_Id, Order_Id, Item_Id, Item_Quantity, Item_Price, ItemAmount]
+//       );
+
+
+// // 🔥 KITCHEN DELTA LOGIC
+//   const alreadyQty = existingMap[Item_Id] || 0;
+//   const newQty = Item_Quantity - alreadyQty;
+
+//   if (newQty <= 0) continue;
+
+//   const KOT_Item_Id = await generateNextId(
+//     connection,
+//     "KOTITM",
+//     "KOT_Item_Id",
+//     "kitchen_order_items"
+//   );
+
+//   await connection.query(
+//     `INSERT INTO kitchen_order_items
+//      (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
+//      VALUES (?, ?, ?, ?, ?, 'pending')`,
+//     [KOT_Item_Id, KOT_Id, Item_Id, Item_Name, newQty]
+//   );
+
+//   notifyByCategory[Category] ??= [];
+//   notifyByCategory[Category].push({
+//     KOT_Item_Id,
+//     Item_Id,
+//     Item_Name,
+//     Item_Category: Category,
+//     Quantity: newQty,
+//     Item_Status: "pending",
+//   });
+
+       
+//       // }
+//     }
+
+//     /* ---------------------------------------------------
+//        7️⃣ COMMIT TRANSACTION
+//     --------------------------------------------------- */
+//     await connection.commit();
+
+//     /* ---------------------------------------------------
+//        8️⃣ SOCKET: CATEGORY-WISE NOTIFICATION
+//     --------------------------------------------------- */
+//     Object.entries(notifyByCategory).forEach(([category, items]) => {
+//       io.to(`category_${category}`).emit("new_kitchen_order", {
+//         KOT_Id,
+//         Order_Id,
+//         Order_Type: "dinein", // ✅ IMPORTANT
+//         Status: "pending",
+//         items,
+//       });
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Order updated successfully",
+//       KOT_Id,
+//     });
+
+//   } catch (err) {
+//     if (connection) await connection.rollback();
+//     console.error("❌ Update Order Error:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
 
 
 

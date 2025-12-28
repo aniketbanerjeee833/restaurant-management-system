@@ -87,7 +87,7 @@ const[searchTerm,setSearchTerm]=useState("");
     const { data: menuItems } = useGetAllFoodItemsQuery({});
     //console.log(tables, isLoading, "tables", menuItems, isMenuItemsLoading);
         const items = menuItems?.foodItems
-    const[updateOrder]=useUpdateOrderMutation();
+    const[updateOrder,{isLoading:isUpdateOrderLoading}]=useUpdateOrderMutation();
     const [rows, setRows] = useState([
         {
             CategoryOpen: false, categorySearch: "", preview: null
@@ -146,6 +146,7 @@ useEffect(() => {
     itemName: it.Item_Name,
     status: it.Item_Status,
      time: it.updated_at ,
+     quantity: it.Quantity,
     // time: null,
   }));
 
@@ -188,6 +189,7 @@ useEffect(() => {
           itemName: data.itemName,
           status: data.status,
           time: data.updated_at,
+          
           // time: data.time,
         }
       ];
@@ -202,7 +204,7 @@ useEffect(() => {
   };
 }, []);
 
-console.log(kotNotifications,"kotNotifications");
+// console.log(kotNotifications,"kotNotifications");
     useEffect(() => {
         const handleClickOutside = (event) => {
             setRows((prev) =>
@@ -460,10 +462,10 @@ const updateCart = (itemId, delta, index, itemName, itemAmount) => {
     return { ...prev, [itemId]: newQty };
   });
 };
-
+  const summaryItems = watch("items") || [];
 
     const formValues = watch();
-    const itemsValues = watch("items");   // watch all item rows
+    //const itemsValues = watch("items");   // watch all item rows
     //const totalPaid = watch("Total_Paid"); // watch Total_Paid
     // const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
 
@@ -538,7 +540,7 @@ useEffect(() => {
             const res = await updateOrder({ Order_Id , payload}).unwrap();
 
             if (!res?.success) {
-                toast.error(res.message || "Failed to submit order.");
+                toast.error(res.message || "Failed to update order.");
                 return;
             }
 
@@ -557,7 +559,7 @@ useEffect(() => {
 
 
 
-console.log(itemsValues,cart);
+console.log(summaryItems);
     console.log("Current form values:", formValues);
     console.log("Form errors:", errors);
 
@@ -707,7 +709,7 @@ console.log(itemsValues,cart);
             >
               <div className="flex justify-between items-start gap-2">
                 <span className="font-semibold text-gray-800 text-base leading-tight flex-1">
-                  {n?.itemName}
+                  {n?.itemName} X{n?.quantity}
                 </span>
 
                 <span
@@ -875,7 +877,8 @@ console.log(itemsValues,cart);
                                                         disabled={unavailable || cart[item.Item_Id] === 0}
                                                         onClick={() =>
                                                           !unavailable &&
-                                                          updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
+                                                          updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Item_Price)
+                                                          // updateCart(item.Item_Id, -1, index, item?.Item_Name, item?.Amount)
                                                         }
                                                         className={`
                                                           w-7 h-7 flex items-center justify-center rounded-md shadow transition
@@ -921,7 +924,8 @@ console.log(itemsValues,cart);
                                                         disabled={unavailable}
                                                         onClick={() =>
                                                           !unavailable &&
-                                                          updateCart(item?.Item_Id, 1, index, item?.Item_Name, item?.Amount)
+                                                           updateCart(item?.Item_Id, 1, index, item?.Item_Name, item?.Item_Price)
+                                                          // updateCart(item?.Item_Id, 1, index, item?.Item_Name, item?.Amount)
                                                         }
                                                         className={`
                                                           w-7 h-7 flex items-center justify-center rounded-md shadow transition
@@ -959,11 +963,13 @@ console.log(itemsValues,cart);
                                                       type="button"
                                                       onClick={() => setShowSummary(true)}   // open bottom sheet
                                                       // disabled={formValues.errorCount > 0 || isAddingOrder}
-                                                      className="relative w-full md:w-auto flex items-center justify-center gap-3 
-                                                                 text-white font-bold py-3 px-6 rounded shadow"
+                                                      className="relative w-full py-2 px-4 md:w-auto 
+                                                      flex items-center justify-center gap-3 
+                                                      
+                                                            text-white font-bold  rounded shadow sm:py-3 px-6"
                                                      style={{ backgroundColor: "black" }}
                                                     >
-                                                      Save & Hold
+                                                      {isUpdateOrderLoading ? "Saving..." : "Save & Hold"}
                                                       {/* {isAddingOrder ? "Saving..." : "Save & Hold"} */}
                                                 
                                                       <span className="relative">
@@ -984,7 +990,10 @@ console.log(itemsValues,cart);
                                                     <button
                                                       type="button"
                                                        onClick={()=>setOrderDetailsModalOpen(true)}
-                                                      className="w-full md:w-auto text-white font-bold py-3 px-6 rounded shadow"
+                                                      className="relative w-full py-2 px-4 md:w-auto 
+                                                      flex items-center justify-center gap-3 
+                                                      
+                                                            text-white font-bold  rounded shadow sm:py-3 px-6"
                                                       style={{ backgroundColor: "#ff0000" }}
                                                     >
                                                       Save & Pay Bill
@@ -1034,7 +1043,7 @@ console.log(itemsValues,cart);
                                                 
                                                   {/* SUMMARY CONTENT */}
                                                   <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
-                                                    {itemsValues && itemsValues?.map((item, index) => (
+                                                    {summaryItems?.map((item, index) => (
                                                       <div key={index} className="border-b pb-2 mb-2">
                                                         <div className="flex justify-between">
                                                           <span className="font-semibold">{item?.Item_Name}</span>

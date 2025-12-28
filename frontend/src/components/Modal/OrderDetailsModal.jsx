@@ -815,7 +815,7 @@ className="input-field col s6 flex flex-col gap-1">
 
 {/* STORE NAME */}
 <h2 className="text-xl font-bold text-center">
-  {invoiceDetails.Store_Name ?? "HELLO GUYS"}
+  HELLO GUYS
 </h2>
 
 

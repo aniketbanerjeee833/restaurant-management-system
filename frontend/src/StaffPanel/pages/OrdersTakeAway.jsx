@@ -24,11 +24,14 @@ import { LayoutDashboard, Minus, Plus, ShoppingCart } from "lucide-react";
 
 
 
-import OrderTakeawayModal from "../../components/Modal/OrderTakeawayModal";
+
 import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
-import { useGetAllCustomersQuery } from "../../redux/api/Staff/orderApi";
+import { orderApi, useGetAllCustomersQuery, useTakeawayAddOrdersAndGenerateInvoicesMutation } from "../../redux/api/Staff/orderApi";
 import AddCustomerModal from "../../components/Modal/AddCustomerModal";
 import { useMemo } from "react";
+import { toast } from "react-toastify";
+import { useDispatch, useSelector } from "react-redux";
+import { kitchenStaffApi } from "../../redux/api/KitchenStaff/kitchenStaffApi";
 
 
 
@@ -62,7 +65,7 @@ export default function OrdersTakeAway() {
   const [showSummary, setShowSummary] = useState(false);
   const [ordertakeawayModalOpen, setOrdertakeawayModalOpen] = useState(false);
   const { data: categories } = useGetAllCategoriesQuery()
-  console.log(categories, "categories");
+ const {user}=useSelector((state) => state.user);
   //const existingCategories=categories?.map((category) => category.Item_Category);
   const existingCategories = [...new Set(categories?.map(c => c.Item_Category))];
   const[searchTerm,setSearchTerm]=useState('');
@@ -90,6 +93,9 @@ export default function OrdersTakeAway() {
   //     "btl": "Bottle",
 
   // }
+  const dispatch = useDispatch();
+    const [takeawayAddOrdersAndGenerateInvoices,
+        {isLoading:istakeawayAddOrdersAndGenerateInvoicesLoading}] = useTakeawayAddOrdersAndGenerateInvoicesMutation();
   const [activeCategory, setActiveCategory] = useState('All');
 const lastCategoryRef = useRef(activeCategory);
   const { data: tables, isLoading } = useGetAllTablesQuery({});
@@ -98,7 +104,7 @@ const lastCategoryRef = useRef(activeCategory);
   console.log(tables, isLoading, "tables", menuItems, isMenuItemsLoading);
   // const[customerModal,setShowCustomerModal]=useState(false);
   const{ data: customers}=useGetAllCustomersQuery();
-  console.log(customers,"customers");
+  
   //  const [customerSearch, setCustomerSearch] = useState("");
 const [customerModal, setCustomerModal] = useState({
   open: false,
@@ -110,19 +116,7 @@ const [customerModal, setCustomerModal] = useState({
       CategoryOpen: false, categorySearch: "", preview: null
     }
   ]);
-  // const [addNewSale, { isLoading: isAddingSale }] = useAddNewSaleMutation();
-  // const[addPurchase,{isLoading:isAddingPurchase}]=useAddPurchaseMutation();
-  // helper to update a field in a specific row
-  // const handleRowChange = (index, field, value) => {
-  //     setRows((prev) => {
-  //         const updated = [...prev];
-  //         updated[index] = {
-  //             ...updated[index],
-  //             [field]: value,
-  //         };
-  //         return updated;
-  //     });
-  // };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       setRows((prev) =>
@@ -155,7 +149,7 @@ const [customerModal, setCustomerModal] = useState({
   const {
 
     control,
-
+    handleSubmit,
     setValue,
     watch,
     formState: { errors },
@@ -183,7 +177,7 @@ const [customerModal, setCustomerModal] = useState({
 
 
   const formValues = watch();
-  const itemsValues = watch("items");   // watch all item rows
+ 
   //const totalPaid = watch("Total_Paid"); // watch Total_Paid
   const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
 const customerName = watch("Customer_Name");
@@ -192,11 +186,11 @@ const customerPhone = watch("Customer_Phone");
 const hasCustomer = Boolean(customerPhone); // phone is safest
 
 
-  console.log(items)
+
   const [cart, setCart] = useState({});
   
   // const newCategories = ['All', existingCategories];
-  console.log(newCategories, "newCategories")
+
 
   // const filteredItems = activeCategory === 'All'
   //   ? items
@@ -227,10 +221,32 @@ const filteredItems = useMemo(() => {
 
   return result;
 }, [items, activeCategory, searchTerm]);
-  console.log(filteredItems, "filteredItems")
+  
 
   const itemRowMap = useRef({});
-  const updateTotals = () => {
+  // const updateTotals = () => {
+  //   const itemsValues = watch("items") || [];
+
+  //   let subTotal = 0;
+
+
+  //   itemsValues.forEach(item => {
+  //     const price = parseFloat(item.Item_Price) || 0;
+  //     const qty = parseInt(item.Item_Quantity) || 0;
+
+
+  //     subTotal += price * qty;
+
+  //   });
+
+
+
+  //   setValue("Sub_Total", subTotal.toFixed(2));
+
+  //   setValue("Amount", subTotal.toFixed(2));
+  // };
+
+ const updateTotals = () => {
     const itemsValues = watch("items") || [];
 
     let subTotal = 0;
@@ -251,69 +267,141 @@ const filteredItems = useMemo(() => {
 
     setValue("Amount", subTotal.toFixed(2));
   };
-
-
   const updateCart = (itemId, delta, index, itemName, itemAmount) => {
-    const price = parseFloat(itemAmount || 0);
+  const amount = parseFloat(itemAmount || 0);
 
-    setCart(prev => {
-      const currentQty = prev[itemId] || 0;
-      const newQty = Math.max(0, currentQty + delta);
+  setCart((prev) => {
+    const currentQty = Number(prev[itemId] || 0);
+    const newQty = currentQty + delta;
 
-      let rowIndex = itemRowMap.current[itemId];
+    let rowIndex = itemRowMap.current[itemId];
 
-      // 1️⃣ If quantity becomes ZERO → REMOVE row
-      if (newQty === 0) {
-        if (rowIndex !== undefined) {
-          remove(rowIndex);               // remove row from RHF
-          delete itemRowMap.current[itemId]; // delete mapping
-        }
-
-        return {
-          ...prev,
-          [itemId]: 0
-        };
+    // ❌ IF QTY BECOMES 0 → REMOVE ITEM COMPLETELY
+    if (newQty <= 0) {
+      if (rowIndex !== undefined) {
+        remove(rowIndex);                // 🔥 remove from RHF
+        delete itemRowMap.current[itemId]; // 🔥 remove mapping
       }
 
-      // 2️⃣ If row DOES NOT exist → CREATE one
-      if (rowIndex === undefined) {
-        rowIndex = fields.length;
-        itemRowMap.current[itemId] = rowIndex;
+      const updatedCart = { ...prev };
+      delete updatedCart[itemId];        // 🔥 remove from cart
 
-        append({
-          Item_Name: itemName,
-          Item_Price: price,
-          Item_Quantity: newQty,
-          Amount: (price * newQty).toFixed(2)
-        });
-      }
-
-      // 3️⃣ Update existing row values
-      setValue(`items.${rowIndex}.Item_Name`, itemName);
-      setValue(`items.${rowIndex}.Item_Price`, price);
-      setValue(`items.${rowIndex}.Item_Quantity`, newQty);
-      setValue(`items.${rowIndex}.Amount`, (price * newQty).toFixed(2));
-
-      // 4️⃣ Recalculate totals
       setTimeout(updateTotals, 0);
+      return updatedCart;
+    }
 
-      return {
-        ...prev,
-        [itemId]: newQty
-      };
-    });
-  };
+    // ➤ If row does NOT exist yet → create one
+    if (rowIndex === undefined) {
+      rowIndex = fields.length;
+      itemRowMap.current[itemId] = rowIndex;
+
+      append({
+        Item_Name: itemName,
+        Item_Price: amount,
+        Item_Quantity: newQty,
+        Amount: (amount * newQty).toFixed(2),
+        id: itemId,
+      });
+    } else {
+      // ➤ Update existing row
+      setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+      setValue(
+        `items.${rowIndex}.Amount`,
+        (amount * newQty).toFixed(2)
+      );
+    }
+
+    setTimeout(updateTotals, 0);
+
+    return {
+      ...prev,
+      [itemId]: newQty,
+    };
+  });
+};
 
   const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
 
+const summaryItems=watch("items")||[]
+const onSubmit = async (data) => {
+  // const printWindow = window.open("", "_blank", "width=320,height=600");
+
+  // if (!printWindow) {
+  //   toast.error("Please allow pop-ups to print invoice");
+  //   return;
+  // }
+  console.log(data);
+ if (!data.items || data.items.length === 0) {
+      toast.error("Please add at least one item before saving.");
+      return;
+    }
 
 
+   
+    // Remove empty rows
+    const cleanedItems = data.items.filter(
+      (it) => it.Item_Name && it.Item_Name.trim() !== ""
+    );
+    for (const item of cleanedItems) {
+  if (!item.Item_Quantity || Number(item.Item_Quantity) <= 0) {
+    toast.error(`Quantity for "${item.Item_Name}" must be greater than zero`);
+    return;
+  }
+}
+
+    if (cleanedItems.length === 0) {
+      toast.error("Please add at least one  item .");
+      return;
+    }
+  try {
+    const payload = {
+      userId: user?.User_Id,
+
+      items: data.items,
+      Sub_Total: data.Sub_Total,
+      // Final_Amount: data.Final_Amount,
+      Customer_Name: data.Customer_Name,
+      Customer_Phone: data.Customer_Phone,
+      Discount: data.Discount,
+      Discount_Type: data.Discount_Type,
+      Payment_Type: data.Payment_Type,
+      Sub_Total: data.Sub_Total,
+      Final_Amount: data.Amount,
+      // items: orderDetails?.items,
+      // Sub_Total: orderDetails?.Sub_Total,
+      // Final_Amount: invoiceDetails?.Final_Amount,
+      // Customer_Name: invoiceDetails?.Customer_Name,
+      // Customer_Phone: invoiceDetails?.Customer_Phone,
+      // Discount: invoiceDetails?.Discount,
+      // Discount_Type: invoiceDetails?.Discount_Type,
+      // Payment_Type: invoiceDetails?.Payment_Type,
+    };
+    console.log(payload);
+
+    const response=await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
+    console.log(response,"response");
+
+    toast.success("Invoice Generated & Bill Paid!");
+  
+    dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+    dispatch(orderApi.util.invalidateTags(["Order"]));
+    // renderInvoiceHTML(printWindow);
+    
+
+    navigate("/staff/orders/all-orders");
+
+  } catch (err) {
+   console.error(err);
+     
+         toast.error(err?.data?.message || "Failed to submit order.");
+  }
+};
 
 
+console.log(summaryItems,"summaryItems");
 
 
-
-  console.log("updateCart", cart);
+  // console.log("updateCart", cart);
   console.log("Current form values:", formValues);
   console.log("Form errors:", errors);
 
@@ -429,28 +517,7 @@ const filteredItems = useMemo(() => {
                                                             
                                                             
                                                               {/* ACTION */}
-                                                              {/* {!hasCustomer ? (
-                                                             
-                                                                <span
-                                                                  onClick={() =>     setCustomerModal({ open: true, mode: "add" })}
-                                                                  className="block py-2 text-[#ff0000] font-medium cursor-pointer hover:bg-gray-100"
-                                                                >
-                                                                  + Add Customer
-                                                                </span>
-                                                              ) : (
-                                                                
-                                                                <span
-                                                                  onClick={() =>
-                                                                    setCustomerModal({
-                                                                      open: true,
-                                                                      mode: "edit",
-                                                                    })
-                                                                  }
-                                                                  className="block py-2 text-blue-600 font-medium cursor-pointer hover:bg-gray-100"
-                                                                >
-                                                                  ✏️ Edit Customer
-                                                                </span>
-                                                              )} */}
+                                                           
                                                             
                                                               {!hasCustomer && (
                                                               <span
@@ -494,7 +561,7 @@ const filteredItems = useMemo(() => {
              
               </div>
               <div style={{ padding: "0", backgroundColor: "#f1f1f19d" }} className="tab-inn">
-                <form >
+                <form onSubmit={handleSubmit(onSubmit)}>
 
 
 
@@ -642,7 +709,8 @@ const filteredItems = useMemo(() => {
                                       disabled={unavailable}
                                       onClick={() =>
                                         !unavailable &&
-                                        updateCart(item.id, -1, index, item.Item_Name, item.Amount)
+                                          updateCart(item.id, -1, index, item.Item_Name, item.Item_Price)
+                                        // updateCart(item.id, -1, index, item.Item_Name, item.Amount)
                                       }
                                       className={`
                w-7 h-7 flex items-center justify-center rounded-md shadow transition
@@ -667,7 +735,8 @@ const filteredItems = useMemo(() => {
                                       disabled={unavailable}
                                       onClick={() =>
                                         !unavailable &&
-                                        updateCart(item.id, 1, index, item.Item_Name, item.Amount)
+                                           updateCart(item.id, 1, index, item.Item_Name, item.Item_Price)
+                                        // updateCart(item.id, 1, index, item.Item_Name, item.Amount)
                                       }
                                       className={`
                w-7 h-7 flex items-center justify-center rounded-md shadow transition
@@ -703,18 +772,46 @@ const filteredItems = useMemo(() => {
 
 
                           {/* SAVE & HOLD */}
+                          
+                                                    {/* SAVE & HOLD */}
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setShowSummary(true)}   // open bottom sheet
+                                                      // disabled={formValues.errorCount > 0 || isAddingOrder}
+                                                      className="relative w-full py-2 px-4 md:w-auto 
+                                                      flex items-center justify-center gap-3 
+                                                      
+                                                            text-white font-bold  rounded shadow sm:py-3 px-6"
+                                                      style={{ backgroundColor: "black" }}
+                                                    >
+                                                      Save & Hold
+                                                      {/* {isAddingOrder ? "Saving..." : "Save & Hold"} */}
+                          
+                                                      <span className="relative">
+                                                        <ShoppingCart size={22} />
+                                                        {totalItems > 0 && (
+                                                          <span className="absolute -top-2 -right-2 bg-red-500 text-white 
+                                                                                                       text-[10px] font-bold w-4 h-4 flex items-center justify-center 
+                                                                                                       rounded-full shadow">
+                                                            {totalItems}
+                                                          </span>
+                                                        )}
+                                                      </span>
+                                                    </button>
                           <button
                             type="button"
                             onClick={() => setShowSummary(true)}   // open bottom sheet
 
-                            className="relative w-full md:w-auto flex items-center justify-center gap-3 
-                                                                   text-white font-bold py-3 px-6 rounded shadow"
+                            className="relative w-full py-2 px-4 md:w-auto 
+                                                      flex items-center justify-center gap-3 
+                                                      
+                                                            text-white font-bold  rounded shadow sm:py-3 px-6"
                             style={{ backgroundColor: "#ff0000" }}
                           >
                             Save & Pay Bill
 
 
-                            <span className="relative">
+                            {/* <span className="relative">
                               <ShoppingCart size={22} />
                               {totalItems > 0 && (
                                 <span className="absolute -top-2 -right-2 bg-red-500 text-white 
@@ -723,7 +820,7 @@ const filteredItems = useMemo(() => {
                                   {totalItems}
                                 </span>
                               )}
-                            </span>
+                            </span> */}
                           </button>
 
                           {/* <div></div> */}
@@ -781,8 +878,22 @@ const filteredItems = useMemo(() => {
                         </div>
 
                         {/* SUMMARY CONTENT */}
-                        <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
+                        {/* <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
                           {itemsValues && itemsValues?.map((item, index) => (
+                            <div key={index} className="border-b pb-2 mb-2">
+                              <div className="flex justify-between">
+                                <span className="font-semibold">{item?.Item_Name}</span>
+                                <span>x {item?.Item_Quantity}</span>
+                              </div>
+                              <div className="flex justify-between text-sm text-gray-500">
+                                <span>Amount</span>
+                                <span>₹{item?.Amount}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div> */}
+                        <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
+                          {summaryItems?.map((item, index) => (
                             <div key={index} className="border-b pb-2 mb-2">
                               <div className="flex justify-between">
                                 <span className="font-semibold">{item?.Item_Name}</span>
@@ -803,9 +914,9 @@ const filteredItems = useMemo(() => {
                             <span>₹{watch("Amount")}</span>
                           </div>
                           <div className="flex justify-center mt-4">
-                            <button type="button"
+                            <button type="submit"
                             style={{ backgroundColor: "#ff0000" }}
-                              onClick={() => setOrdertakeawayModalOpen(true)}
+                              // onClick={() => setOrdertakeawayModalOpen(true)}
                               className="w-16 h-10 flex items-center justify-center bg-[#ff0000] 
           rounded-md text-white shadow hover:bg-[#3a8c98] ">
                               OK
@@ -821,12 +932,12 @@ const filteredItems = useMemo(() => {
 
                   </div>
                 </form>
-                {ordertakeawayModalOpen &&
+                {/* {ordertakeawayModalOpen &&
                   <OrderTakeawayModal
                     onClose={() => setOrdertakeawayModalOpen(false)}
                     orderDetails={formValues}
                     setOpen={setOrdertakeawayModalOpen}
-                  />}
+                  />} */}
 
               </div>
             </div>

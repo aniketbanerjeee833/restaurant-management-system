@@ -1,6 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 
+
+
 export const orderApi = createApi({
   reducerPath: "orderApi",
   baseQuery: fetchBaseQuery({
@@ -42,6 +44,11 @@ getTableOrderDetails: builder.query({
 
   }),
 
+  getTakeawayOrderDetails: builder.query({
+    query: (orderId) => `order/get-takeaway-order-details/${orderId}`,
+    providesTags: ["Takeaway-Order"],
+  }),
+
   updateOrder: builder.mutation({
     query: ({Order_Id,payload}) => ({
       url: `order/update-order/${Order_Id}`,
@@ -49,6 +56,16 @@ getTableOrderDetails: builder.query({
       body: payload,
     }),
     invalidatesTags: ["Order"],
+  }),
+
+
+  updateTakeawayOrder: builder.mutation({
+    query: ({Takeaway_Order_Id,payload}) => ({
+      url: `order/update-takeaway-order/${Takeaway_Order_Id}`,
+      method: "PATCH",
+      body: payload,
+    }),
+    invalidatesTags: ["Takeaway-Order"],
   }),
 confirmOrderBillPaidAndInvoiceGenerated: builder.mutation({
   query: ({ orderId, payload }) => ({
@@ -59,32 +76,19 @@ confirmOrderBillPaidAndInvoiceGenerated: builder.mutation({
   invalidatesTags: ["Order"],
 }),
 
+confirmTakeawayOrderBillPaidAndInvoiceGenerated: builder.mutation({
+  query: ({ takeawayOrderId, payload }) => ({
+    url: `order/confirm-takeaway-bill/${takeawayOrderId}`,
+    method: "POST",
+    body: payload,
+  }),
+  invalidatesTags: ["Takeaway-Order"],
+}),
 totalInvoicesEachDay: builder.query({
   query: () => `order/total-invoices-orders-each-day`,
   providesTags: ["Order"],
 }),
-// getAllInvoicesAndOrdersEachDay: builder.query({
-//   query: ({ date }) => `order/get-all-invoices-orders-each-day?date=${date}`,
-//   providesTags: ["Order"],
-// })
 
-// getAllItems: builder.query({
-//   query: ({ page, search = "", fromDate = "", toDate = "" } = {}) => {
-//     const params = new URLSearchParams();
-
-//     // ✅ Append only when defined
-//     if (page) params.append("page", page);
-//     if (search) params.append("search", search);
-//     if (fromDate) params.append("fromDate", fromDate);
-//     if (toDate) params.append("toDate", toDate);
-
-//     const queryString = params.toString();
-//     return queryString
-//       ? `item/get-all-items?${queryString}`
-//       : `item/get-all-items`;
-//   },
-//   providesTags: ["Item"],
-// }),
 getAllInvoicesAndOrdersEachDay: builder.query({
   query: ({ page = 1, search = "", date }) => {
     const params = new URLSearchParams();
@@ -119,6 +123,9 @@ takeawayAddOrdersAndGenerateInvoices: builder.mutation({
   }),
   invalidatesTags: ["Takeaway-Order"],
 }),
+
+
+
 
 nextInvoiceNumber: builder.query({
   query: () => `order/next-invoice-number`,
@@ -162,8 +169,15 @@ nextInvoiceNumber: builder.query({
 
 export const { useAddNewCustomerMutation,useGetAllCustomersQuery,
   useAddOrderMutation,useGetTablesHavingOrdersQuery,
-  useGetTableOrderDetailsQuery ,useUpdateOrderMutation,
+  useGetTableOrderDetailsQuery ,
+  useGetTakeawayOrderDetailsQuery,
+  
+  useUpdateOrderMutation,
+  useUpdateTakeawayOrderMutation,
+
 useConfirmOrderBillPaidAndInvoiceGeneratedMutation,
+useConfirmTakeawayOrderBillPaidAndInvoiceGeneratedMutation,
+
 useTotalInvoicesEachDayQuery,
 useGetAllInvoicesAndOrdersEachDayQuery,
 useGetAllInvoicesOfOrdersAndTakeawaysInDateRangeQuery,

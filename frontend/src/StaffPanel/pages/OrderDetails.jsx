@@ -30,7 +30,7 @@ export default function OrderDetails() {
   const [kotNotifications, setKotNotifications] = useState({});
 
 // const [kotNotifications, setKotNotifications] = useState([]);
-const { data: tableHavingOrders, refetch } = useGetTablesHavingOrdersQuery();
+const { data: tableHavingOrders} = useGetTablesHavingOrdersQuery();
 const[takeawayCancelOrder,{isLoading:isTakeawayCancelOrderLoading}]=useCancelTakeawayOrderMutation();
 const[takeawayCompleteOrder,{isLoading:isTakeawayCompleteOrderLoading}]=useCompleteTakeawayOrderMutation();
 
@@ -51,7 +51,7 @@ useEffect(() => {
   // ⭐ If takeaway order completed → remove card immediately
 
  
-     refetch();
+    //  refetch();
   
   // Otherwise → normal refetch for dine-in updates
   // refetch();
@@ -364,6 +364,7 @@ console.log("KOT Notifications:", kotNotifications);
     return {
       KOT_Item_Id: backendItem?.KOT_Item_Id,
       itemName: updated?.itemName || backendItem?.Item_Name,
+      quantity: updated?.quantity || backendItem?.Quantity,
       status: updated?.status || backendItem?.Item_Status,
       time: updated?.time || backendItem?.updated_at,
     };
@@ -451,7 +452,7 @@ console.log("KOT Notifications:", kotNotifications);
             >
               {/* Item Name */}
               <span className="text-gray-800 text-sm">
-                {item?.itemName}
+                {item?.itemName} X{item?.quantity}
               </span>
 
               {/* Item Status */}
@@ -473,6 +474,17 @@ console.log("KOT Notifications:", kotNotifications);
               </div>
             </div>
           ))}
+               <div className="flex justify-center items-center">
+          <button
+            style={{ backgroundColor: "#ff0000" }}
+            className="text-white mt-2 font-bold py-2 px-4 rounded"
+            onClick={() =>
+              navigate(`/staff/update-orders-takeaway/${order?.Takeaway_Order_Id}`)
+            }
+          >
+            View Details
+          </button>
+        </div>
         </div>
       </div>
     );

@@ -69,6 +69,7 @@ const FinancialYear = lazy(() => import('./pages/Settings/FinancialYear'));
 
 const Orders=lazy(()=>import('./StaffPanel/pages/Orders'))
 const OrdersTakeAway=lazy(()=>import('./StaffPanel/pages/OrdersTakeAway'))
+const UpdateOrdersTakeAway=lazy(()=>import('./StaffPanel/pages/UpdateOrdersTakeaway'))
 const OrderDetails=lazy(()=>import('./StaffPanel/pages/OrderDetails'))
 const TableOrderDetails=lazy(()=>import('./StaffPanel/pages/TableOrderDetails'))
 
@@ -440,6 +441,14 @@ function RouterWrapper({ userRole }) {
               element={
                
                   <OrdersTakeAway/>
+              
+              }
+            />
+             <Route
+              path="/staff/update-orders-takeaway/:Order_Id"
+              element={
+               
+                  <UpdateOrdersTakeAway/>
               
               }
             />

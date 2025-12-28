@@ -286,40 +286,7 @@ const filteredItems = useMemo(() => {
     setValue("Amount", subTotal.toFixed(2));
   };
 
-  // const updateCart = (itemId, delta, index, itemName, itemAmount) => {
-  //   const amount = parseFloat(itemAmount || 0);
-
-  //   setCart(prev => {
-  //     const newQty = Math.max(0, (prev[itemId] || 0) + delta);
-
-  //     let rowIndex = itemRowMap.current[itemId];
-
-  //     // ➤ If row does NOT exist yet → create one
-  //     if (rowIndex === undefined) {
-  //       rowIndex = fields.length; // next row index
-  //       itemRowMap.current[itemId] = rowIndex;
-
-  //       append({
-  //         Item_Name: itemName,
-  //         Item_Price: amount,
-  //         Item_Quantity: newQty,
-  //         Amount: (amount * newQty).toFixed(2),
-  //       });
-  //     }
-
-  //     // ➤ Update existing row
-  //     setValue(`items.${rowIndex}.Item_Name`, itemName);
-  //     setValue(`items.${rowIndex}.Item_Price`, amount);
-  //     setValue(`items.${rowIndex}.Item_Quantity`, newQty);
-  //     setValue(`items.${rowIndex}.Amount`, (amount * newQty).toFixed(2));
-
-  //     setTimeout(() => updateTotals(), 0);
-  //     return {
-  //       ...prev,
-  //       [itemId]: newQty
-  //     };
-  //   });
-  // };
+ 
 const updateCart = (itemId, delta, index, itemName, itemAmount) => {
   const amount = parseFloat(itemAmount || 0);
 
@@ -473,7 +440,7 @@ const updateCart = (itemId, delta, index, itemName, itemAmount) => {
 // });
 
 
-
+const summaryItems=watch("items")||[]
 
 const customerName = watch("Customer_Name");
 const customerPhone = watch("Customer_Phone");
@@ -483,7 +450,8 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
 
 
 
-  console.log("updateCart", cart);
+console.log(summaryItems,"summaryItems");
+  // console.log("updateCart", cart);
   console.log("Current form values:", formValues);
   console.log("Form errors:", errors);
 
@@ -988,7 +956,8 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
             disabled={unavailable || Number(cart[item.id] || 0) === 0}
             onClick={() =>
               !unavailable &&
-              updateCart(item.id, -1, index, item.Item_Name, item.Amount)
+              updateCart(item.id, -1, index, item.Item_Name, item.Item_Price)
+              // updateCart(item.id, -1, index, item.Item_Name, item.Amount)
             }
             className={`
               w-7 h-7 flex items-center justify-center rounded-md shadow transition
@@ -1053,7 +1022,8 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
             disabled={unavailable}
             onClick={() =>
               !unavailable &&
-              updateCart(item.id, 1, index, item.Item_Name, item.Amount)
+              updateCart(item.id, 1, index, item.Item_Name, item.Item_Price)
+              // updateCart(item.id, 1, index, item.Item_Name, item.Amount)
             }
             className={`
               w-7 h-7 flex items-center justify-center rounded-md shadow transition
@@ -1171,7 +1141,7 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
 
                         {/* SUMMARY CONTENT */}
                         <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
-                          {fields.map((item, index) => (
+                          {summaryItems?.map((item, index) => (
                             <div key={index} className="border-b pb-2 mb-2">
                               <div className="flex justify-between">
                                 <span className="font-semibold">{item?.Item_Name}</span>

@@ -2,7 +2,7 @@
 import  { useState, useEffect } from 'react';
 import {  Clock,  Armchair } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { orderApi, useCancelTakeawayOrderMutation, useCompleteTakeawayOrderMutation, useGetTablesHavingOrdersQuery } from '../../redux/api/Staff/orderApi';
+import { orderApi, useCancelTakeawayOrderMutation,  useGetTablesHavingOrdersQuery } from '../../redux/api/Staff/orderApi';
 import { io } from 'socket.io-client';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -32,7 +32,7 @@ export default function OrderDetails() {
 // const [kotNotifications, setKotNotifications] = useState([]);
 const { data: tableHavingOrders} = useGetTablesHavingOrdersQuery();
 const[takeawayCancelOrder,{isLoading:isTakeawayCancelOrderLoading}]=useCancelTakeawayOrderMutation();
-const[takeawayCompleteOrder,{isLoading:isTakeawayCompleteOrderLoading}]=useCompleteTakeawayOrderMutation();
+// const[takeawayCompleteOrder,{isLoading:isTakeawayCompleteOrderLoading}]=useCompleteTakeawayOrderMutation();
 
   // const {data:tableHavingOrders} = useGetTablesHavingOrdersQuery()
  useEffect(() => {
@@ -186,13 +186,40 @@ const grouped = Object.values(
     return acc;
   }, {})
 );
-const filteredTables = grouped.filter(order =>
-  order.Tables.join(", ").toLowerCase().includes(searchTerm.toLowerCase()) ||
-  order.Order_Id.toLowerCase().includes(searchTerm.toLowerCase())
-);
+// const filteredTables = grouped.filter(order =>
+//   order.Tables.join(", ").toLowerCase().includes(searchTerm.toLowerCase()) ||
+//   order.Order_Id.toLowerCase().includes(searchTerm.toLowerCase())
+// );
+// const filteredTables = grouped.filter(order =>
+//   order.Tables.join(", ").toLowerCase()||
+//   order.Order_Id.toLowerCase()
+// );
+
+const filteredTables = grouped.filter((order) => {
+  if (!searchTerm) return true;
+
+  const search = searchTerm.trim().toLowerCase();
+
+  const tableNames = order.Tables.join(", ").toLowerCase();
+  const orderId = order.Order_Id?.toLowerCase() || "";
+  const customerName = order.Customer_Name?.toLowerCase() || "";
+  const customerPhone = order.Customer_Phone || "";
+
+  const itemMatch = order.items?.some(item =>
+    item.Item_Name?.toLowerCase().includes(search)
+  );
+
+  return (
+    tableNames.includes(search) ||
+    orderId.includes(search) ||
+    customerName.includes(search) ||
+    customerPhone.includes(search) ||
+    itemMatch
+  );
+});
 
 
-console.log("Raw Tables Data:", rawTables,filteredTables, "Takeaway Tables Data:", takeawayTables);
+// console.log("Raw Tables Data:", rawTables, "Takeaway Tables Data:", takeawayTables);
 
 
 const handleCancelTakeawayOrder = async(Takeaway_Order_Id) => {
@@ -210,30 +237,41 @@ try{
 
 };
 
-const handleCompleteTakeawayOrder = async(Takeaway_Order_Id) => {
 
-  console.log("Takeaway order completed:",Takeaway_Order_Id);
-try{
-  const response=await takeawayCompleteOrder(Takeaway_Order_Id).unwrap();
-  console.log("Takeaway order completed response:", response);
-  dispatch(orderApi.util.invalidateTags(["Order"]));
- dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
-  toast.success("Takeaway Order Completed Successfully!");
-}catch(error){
-  console.error("Error completing takeaway order:", error);
-}
-}
-console.log(filteredTables)
+
+const filteredTakeawayOrders = takeawayTables.filter((order) => {
+  if (!searchTerm) return true;
+
+  const search = searchTerm.trim().toLowerCase();
+
+  const orderId = order.Takeaway_Order_Id?.toLowerCase() || "";
+  const customerName = order.Customer_Name?.toLowerCase() || "";
+  const customerPhone = order.Customer_Phone || "";
+
+  const itemMatch = order.items?.some(item =>
+    item.Item_Name?.toLowerCase().includes(search)
+  );
+
+  return (
+    orderId.includes(search) ||
+    customerName.includes(search) ||
+    customerPhone.includes(search) ||
+    itemMatch
+  );
+});
+
+
+console.log(filteredTables,filteredTakeawayOrders);
 console.log("KOT Notifications:", kotNotifications);
 
   return (
     <>
       
       
-      <div className="sb2-2-3">
+      <div className="sb2-2-3" style={{height:"100%"}}>
         <div className="row" style={{ margin: "0px" }}>
           <div className="flex">
-            <div style={{ padding: "20px" , width: "100%"}} className="box-inn-sp">
+            <div style={{ padding: "20px" , width: "100%",height:"100%"}} className="box-inn-sp">
               
               <div className="inn-title w-full px-1 py-1">
                 <div className="flex flex-col sm:flex-row justify-between 
@@ -245,15 +283,25 @@ console.log("KOT Notifications:", kotNotifications);
                   </div>
 
                   {/* RIGHT BUTTON SECTION */}
-                    <div className="
+                    {/* <div className="
       w-full sm:w-auto 
-      flex flex-wrap sm:flex-nowrap 
+      flex 
       justify-start sm:justify-end 
-      gap-3
+      gap-4
     ">
                     
 
-                    <div className="hidden sm:block">
+                   
+
+                        
+      <input
+        type="text"
+        placeholder="Search ..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full"
+      />
+    
                     <button
                       type="button"
                       onClick={() =>navigate("/staff/orders/add")}
@@ -262,13 +310,57 @@ console.log("KOT Notifications:", kotNotifications);
                     >
                       Add Order
                     </button>
-                    </div>
-                  </div>
+                  
+                   
+                  </div> */}
+<div
+  className="
+    w-full
+    flex
+    flex-col
+    
+    sm:flex-row
+    sm:justify-end
+    sm:items-center
+    sm:w-1/2
+    gap-3
+  "
+>
+  {/* Search Input */}
+  <input
+    type="text"
+    placeholder="Search ..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+      className='w-1/2'                
+  />
+
+  {/* Add Order Button */}
+   <button
+  type="button"
+  onClick={() => navigate("/staff/orders/add")}
+  className="
+    h-12
+    px-4
+    text-white
+    font-bold
+    rounded
+    flex items-center justify-center
+    whitespace-nowrap
+  "
+  style={{ backgroundColor: "#ff0000" }}
+>
+  Add Order
+</button>
+
+</div>
+
+
                 </div>
               </div>
               
-             <div style={{height:"100vh"}}
-              className="p-5 bg-gray-100">
+             <div 
+              className="p-2 bg-gray-100">
   <div className="
     grid 
     grid-cols-1 
@@ -348,8 +440,8 @@ console.log("KOT Notifications:", kotNotifications);
 ))}
 
 
-          {takeawayTables.length > 0 &&
-  takeawayTables.map((order) => {
+          {filteredTakeawayOrders.length > 0 &&
+  filteredTakeawayOrders.map((order) => {
     // ✅ Get live KOT updates
     const kotItems = kotNotifications[order.Takeaway_Order_Id] || [];
 
@@ -388,7 +480,7 @@ console.log("KOT Notifications:", kotNotifications);
 <div className=" flex justify-end  w-full gap-2 mb-2">
   
   {/* Status Badge */}
-  <button
+  {/* <button
   type="button"
     disabled={isTakeawayCompleteOrderLoading}
     onClick={()=>handleCompleteTakeawayOrder(order?.Takeaway_Order_Id)}
@@ -402,7 +494,7 @@ console.log("KOT Notifications:", kotNotifications);
       }`}
   >
     {isTakeawayCompleteOrderLoading ? "Completing..." : order?.Status}
-  </button>
+  </button> */}
 
   {/* Cancel Button */}
   <button
@@ -419,11 +511,21 @@ console.log("KOT Notifications:", kotNotifications);
 
         {/* Title */}
         <div className='mt-2'>
-        <h5 className="text-xs sm:text-sm font-bold mb-1 text-gray-700">
+        {/* <h5 className="text-xs sm:text-sm font-bold mb-1 text-gray-700">
           Takeaway Order {order?.Takeaway_Order_Id}
-        {/* <h5 className="font-semibold text-gray-800 sm:font-bold mb-3 text-xl "> */}
-          {/* Takeaway Order {order.Takeaway_Order_Id} */}
+        {/* <h5 className="font-semibold text-gray-800 sm:font-bold mb-3 text-xl "> 
+          
+          </h5> */}
+
+          <h5 className="text-xs sm:text-sm font-bold  text-gray-700">
+          Takeaway
+          
+      
           </h5>
+          <div className='flex flex-col'>
+          {order?.Customer_Name&&<span>{order?.Customer_Name}</span>}
+           <span>{order?.Customer_Phone}</span>
+           </div>
             </div>
         {/* </h5> */}
 
@@ -494,7 +596,7 @@ console.log("KOT Notifications:", kotNotifications);
   </div>
 
     {/* No results */}
-    {filteredTables.length === 0  && takeawayTables.length === 0 && (
+    {filteredTables.length === 0  && filteredTakeawayOrders.length === 0 && (
      
          <div className="flex flex-col items-center justify-center w-full  text-center">
                   <div className="bg-white rounded-full p-8 shadow-lg mb-6">
@@ -523,3 +625,18 @@ console.log("KOT Notifications:", kotNotifications);
     </>
   );
 }
+
+
+// const handleCompleteTakeawayOrder = async(Takeaway_Order_Id) => {
+
+//   console.log("Takeaway order completed:",Takeaway_Order_Id);
+// try{
+//   const response=await takeawayCompleteOrder(Takeaway_Order_Id).unwrap();
+//   console.log("Takeaway order completed response:", response);
+//   dispatch(orderApi.util.invalidateTags(["Order"]));
+//  dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+//   toast.success("Takeaway Order Completed Successfully!");
+// }catch(error){
+//   console.error("Error completing takeaway order:", error);
+// }
+// }

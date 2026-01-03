@@ -7,7 +7,7 @@ import FoodItemModal from "../../components/Modal/FoodItemModal";
 import EditFoodItemModal from "../../components/Modal/EditFoodItemModal";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
-import { useGetUserQuery } from "../../redux/api/userApi";
+
 
 
 
@@ -634,6 +634,7 @@ const{user}=useSelector((state) => state.user);
 
               <div className="flex justify-center align-center space-x-2 p-4">
                 <button type="button"
+                 style={{ outline: "none",backgroundColor: "lightgray" }}
                   onClick={() => handlePreviousPage()}
                   disabled={page === 1}
                   className={`px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded
@@ -658,14 +659,19 @@ const{user}=useSelector((state) => state.user);
                 ))}
 
                 <button type="button"
+                style={{ outline: "none",backgroundColor: "lightgray" }}
                   onClick={() => handleNextPage()}
                   disabled={page === foodItems?.totalPages || foodItems?.totalPages === 0}
                   className={`px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded
-                ${page === foodItems?.totalPages || foodItems?.totalPages === 0 ? 'opacity-50 ' : ''}
+                ${page === foodItems?.totalPages || foodItems?.totalPages === 0 ? 
+                  'opacity-50 ' : ''}
                 `}
                 >
                   Next →
                 </button>
+ 
+
+
               </div>
             </div>
           </div>

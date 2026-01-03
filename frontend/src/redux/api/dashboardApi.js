@@ -8,7 +8,6 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 
 
-
 export const dashboardApi = createApi({
   reducerPath: "dashboardApi",
   baseQuery: fetchBaseQuery({
@@ -40,13 +39,29 @@ export const dashboardApi = createApi({
 
   }),
 
-  getItemsSoldEachDay: builder.query({
-    query: (date) => ({ 
-      url: `dashboard/items-sold-each-day`,
-      params: { date }
-    }),
-      providesTags: ["Dashboard"],
+getItemsSoldEachDay: builder.query({
+  query: ({ date, page }) => ({
+    url: `dashboard/items-sold-each-day`,
+    params: {
+      date,
+      page,
+    },
   }),
+  providesTags: ["Dashboard"],
+}),
+
+getItemsSoldDateRangeReport: builder.query({
+  query: ({  fromDate, toDate , page }) => ({
+    url: `dashboard/items-sold-date-range-report`,
+    params: {
+      fromDate,
+      toDate,
+      page,
+    },
+  }),
+  providesTags: ["Dashboard"],
+}),
+
 })
 
 })
@@ -55,4 +70,6 @@ export const {
    useGetTotalSalesPurchasesReceivablesPayablesProfitQuery,
     useGetAllSalesAndPurchasesYearWiseQuery,
     useGetCategoriesWiseItemCountQuery,
-    useGetPartyWiseSalesAndPurchasesQuery,useGetItemsSoldEachDayQuery } = dashboardApi
+    useGetPartyWiseSalesAndPurchasesQuery,useGetItemsSoldEachDayQuery,
+    useGetItemsSoldDateRangeReportQuery
+   } = dashboardApi

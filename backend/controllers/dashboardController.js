@@ -998,30 +998,62 @@ const getPartyWiseItemsSoldAndPurchased = async (req, res, next) => {
 //     }
 //   }
 // }
-const getItemsSoldEachDay = async (req, res, next) => {
+const getItemsSoldEachDayReport = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page || 1, 10);
     const limit = 10;
     const offset = (page - 1) * limit;
+
+    // ✅ Always expect YYYY-MM-DD from frontend
     const selectedDate =
-      req.query.date || new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+      req.query.date || new Date().toISOString().split("T")[0];
 
     // ----------------------------------------------------
-    // 1️⃣ COUNT TOTAL DISTINCT ITEMS SOLD
+    // 🕒 DATE RANGE (SAFE — NO DATE(), NO TIMEZONE BUG)
+    // ----------------------------------------------------
+    const startDate = `${selectedDate} 00:00:00`;
+
+    const end = new Date(selectedDate);
+    end.setDate(end.getDate() + 1);
+    const endDate = `${end.toISOString().split("T")[0]} 00:00:00`;
+
+    // ----------------------------------------------------
+    // 1️⃣ COUNT DISTINCT ITEMS SOLD
     // ----------------------------------------------------
     const [countResult] = await db.query(
       `
-      SELECT COUNT(*) AS total
+      SELECT COUNT(DISTINCT Item_Id) AS total
       FROM (
-        SELECT Item_Id FROM order_items WHERE DATE(created_at) = ?
-        UNION
-        SELECT Item_Id FROM order_takeaway_items WHERE DATE(created_at) = ?
+        SELECT Item_Id
+        FROM order_items
+        WHERE created_at >= ? AND created_at < ?
+
+        UNION ALL
+
+        SELECT Item_Id
+        FROM order_takeaway_items
+        WHERE created_at >= ? AND created_at < ?
       ) x
       `,
-      [selectedDate, selectedDate]
+      [startDate, endDate, startDate, endDate]
     );
 
-    const totalItems = countResult[0].total;
+    const totalItems = countResult[0]?.total || 0;
+
+    // ✅ NO DATA FOUND
+    if (totalItems === 0) {
+      return res.status(200).json({
+        success: true,
+        date: selectedDate,
+        currentPage: page,
+        pageSize: limit,
+        totalItems: 0,
+        totalPages: 0,
+        data: [],
+        message: "No items sold for the selected day.",
+      });
+    }
+
     const totalPages = Math.ceil(totalItems / limit);
 
     // ----------------------------------------------------
@@ -1037,20 +1069,20 @@ const getItemsSoldEachDay = async (req, res, next) => {
       FROM (
         SELECT Item_Id, Quantity AS sold_qty, Amount AS total_amount
         FROM order_items
-        WHERE DATE(created_at) = ?
+        WHERE created_at >= ? AND created_at < ?
 
         UNION ALL
 
         SELECT Item_Id, Quantity AS sold_qty, Amount AS total_amount
         FROM order_takeaway_items
-        WHERE DATE(created_at) = ?
+        WHERE created_at >= ? AND created_at < ?
       ) t
       JOIN add_food_item f ON f.Item_Id = t.Item_Id
       GROUP BY f.Item_Id, f.Item_Name
       ORDER BY sold_count DESC
       LIMIT ? OFFSET ?
       `,
-      [selectedDate, selectedDate, limit, offset]
+      [startDate, endDate, startDate, endDate, limit, offset]
     );
 
     return res.status(200).json({
@@ -1062,12 +1094,124 @@ const getItemsSoldEachDay = async (req, res, next) => {
       totalPages,
       data: rows,
     });
-
   } catch (err) {
     console.error("❌ Error getting items sold each day:", err);
     next(err);
   }
 };
+
+
+const getItemsSoldDateRangeReport = async (req, res, next) => {
+  let connection;
+
+  try {
+    connection = await db.getConnection();
+
+    const { fromDate, toDate, page = 1 } = req.query;
+
+    if (!fromDate || !toDate) {
+      return res.status(400).json({
+        success: false,
+        message: "From date and To date are required",
+      });
+    }
+
+    const limit = 10;
+    const offset = (parseInt(page, 10) - 1) * limit;
+
+    // ✅ Convert to full-day range
+    const startDate = `${fromDate} 00:00:00`;
+    const endDate = `${toDate} 23:59:59`;
+
+    // ----------------------------------------------------
+    // 1️⃣ COUNT DISTINCT ITEMS SOLD
+    // ----------------------------------------------------
+    const [countResult] = await connection.query(
+      `
+      SELECT COUNT(DISTINCT Item_Id) AS total
+      FROM (
+        SELECT Item_Id
+        FROM order_items
+        WHERE created_at BETWEEN ? AND ?
+
+        UNION ALL
+
+        SELECT Item_Id
+        FROM order_takeaway_items
+        WHERE created_at BETWEEN ? AND ?
+      ) x
+      `,
+      [startDate, endDate, startDate, endDate]
+    );
+
+    const totalItems = countResult[0]?.total || 0;
+
+    // ✅ NO DATA FOUND
+    if (totalItems === 0) {
+      return res.status(200).json({
+        success: true,
+        fromDate,
+        toDate,
+        currentPage: Number(page),
+        pageSize: limit,
+        totalItems: 0,
+        totalPages: 0,
+        data: [],
+        message: "No items sold for the selected date range.",
+      });
+    }
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // ----------------------------------------------------
+    // 2️⃣ FETCH AGGREGATED ITEM SALES
+    // ----------------------------------------------------
+    const [rows] = await connection.query(
+      `
+      SELECT 
+        f.Item_Id,
+        f.Item_Name,
+        SUM(t.sold_qty) AS sold_count,
+        SUM(t.total_amount) AS total_price
+      FROM (
+        SELECT Item_Id, Quantity AS sold_qty, Amount AS total_amount
+        FROM order_items
+        WHERE created_at BETWEEN ? AND ?
+
+        UNION ALL
+
+        SELECT Item_Id, Quantity AS sold_qty, Amount AS total_amount
+        FROM order_takeaway_items
+        WHERE created_at BETWEEN ? AND ?
+      ) t
+      JOIN add_food_item f ON f.Item_Id = t.Item_Id
+      GROUP BY f.Item_Id, f.Item_Name
+      ORDER BY sold_count DESC
+      LIMIT ? OFFSET ?
+      `,
+      [startDate, endDate, startDate, endDate, limit, offset]
+    );
+
+    return res.status(200).json({
+      success: true,
+      fromDate,
+      toDate,
+      currentPage: Number(page),
+      pageSize: limit,
+      totalItems,
+      totalPages,
+      data: rows,
+    });
+  } catch (err) {
+    console.error("❌ Error fetching date range item report:", err);
+    next(err);
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+
+
 
 export { getAllSalesAndPurchasesYearWise ,
   getCategoriesWiseItemCount,
@@ -1076,4 +1220,5 @@ export { getAllSalesAndPurchasesYearWise ,
 
   getItemsSoldCount,
   getPartyWiseItemsSoldAndPurchased,
-  getItemsSoldEachDay };
+  getItemsSoldEachDayReport,
+  getItemsSoldDateRangeReport };

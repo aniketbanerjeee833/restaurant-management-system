@@ -69,10 +69,10 @@ const FinancialYear = lazy(() => import('./pages/Settings/FinancialYear'));
 
 const Orders=lazy(()=>import('./StaffPanel/pages/Orders'))
 const OrdersTakeAway=lazy(()=>import('./StaffPanel/pages/OrdersTakeAway'))
-const UpdateOrdersTakeAway=lazy(()=>import('./StaffPanel/pages/UpdateOrdersTakeaway'))
+// const UpdateOrdersTakeAway=lazy(()=>import('./StaffPanel/pages/UpdateOrdersTakeaway'))
 const OrderDetails=lazy(()=>import('./StaffPanel/pages/OrderDetails'))
 const TableOrderDetails=lazy(()=>import('./StaffPanel/pages/TableOrderDetails'))
-
+const ProductWiseReport=lazy(()=>import('./StaffPanel/pages/Reports/ProductWiseReport'))
 
 
 
@@ -128,7 +128,7 @@ function RouterWrapper({ userRole }) {
     /^\/((TK)?INV\d+|\d{1,10})$/i.test(location.pathname);
   const hideHeader = location.pathname === "/login" || 
   location.pathname.startsWith("/day-wise-report") ||
-  location.pathname.startsWith("/date-range-report") ||
+  location.pathname.startsWith("/order/date-range-orders-takaway-report") ||
   location.pathname.startsWith("/material/material-view")||
   location.pathname.startsWith("/order/day-wise-invoices-order-report")||
   location.pathname.startsWith("/party/party-sales-purchases-details")||
@@ -444,14 +444,14 @@ function RouterWrapper({ userRole }) {
               
               }
             />
-             <Route
+             {/* <Route
               path="/staff/update-orders-takeaway/:Order_Id"
               element={
                
                   <UpdateOrdersTakeAway/>
               
               }
-            />
+            /> */}
               <Route
               path="/staff/orders/all-orders"
               element={
@@ -492,6 +492,13 @@ function RouterWrapper({ userRole }) {
               
               }
             />
+             <Route path="/report/product-wise-report" element={
+              <Layout>
+                <ProductWiseReport/>
+              </Layout>
+            
+            } />
+
 
 
           </>

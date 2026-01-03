@@ -163,6 +163,14 @@ nextInvoiceNumber: builder.query({
       }),
     }),
 
+    printThermalInvoice: builder.mutation({
+      query: (payload) => ({
+        url: `/order/print-thermal-invoice`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
 
 })
 })
@@ -183,4 +191,4 @@ useGetAllInvoicesAndOrdersEachDayQuery,
 useGetAllInvoicesOfOrdersAndTakeawaysInDateRangeQuery,
 useTakeawayAddOrdersAndGenerateInvoicesMutation,useNextInvoiceNumberQuery,
 useGenerateSmsMutation,useGenerateSmsForTakeawayMutation,useCancelTakeawayOrderMutation
-,useCompleteTakeawayOrderMutation} = orderApi
+,useCompleteTakeawayOrderMutation,usePrintThermalInvoiceMutation} = orderApi

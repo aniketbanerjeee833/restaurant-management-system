@@ -7,7 +7,7 @@ import { addNewCustomer, addOrder, cancelTakeawayOrder, completeTakeawayOrder, c
    
     getTableOrderDetails, getTablesHavingOrders, 
     getTakeawayOrderDetails, 
-    nextInvoiceNumber, takeawayAddOrdersAndGenerateInvoices, totalInvoicesEachDay, updateOrder, 
+    nextInvoiceNumber,  takeawayAddOrdersAndGenerateInvoices, totalInvoicesEachDay, updateOrder, 
     updateTakeawayOrder} 
     from "../../controllers/staff/orderItemController.js";
 import userAuth from "../../middleware/userAuth.js";
@@ -63,6 +63,6 @@ router.post("/confirm-takeaway-bill/:Takeaway_Order_Id",userAuth,
 );
 
 
-
+// router.post("/print-thermal-invoice",userAuth, printThermalInvoice);
 
 export default router;

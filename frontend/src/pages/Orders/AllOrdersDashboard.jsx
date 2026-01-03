@@ -523,9 +523,10 @@
 
 import  { useState } from 'react';
 
-import { TrendingUp,  Armchair, Handbag, CalendarDays, Filter, X } from 'lucide-react';
+import { TrendingUp,  Armchair, Handbag, CalendarDays, Filter, X, ChefHat } from 'lucide-react';
 
 import {  
+  
     useGetTotalSalesPurchasesReceivablesPayablesProfitQuery } from '../../redux/api/dashboardApi';
 
 import { useTotalInvoicesEachDayQuery } from '../../redux/api/Staff/orderApi';
@@ -538,8 +539,9 @@ export default function AllOrdersDashboard() {
 
   // const {user}=useSelector((state)=>state.user)
   // const today = new Date().toISOString().split("T")[0];
- const today = new Date().toLocaleDateString("en-CA");
-
+//  const today = new Date().toLocaleDateString("en-CA");
+const today = new Date().toISOString().split("T")[0]; // ✅ safest
+// const[page,setPage]=useState(1)
   const{data:totalInvoiceEachDay}=useTotalInvoicesEachDayQuery()
     const [showRangeModal, setShowRangeModal] = useState(false);
     const [dateRange, setDateRange] = useState({
@@ -561,20 +563,39 @@ const formatDateDDMMYYYY = (dateStr) => {
 
 // const {data: salesPurchasesProfitData} =
 //    useGetAllSalesAndPurchasesYearWiseQuery({year:selectedYear})
- 
+  //  const handlePageChange = (newPage) => {
+  //   setPage(newPage);
+  // }
+  // const handleNextPage = () => {
+  //   setPage(page + 1);
+  // }
+  // const handlePreviousPage = () => {
+  //   setPage(page - 1);
+  // }
+
   //console.log(selectedYear);
 const {data:totalSalesPurchasesReceivablesPayablesProfit}=
 useGetTotalSalesPurchasesReceivablesPayablesProfitQuery(selectedDate)
   // Item-wise analysis
   console.log(totalSalesPurchasesReceivablesPayablesProfit,
     "totalSalesPurchasesReceivablesPayablesProfit");
+// const{data:itemsSoldEachDay}=useGetItemsSoldEachDayQuery(selectedDate)
+// const {
+//   data: itemsSoldEachDay
+// } = useGetItemsSoldEachDayQuery(
+//   { date: selectedDate, page },
+//   {
+//     skip: !selectedDate,
+//   }
+// );
 
+// const topSellingItems = itemsSoldEachDay?.data ?? [];
+// console.log(itemsSoldEachDay,"itemsSoldEachDay");
 
 
     // const profitMargin=totalSalesPurchasesReceivablesPayablesProfit?.profit
      
      
-
 
 
 
@@ -874,7 +895,7 @@ const cancelledTakeawayInvoices =
     </div>
   </div>
                       <div className="grid grid-cols-1 p-2
-                      md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                      md:grid-cols-2 lg:grid-cols-3 gap-6 mb-2">
                         <StatCard
                           title="Total Sales"
                           value={totalSalesPurchasesReceivablesPayablesProfit?.total_sales || 0}
@@ -912,6 +933,83 @@ const cancelledTakeawayInvoices =
                           color={profitMargin > 0 ? "bg-green-600" : "bg-red-600"}
                         /> */}
                       </div>
+                                     {/* <div className="p-4 bg-gradient-to-r from-green-50 to-white">
+                                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                      <ChefHat size={20} className="text-green-600" />
+                                      Top Selling Items
+                                    </h3>
+                                  </div>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                      <thead className="bg-gray-50">
+                                        <tr>
+                                          <th className="px-4 py-3 text-left font-semibold text-gray-700">Item</th>
+                                          <th className="px-4 py-3 text-center font-semibold text-gray-700">Qty</th>
+                                          <th className="px-4 py-3 text-right font-semibold text-gray-700">Revenue</th>
+                                        
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-gray-100">
+                                        {topSellingItems && topSellingItems.length > 0 ? topSellingItems?.map((item, idx) => (
+                                          <tr key={idx} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 font-medium text-gray-800">{item?.Item_Name}</td>
+                                            <td className="px-4 py-3 text-center text-gray-600">{item?.sold_count}</td>
+                                            <td className="px-4 py-3 text-right font-semibold text-green-600">₹{item?.total_price.toLocaleString()}</td>
+                                              {/* <td className="px-4 py-3 text-right">
+                                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
+                                                {item.contribution}%
+                                              </span>
+                                            </td>   
+                                          </tr>
+                                        )):(
+                                          <tr>
+                                            <td className=" w-full font-medium  text-center">No items found</td>
+                                          </tr>
+                                        )}
+                                      </tbody>
+                                    </table>
+                                          <div className="flex justify-center align-center space-x-2 p-4">
+                <button type="button"
+                 style={{ outline: "none",backgroundColor: "lightgray" }}
+                  onClick={() => handlePreviousPage()}
+                  disabled={page === 1}
+                  className={`px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded
+                ${page === 1 ? 'opacity-50 ' : ''}
+                `}
+                >
+                  ← Previous
+                </button>
+                {[...Array(itemsSoldEachDay?.totalPages).keys()].map((index) => (
+                  <button
+                    key={index}
+                    onClick={() => handlePageChange(index + 1)}
+                    // className={`px-3 py-1 rounded ${page === index + 1 ? 'bg-[#7346ff] text-white' : 'bg-gray-200 hover:bg-gray-300'
+                    //   }`}
+                    className={
+                      `px-3 py-1 rounded ${page === index + 1 ? 'bg-[#ff0000] text-white' :
+                        'bg-gray-200 hover:bg-gray-300'
+                      }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+
+                <button type="button"
+                style={{ outline: "none",backgroundColor: "lightgray" }}
+                  onClick={() => handleNextPage()}
+                  disabled={page === itemsSoldEachDay?.totalPages || itemsSoldEachDay?.totalPages === 0}
+                  className={`px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded
+                ${page === itemsSoldEachDay?.totalPages || itemsSoldEachDay?.totalPages === 0 ? 
+                  'opacity-50 ' : ''}
+                `}
+                >
+                  Next →
+                </button>
+ 
+
+
+              </div>
+                                  </div> */}
                       </div>
              {/* Header with month and nav */}
               <div style={{border:"none",padding:"0px"}} 

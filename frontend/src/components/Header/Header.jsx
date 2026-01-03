@@ -216,7 +216,7 @@ className="w-full flex flex-wrap items-center justify-between header sm:mt-0">
     style={{ backgroundColor: "red" }}
     // disabled={isTakeawayPage}
   >
-    Order
+    Dine-In
   </button>
 )}
 

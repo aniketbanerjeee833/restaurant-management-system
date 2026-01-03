@@ -3,6 +3,7 @@ import  { useState } from 'react';
 import {  FileText, Calendar, DollarSign, ShoppingCart, Users, Table2, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useGetAllInvoicesAndOrdersEachDayQuery } from '../../redux/api/Staff/orderApi';
+import { useEffect } from 'react';
 
 export default function AllOrdersDayWise() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,6 +39,10 @@ const [page, setPage] = useState(1);
   const{data:allInvoicesAndOrderEachDay}=useGetAllInvoicesAndOrdersEachDayQuery({  page,
         search: searchTerm,date});
         console.log(searchTerm)
+        useEffect(() => {
+  setPage(1);
+}, [searchTerm]);
+
   // Filter invoices
    //const invoiceData=allInvoicesAndOrderEachDay?.data??[]
    const invoiceData = allInvoicesAndOrderEachDay?.data ?? [];
@@ -61,12 +66,12 @@ const takeAwayInvoices = invoiceData.filter(
   // const dineInvoices=filteredInvoices.filter(invoice=>invoice.invoice.orderType==="dine")
   // const takeAwayInvoices=filteredInvoices.filter(invoice=>invoice.invoice.orderType==="takeaway")
    console.log(dineInvoices,takeAwayInvoices,"dineInvoices","takeAwayInvoices");
-
+// const orderType=dineInvoices.length>0?"dine-in":"takeaway";
  
   // Toggle expand/collapse
-  const toggleExpand = (invoiceId) => {
-  setExpandedInvoice(prev => prev === invoiceId ? null : invoiceId);
-};
+//   const toggleExpand = (invoiceId) => {
+//   setExpandedInvoice(prev => prev === invoiceId ? null : invoiceId);
+// };
   // const toggleExpand = (invoiceId) => {
   //   console.log(invoiceId);
     
@@ -82,10 +87,299 @@ console.log(isExpanded,"isExpanded");
       case 'paid': return '#4CAF50';
       case 'pending': return '#ff9800';
       case 'cancelled': return '#f44336';
+      case 'completed': return '#4CAF50';
       default: return '#9e9e9e';
     }
   };
 
+  const toggleExpand = (invoiceId) => {
+    setExpandedInvoice(expandedInvoice === invoiceId ? null : invoiceId);
+  };
+
+  const InvoiceCard = ({ data }) => {
+    const isExpanded = expandedInvoice === data.invoice.Invoice_Id;
+    console.log(data)
+    return (
+      <div
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          overflow: 'hidden',
+          border: '1px solid #e0e0e0',
+          marginBottom: '10px'
+        }}
+      >
+        {/* INVOICE HEADER */}
+        <div
+          style={{
+            padding: '16px',
+            cursor: 'pointer',
+            backgroundColor: '#fafafa',
+            borderBottom: '1px solid #e0e0e0',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fafafa'}
+        >
+        {/* <div
+  className={`
+    grid
+    grid-cols-3 grid-rows-2
+    sm:grid-rows-1
+    ${data?.orderType === "dine"
+      ? "sm:grid-cols-6"
+      : "sm:grid-cols-5"}
+  `}
+  style={{ margin: 0, alignItems: "center" }}
+> */}
+<div
+  className="grid grid-rows-2 sm:grid-rows-1"
+  style={{
+    alignItems: "center",
+    gridTemplateColumns: "1.2fr 1fr 1fr 2fr 1fr 1fr",
+  }}
+>
+
+
+
+
+            
+            {/* Invoice ID */}
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileText size={20} style={{ color: '#ff0000' }} />
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
+                    {data.invoice.Invoice_Id}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Date */}
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={18} style={{ color: '#666' }} />
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  {formatDate(data?.invoice?.Invoice_Date)}
+                </div>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="grid justify-items-end sm:justify-items-start" style={{ marginBottom: '10px' }}>
+              <span
+                style={{
+                  backgroundColor: getStatusColor(data.order.Status),
+                  color: '#fff',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  display: 'inline-block'
+                }}
+              >
+                {data?.order?.Status==="completed"?"Paid":data?.order?.Status}
+              </span>
+            </div>
+
+            {/* Customer Info */}
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <User size={18} style={{ color: '#666' }} />
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  <span>{data?.invoice?.Customer_Name}</span>
+                  <span> - {data?.invoice?.Customer_Phone}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tables */}
+            {/* {data?.orderType === 'dine' && <div style={{ marginBottom: '10px' }}>
+              {data?.tables && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Table2 size={18} style={{ color: '#666' }} />
+                  <div style={{ fontSize: '12px', color: '#666' }}>
+                    {data?.tables?.map(t => t?.Table_Name).join(', ') || 'N/A'}
+                  </div>
+                </div>
+              )}
+            </div>} */}
+            {/* Tables (COLUMN ALWAYS EXISTS) */}
+<div
+  style={{
+    marginBottom: "10px",
+    visibility: data?.orderType === "dine" ? "visible" : "hidden",
+  }}
+>
+  {data?.orderType === "dine" && data?.tables && (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <Table2 size={18} style={{ color: "#666" }} />
+      <div style={{ fontSize: "12px", color: "#666" }}>
+        {data.tables.map(t => t.Table_Name).join(", ")}
+      </div>
+    </div>
+  )}
+</div>
+
+            
+
+            {/* Amount */}
+            <div className="flex justify-end gap-2" style={{ marginBottom: '10px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ff0000' }}>
+                  ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
+                </div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  {data.items?.length || 0} items
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                {isExpanded ? (
+                  <ChevronUp onClick={() => toggleExpand(data?.invoice?.Invoice_Id)} />
+                ) : (
+                  <ChevronDown onClick={() => toggleExpand(data?.invoice?.Invoice_Id)} />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* EXPANDED DETAILS */}
+        {isExpanded && (
+          <div style={{ padding: '16px', backgroundColor: '#fff' }}>
+            
+            {/* Items Table */}
+            <div style={{ marginBottom: '20px' }}>
+              <h5 style={{ 
+                fontSize: '16px', 
+                fontWeight: 'bold', 
+                marginBottom: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <ShoppingCart size={18} style={{ color: '#ff0000' }} />
+                Order Items
+              </h5>
+              
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ 
+                  width: '100%', 
+                  borderCollapse: 'collapse',
+                  fontSize: '14px'
+                }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f5f5f5' }}>
+                      <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>
+                        Item Name
+                      </th>
+                      <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd' }}>
+                        Quantity
+                      </th>
+                      <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>
+                        Price
+                      </th>
+                      <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data?.items?.map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                        <td style={{ padding: '12px', fontWeight: '500' }}>
+                          {item?.Item_Name}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          {item?.Quantity}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'right' }}>
+                          ₹{parseFloat(item?.Price).toFixed(2)}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
+                          ₹{parseFloat(item?.Amount).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'flex-end',
+              borderTop: '2px solid #e0e0e0',
+              paddingTop: '15px'
+            }}>
+              <div style={{ minWidth: '300px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  padding: '8px 0',
+                  fontSize: '14px'
+                }}>
+                  <span style={{ color: '#666' }}>Subtotal:</span>
+                  <span style={{ fontWeight: '500' }}>
+                    ₹{parseFloat(data?.invoice?.Sub_Total || data?.order?.Sub_Total).toFixed(2)}
+                  </span>
+                </div>
+                
+                {data?.invoice?.Discount && (
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    padding: '8px 0',
+                    fontSize: '14px'
+                  }}>
+                    <span style={{ color: '#666' }}>Discount:</span>
+                    <span style={{ fontWeight: '500' }}>
+                      {data?.invoice?.Discount_Type === 'percentage' ? 
+                      `${data?.invoice?.Discount}%`  :
+                       `₹${parseFloat(data?.invoice?.Discount).toFixed(2)} `}
+                    </span>
+                  </div>
+                )}
+
+                {data?.invoice?.Service_Charge && (
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    padding: '8px 0',
+                    fontSize: '14px'
+                  }}>
+                    <span style={{ color: '#666' }}>Service Charge:</span>
+                    <span style={{ fontWeight: '500' }}>
+                      ₹{parseFloat(data?.invoice?.Service_Charge).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  padding: '12px 0',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  borderTop: '2px solid #ff0000',
+                  marginTop: '8px'
+                }}>
+                  <span>Total:</span>
+                  <span style={{ color: '#ff0000' }}>
+                    ₹{parseFloat(data?.invoice?.Amount).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
   // console.log(filteredInvoices)
   return (
     <>
@@ -131,8 +425,14 @@ console.log(isExpanded,"isExpanded");
 
       {/* Total invoices */}
       <h4 className="text-uppercase mt-2 text-gray-700">
-        Total Invoices: {allInvoicesAndOrderEachDay?.totalInvoices}
+        Total Invoices: {allInvoicesAndOrderEachDay?.totalCount}
       </h4>
+    {/* <h4 className="text-uppercase mt-2 text-gray-700">
+  Total Invoices:{" "}
+  {(allInvoicesAndOrderEachDay?.dineCount) || 0 +
+   (allInvoicesAndOrderEachDay?.takeAwayCount) || 0}
+</h4> */}
+
     </div>
 
     {/* SEARCH (Desktop Right) */}
@@ -170,9 +470,16 @@ console.log(isExpanded,"isExpanded");
 
 
               <div style={{ padding: "20px", backgroundColor: "#f1f1f19d" }} className="tab-inn">
-                
+                   {/* <div>
+                    <h4 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">All Invoices</h4>
+                    </div>
+                    <div className='flex justify-center align-center'>
+                    <h4 >
+                      Total Invoices: {filteredInvoices.length}
+                    </h4>
+                    </div> */}
                 {/* INVOICE CARDS */}
-                 {dineInvoices?.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                 {/* {dineInvoices?.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                      <div className=" flex justify-center items-center">
             <h4 className='text-2xl font-bold text-uppercase'>Table Invoices</h4>
          </div>
@@ -188,7 +495,7 @@ console.log(isExpanded,"isExpanded");
                         border: '1px solid #e0e0e0'
                       }}
                     >
-                      {/* INVOICE HEADER */}
+                     
                       <div
                         // onClick={() => toggleExpand(data.invoice.Invoice_Id)}
                         style={{
@@ -203,7 +510,7 @@ console.log(isExpanded,"isExpanded");
                       >
                         <div className="grid grid-cols-3 grid-rows-2 sm:grid-cols-6 sm:grid-rows-1" style={{ margin: 0, alignItems: 'center' }}>
                           
-                          {/* Invoice ID & Order ID */}
+                       
                           <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <FileText size={20} style={{ color: '#ff0000' }} />
@@ -213,12 +520,12 @@ console.log(isExpanded,"isExpanded");
                                 </div>
                                 {/* <div style={{ fontSize: '12px', color: '#666' }}>
                                   Order: {data.invoice.Order_Id}
-                                </div> */}
+                                </div> 
                               </div>
                             </div>
                           </div>
 
-                          {/* Date */}
+                          
                           <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <Calendar size={18} style={{ color: '#666' }} />
@@ -228,7 +535,7 @@ console.log(isExpanded,"isExpanded");
                             </div>
                           </div>
 
-                          {/* Status */}
+                        
                           <div className="grid justify-items-end sm:justify-items-start" style={{ marginBottom: '10px' }}>
                             <span
                               style={{
@@ -246,7 +553,7 @@ console.log(isExpanded,"isExpanded");
                             </span>
                           </div>
 
-                          {/* Tables */}
+                      
 
                             <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -266,7 +573,7 @@ console.log(isExpanded,"isExpanded");
                             </div>
                           </div>
 
-                          {/* Amount */}
+                          
                           <div className="flex justify-end gap-2" style={{ marginBottom: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff0000' }}>
@@ -286,17 +593,17 @@ console.log(isExpanded,"isExpanded");
   </div>
 
                           </div>
-                          {/* Icon */}
+                        
     
 
                         </div>
                       </div>
 
-                      {/* EXPANDED DETAILS */}
+                     
                       {expandedInvoice === data?.invoice?.Invoice_Id && (
                         <div style={{ padding: '20px', backgroundColor: '#fff' }}>
                           
-                          {/* Items Table */}
+                         
                           <div style={{ marginBottom: '20px' }}>
                             <h5 style={{ 
                               fontSize: '16px', 
@@ -355,7 +662,7 @@ console.log(isExpanded,"isExpanded");
                             </div>
                           </div>
 
-                          {/* Summary */}
+                          
                           <div style={{ 
                             display: 'flex', 
                             justifyContent: 'flex-end',
@@ -388,7 +695,7 @@ console.log(isExpanded,"isExpanded");
                                     {data?.invoice?.Discount_Type === 'percentage' ? 
                                     `${data?.invoice?.Discount}%`  :
                                      `₹${parseFloat(data?.invoice?.Discount).toFixed(2)} `}
-                                    {/* ₹{parseFloat(data?.invoice?.Discount).toFixed(2)} */}
+                                    {/* ₹{parseFloat(data?.invoice?.Discount).toFixed(2)} 
                                   
                                   </span>
                                 </div>
@@ -424,7 +731,6 @@ console.log(isExpanded,"isExpanded");
                             </div>
                           </div>
 
-                          {/* Action Buttons */}
                           <div style={{ 
                             marginTop: '20px',
                             display: 'flex',
@@ -458,14 +764,14 @@ console.log(isExpanded,"isExpanded");
                               }}
                             >
                               View Details
-                            </button> */}
+                            </button> 
                           </div>
                         </div>
                       )}
                     </div>
                   )})}
 
-                  {/* No Results */}
+                
                   {dineInvoices.length === 0 && (
                     <div style={{
                       textAlign: 'center',
@@ -497,7 +803,7 @@ console.log(isExpanded,"isExpanded");
                         border: '1px solid #e0e0e0'
                       }}
                     >
-                      {/* INVOICE HEADER */}
+                     
                       <div
                        
                         style={{
@@ -512,7 +818,7 @@ console.log(isExpanded,"isExpanded");
                       >
                         <div className="grid grid-cols-3 grid-rows-2 sm:grid-cols-6 sm:grid-rows-1" style={{ margin: 0, alignItems: 'center' }}>
                           
-                          {/* Invoice ID & Order ID */}
+                       
                           <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <FileText size={20} style={{ color: '#ff0000' }} />
@@ -520,14 +826,12 @@ console.log(isExpanded,"isExpanded");
                                 <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>
                                   {data?.invoice?.Invoice_Id}
                                 </div>
-                                {/* <div style={{ fontSize: '12px', color: '#666' }}>
-                                  Order: {data.invoice.Order_Id}
-                                </div> */}
+                               
                               </div>
                             </div>
                           </div>
 
-                          {/* Date */}
+                         
                           <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <Calendar size={18} style={{ color: '#666' }} />
@@ -537,7 +841,7 @@ console.log(isExpanded,"isExpanded");
                             </div>
                           </div>
 
-                          {/* Status */}
+                          
                            <div className="grid justify-items-end sm:justify-items-start" style={{ marginBottom: '10px' }}>
                             <span
                               style={{
@@ -555,7 +859,7 @@ console.log(isExpanded,"isExpanded");
                             </span>
                           </div>
 
-                          {/* Tables */}
+                         
                             <div className="" style={{ marginBottom: '10px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <User size={18} style={{ color: '#666' }} />
@@ -571,10 +875,10 @@ console.log(isExpanded,"isExpanded");
                               <div style={{ fontSize: '13px', color: '#666' }}>
                                 {data.tables?.map(t => t.Table_Name).join(', ') || 'N/A'}
                               </div>
-                            </div> */}
+                            </div> 
                           </div>
 
-                          {/* Amount */}
+                          
                           <div className="flex justify-end gap-2"  style={{ marginBottom: '10px' }}>
                             <div style={{ textAlign: 'right' }}>
                               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff0000' }}>
@@ -600,20 +904,20 @@ console.log(isExpanded,"isExpanded");
                               </div>
                               <div style={{ fontSize: '12px', color: '#666' }}>
                                 {data.items?.length || 0} items
-                              </div> */}
+                              </div> 
                               </div>
                             
                           </div>
-                           {/* Icon */}
+                          
                         
                         </div>
                       </div>
 
-                      {/* EXPANDED DETAILS */}
+                      
                       {expandedInvoice === data.invoice.Invoice_Id && (
                         <div style={{ padding: '20px', backgroundColor: '#fff' }}>
                           
-                          {/* Items Table */}
+                          
                           <div style={{ marginBottom: '20px' }}>
                             <h5 style={{ 
                               fontSize: '16px', 
@@ -672,7 +976,7 @@ console.log(isExpanded,"isExpanded");
                             </div>
                           </div>
 
-                          {/* Summary */}
+                     
                           <div style={{ 
                             display: 'flex', 
                             justifyContent: 'flex-end',
@@ -704,7 +1008,7 @@ console.log(isExpanded,"isExpanded");
                                     {data?.invoice?.Discount_Type === 'percentage' ? 
                                     `${data?.invoice?.Discount}%`  :
                                      `₹${parseFloat(data?.invoice?.Discount).toFixed(2)} `}
-                                    {/* ₹{parseFloat(data?.invoice?.Discount).toFixed(2)} */}
+                                    {/* ₹{parseFloat(data?.invoice?.Discount).toFixed(2)}
                                   </span>
                                 </div>
                               )}
@@ -739,7 +1043,6 @@ console.log(isExpanded,"isExpanded");
                             </div>
                           </div>
 
-                          {/* Action Buttons */}
                           <div style={{ 
                             marginTop: '20px',
                             display: 'flex',
@@ -753,7 +1056,6 @@ console.log(isExpanded,"isExpanded");
                     </div>
                   )})}
 
-                  {/* No Results */}
                   {takeAwayInvoices?.length === 0 && (
                     <div style={{
                       textAlign: 'center',
@@ -765,7 +1067,64 @@ console.log(isExpanded,"isExpanded");
                       <p style={{ fontSize: '16px', color: '#999' }}>No invoices found</p>
                     </div>
                   )}
-                </div>}
+                </div>} */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* LEFT COLUMN - DINE IN INVOICES */}
+        
+          <div>
+            <div className="flex justify-center items-center mb-4">
+              <h4 className="text-2xl font-bold uppercase">Dine-In Invoices</h4>
+            </div>
+            {dineInvoices?.length > 0 && (<div>
+              {dineInvoices?.map((data) => (
+                <InvoiceCard key={data.invoice.Invoice_Id} data={data} />
+              ))}
+              
+            </div>
+               )}
+            {dineInvoices?.length === 0 && (
+              <div style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                
+              }} className='flex justify-center items-center'>
+                <FileText size={48} style={{ color: '#ccc', marginBottom: '16px' }} />
+                <p style={{ fontSize: '16px', color: '#999' }}>No table invoices found</p>
+              </div>
+          )}
+          </div>
+       
+
+        {/* RIGHT COLUMN - TAKEAWAY INVOICES */}
+        
+          <div>
+            <div className="flex justify-center items-center mb-4">
+              <h4 className="text-2xl font-bold uppercase">Takeaway Invoices</h4>
+            </div>
+            {takeAwayInvoices?.length > 0 && (<div>
+              {takeAwayInvoices?.map((data) => (
+                <InvoiceCard key={data.invoice.Invoice_Id} data={data} />
+              ))}
+            </div>
+              )}
+            {takeAwayInvoices?.length === 0 && (
+              <div style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                
+              }} className='flex justify-center items-center'>
+                <FileText size={48} style={{ color: '#ccc', marginBottom: '16px' }} />
+                <p style={{ fontSize: '16px', color: '#999' }}>No takeaway invoices found</p>
+              </div>
+            )}
+          </div>
+      
+      </div>
                   <div className="flex justify-center align-center space-x-2 p-4">
                                 <button type="button"
                               

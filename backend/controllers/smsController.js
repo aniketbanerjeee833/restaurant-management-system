@@ -1016,7 +1016,7 @@ const generateSmsForTakeaway=async (req, res, next) => {
       Discount_Type,
       Discount,
       Payment_Type,
-      Final_Amount
+       Final_Amount
     } = req.body;
 
     const normalizedCustomerName =Customer_Name && Customer_Name.trim() !== ""
@@ -1036,11 +1036,11 @@ const generateSmsForTakeaway=async (req, res, next) => {
         if (!items?.length)
           return res.status(400).json({ success: false, message: "At least one item is required." });
     
-        if (Sub_Total == null || Final_Amount == null)
-          return res.status(400).json({
-            success: false,
-            message: "Sub Total and Final Amount are required."
-          });
+        // if (Sub_Total == null || Final_Amount == null)
+        //   return res.status(400).json({
+        //     success: false,
+        //     message: "Sub Total and Final Amount are required."
+        //   });
     
         connection = await db.getConnection();
         await connection.beginTransaction();
@@ -1087,7 +1087,7 @@ const generateSmsForTakeaway=async (req, res, next) => {
         await connection.query(
           `INSERT INTO orders_takeaway 
            (Takeaway_Order_Id, User_Id,Customer_Id, Status, Sub_Total, Amount, Payment_Status)
-           VALUES (?, ?, ?,'paid', ?, ?, 'completed')`,
+           VALUES (?, ?, ?,'completed', ?, ?, 'completed')`,
           [Takeaway_Order_Id, userId,Customer_Id, Sub_Total, Final_Amount]
         );
     
@@ -1098,7 +1098,7 @@ const generateSmsForTakeaway=async (req, res, next) => {
     
         await connection.query(
           `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status)
-           VALUES (?, ?, 'pending')`,
+           VALUES (?, ?, 'ready')`,
           [KOT_Id, Takeaway_Order_Id]
         );
     
@@ -1165,7 +1165,7 @@ const generateSmsForTakeaway=async (req, res, next) => {
             await connection.query(
               `INSERT INTO kitchen_order_items 
                (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
-               VALUES (?, ?, ?, ?, ?, 'pending')`,
+               VALUES (?, ?, ?, ?, ?, 'ready')`,
               [
                 KOT_Item_Id,
                 KOT_Id,
@@ -1261,7 +1261,7 @@ const generateSmsForTakeaway=async (req, res, next) => {
         KOT_Id,
         Order_Id: Takeaway_Order_Id,
         Order_Type: "takeaway",
-        Status: "pending",
+        Status: "ready",
         items,
       });
     });
@@ -1298,7 +1298,7 @@ await connection.commit();
 const totalAmount = Number(Final_Amount).toFixed(2);
 const billNumber = Invoice_Id; // or invoice display number
 // const invoiceLink = `https://ancoinnovation.com/b/${billNumber}`
-//  const invoiceLink = `${"http://localhost:5173"}/${billNumber}`
+  const invoiceLink = `${"http://localhost:5173"}/${billNumber}`
 //  const invoiceLink = `${"http://localhost:5173"}/${billNumber}`
 // const invoiceLink = `http://localhost:4000/api/staff/order/${billNumber}`;
 // const invoiceLink = `${"http://localhost:5173"}/invoice/view/${billNumber}`;
@@ -1352,6 +1352,268 @@ const smsMessage = `Hi, Your bill from Hello Guys Shakuntala Park : Total Rs.${t
     if (connection) connection.release();
   }
 }
+// const generateSmsForTakeaway = async (req, res, next) => {
+//   let connection;
+
+//   try {
+//     const {
+//       userId,
+//       items,
+//       Sub_Total,
+//       Amount,                 // ✅ FINAL AMOUNT
+//       Customer_Name,
+//       Customer_Phone,
+//       Discount_Type,
+//       Discount,
+//       Payment_Type,
+//     } = req.body;
+
+//     /* ---------------- VALIDATION ---------------- */
+
+//     if (!userId) {
+//       return res.status(400).json({ success: false, message: "User ID is required." });
+//     }
+
+//     if (!Customer_Phone || Customer_Phone.trim() === "") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Customer phone number is required to send SMS.",
+//       });
+//     }
+
+//     if (!items || !items.length) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "At least one item is required.",
+//       });
+//     }
+
+//     if (Sub_Total == null || Amount == null) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Sub Total and Amount are required.",
+//       });
+//     }
+
+//     const subTotal = Number(Sub_Total);
+//     const finalAmount = Number(Amount);
+//     const discountValue = Number(Discount || 0);
+
+//     if (Number.isNaN(subTotal) || Number.isNaN(finalAmount)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid amount values.",
+//       });
+//     }
+
+//     if (finalAmount > subTotal || finalAmount < 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Final amount is invalid.",
+//       });
+//     }
+
+//     const normalizedCustomerName =
+//       Customer_Name && Customer_Name.trim() !== ""
+//         ? Customer_Name.trim()
+//         : null;
+
+//     /* ---------------- DB TRANSACTION ---------------- */
+
+//     connection = await db.getConnection();
+//     await connection.beginTransaction();
+
+//     /* ---------------- CUSTOMER ---------------- */
+
+//     let Customer_Id;
+
+//     const [existingCustomer] = await connection.query(
+//       `SELECT Customer_Id FROM customers WHERE Customer_Phone = ? LIMIT 1`,
+//       [Customer_Phone]
+//     );
+
+//     if (existingCustomer.length > 0) {
+//       Customer_Id = existingCustomer[0].Customer_Id;
+//     } else {
+//       Customer_Id = await generateNextId(
+//         connection,
+//         "CUST",
+//         "Customer_Id",
+//         "customers"
+//       );
+
+//       await connection.query(
+//         `INSERT INTO customers (Customer_Id, Customer_Name, Customer_Phone)
+//          VALUES (?, ?, ?)`,
+//         [Customer_Id, normalizedCustomerName, Customer_Phone]
+//       );
+//     }
+
+//     /* ---------------- ORDER ---------------- */
+
+//     const Takeaway_Order_Id = await generateNextId(
+//       connection,
+//       "TKODR",
+//       "Takeaway_Order_Id",
+//       "orders_takeaway"
+//     );
+
+//     await connection.query(
+//       `INSERT INTO orders_takeaway
+//        (Takeaway_Order_Id, User_Id, Customer_Id, Status, Sub_Total, Amount, Payment_Status)
+//        VALUES (?, ?, ?, 'completed', ?, ?, 'completed')`,
+//       [Takeaway_Order_Id, userId, Customer_Id, subTotal, finalAmount]
+//     );
+
+//     /* ---------------- KITCHEN ORDER ---------------- */
+
+//     const KOT_Id = await generateNextId(connection, "KOT", "KOT_Id", "kitchen_orders");
+
+//     await connection.query(
+//       `INSERT INTO kitchen_orders (KOT_Id, Order_Id, Status)
+//        VALUES (?, ?, 'completed')`,
+//       [KOT_Id, Takeaway_Order_Id]
+//     );
+
+//     /* ---------------- ITEMS ---------------- */
+
+//     for (const item of items) {
+//       if (!item.Item_Quantity || item.Item_Quantity <= 0) {
+//         await connection.rollback();
+//         return res.status(400).json({
+//           success: false,
+//           message: `Invalid quantity for item: ${item.Item_Name}`,
+//         });
+//       }
+
+//       const [itemRow] = await connection.query(
+//         `SELECT Item_Id FROM add_food_item WHERE Item_Name = ? LIMIT 1`,
+//         [item.Item_Name]
+//       );
+
+//       if (!itemRow.length) {
+//         await connection.rollback();
+//         return res.status(404).json({ success: false, message: "Item not found." });
+//       }
+
+//       const Item_Id = itemRow[0].Item_Id;
+
+//       const Order_Item_Id = await generateNextId(
+//         connection,
+//         "TKODRITM",
+//         "Takeaway_Order_Item_Id",
+//         "order_takeaway_items"
+//       );
+
+//       await connection.query(
+//         `INSERT INTO order_takeaway_items
+//          (Takeaway_Order_Item_Id, Takeaway_Order_Id, Item_Id, Quantity, Price, Amount)
+//          VALUES (?, ?, ?, ?, ?, ?)`,
+//         [
+//           Order_Item_Id,
+//           Takeaway_Order_Id,
+//           Item_Id,
+//           item.Item_Quantity,
+//           item.Item_Price,
+//           item.Amount,
+//         ]
+//       );
+
+//       const KOT_Item_Id = await generateNextId(
+//         connection,
+//         "KOTITM",
+//         "KOT_Item_Id",
+//         "kitchen_order_items"
+//       );
+
+//       await connection.query(
+//         `INSERT INTO kitchen_order_items
+//          (KOT_Item_Id, KOT_Id, Item_Id, Item_Name, Quantity, Item_Status)
+//          VALUES (?, ?, ?, ?, ?, 'completed')`,
+//         [
+//           KOT_Item_Id,
+//           KOT_Id,
+//           Item_Id,
+//           item.Item_Name,
+//           item.Item_Quantity,
+//         ]
+//       );
+//     }
+
+//     /* ---------------- INVOICE ---------------- */
+
+//     const Invoice_Id = await generateNextId(
+//       connection,
+//       "TKINV",
+//       "Invoice_Id",
+//       "takeaway_invoices"
+//     );
+
+//     const [fy] = await connection.query(
+//       `SELECT Financial_Year FROM financial_year
+//        WHERE Current_Financial_Year = 1 LIMIT 1`
+//     );
+
+//     if (!fy.length) {
+//       await connection.rollback();
+//       return res.status(400).json({ message: "No active financial year found." });
+//     }
+
+//     const activeFY = fy[0].Financial_Year;
+
+//     await connection.query(
+//       `INSERT INTO takeaway_invoices
+//        (Invoice_Id, Takeaway_Order_Id, Invoice_Date, Financial_Year, Amount,
+//         Customer_Name, Customer_Phone, Customer_Id, Discount_Type, Discount, Payment_Type)
+//        VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?)`,
+//       [
+//         Invoice_Id,
+//         Takeaway_Order_Id,
+//         activeFY,
+//         finalAmount,
+//         normalizedCustomerName,
+//         Customer_Phone,
+//         Customer_Id,
+//         Discount_Type ?? "percentage",
+//         discountValue,
+//         Payment_Type ?? "Cash",
+//       ]
+//     );
+
+//     /* ---------------- PUBLIC LINK ---------------- */
+
+//     const Public_Token = crypto.randomBytes(24).toString("hex");
+
+//     const invoiceLink = `http://localhost:5173/invoice/view/${Public_Token}`;
+
+//     /* ---------------- SMS ---------------- */
+
+//     const smsMessage = `Hi, Your bill from Hello Guys Shakuntala Park : Total Rs.${finalAmount.toFixed(
+//       2
+//     )} (incl. Tax). Bill No. ${Invoice_Id}. View full details: ${invoiceLink} CLPLSE.`;
+
+//     const smsSent = await sendSMS(Customer_Phone, smsMessage);
+
+//     await connection.commit();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: smsSent
+//         ? "Invoice generated & SMS sent successfully"
+//         : "Invoice generated but SMS failed",
+//       Invoice_Id,
+//       smsSent,
+//     });
+
+//   } catch (err) {
+//     if (connection) await connection.rollback();
+//     console.error("❌ Error generating SMS:", err);
+//     next(err);
+//   } finally {
+//     if (connection) connection.release();
+//   }
+// };
+
 
 export { generateSms,getPublicInvoiceHtml ,generateSmsForTakeaway};
 

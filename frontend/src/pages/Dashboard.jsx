@@ -663,9 +663,9 @@ const formatDateDDMMYYYY = (dateStr) => {
 
   //const[selectedYear, setSelectedYear] = useState("2025");
 
-const{data:itemsSoldEachDay}=useGetItemsSoldEachDayQuery(selectedDate)
-const topSellingItems = itemsSoldEachDay?.data ?? [];
-console.log(itemsSoldEachDay,"itemsSoldEachDay");
+// const{data:itemsSoldEachDay}=useGetItemsSoldEachDayQuery(selectedDate)
+// const topSellingItems = itemsSoldEachDay?.data ?? [];
+// console.log(itemsSoldEachDay,"itemsSoldEachDay");
 // const {data: salesPurchasesProfitData} =
 //    useGetAllSalesAndPurchasesYearWiseQuery({year:selectedYear})
  
@@ -675,7 +675,7 @@ useGetTotalSalesPurchasesReceivablesPayablesProfitQuery(selectedDate)
   // Item-wise analysis
   console.log(totalSalesPurchasesReceivablesPayablesProfit,
     "totalSalesPurchasesReceivablesPayablesProfit");
-
+// const[page,setPage]=useState(1)
 
 
     // const profitMargin=totalSalesPurchasesReceivablesPayablesProfit?.profit
@@ -946,6 +946,15 @@ const cancelledTakeawayInvoices =
 
   return days;
 };
+  // const handlePageChange = (newPage) => {
+  //   setPage(newPage);
+  // }
+  // const handleNextPage = () => {
+  //   setPage(page + 1);
+  // }
+  // const handlePreviousPage = () => {
+  //   setPage(page - 1);
+  // }
 
  
   
@@ -1027,38 +1036,7 @@ const cancelledTakeawayInvoices =
                           color={profitMargin > 0 ? "bg-green-600" : "bg-red-600"}
                         /> */}
                       </div>
-                         {/* <div className="p-4 bg-gradient-to-r from-green-50 to-white">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                <ChefHat size={20} className="text-green-600" />
-                Top Selling Items
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Item</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-700">Qty</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Revenue</th>
-                  
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {topSellingItems && topSellingItems?.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-800">{item?.Item_Name}</td>
-                      <td className="px-4 py-3 text-center text-gray-600">{item?.sold_count}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-green-600">₹{item?.total_price.toLocaleString()}</td>
-                       {/* <td className="px-4 py-3 text-right">
-                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
-                          {item.contribution}%
-                        </span>
-                      </td>  
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div> */}
+                
                       </div>
              {/* Header with month and nav */}
            

@@ -4,7 +4,7 @@ import { useGetAllTablesQuery } from "../../redux/api/tableApi";
 
 
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
 
 import { useFieldArray, useForm } from "react-hook-form";
 
@@ -17,22 +17,20 @@ import { useEffect } from "react";
 
 
 
-import { LayoutDashboard, Minus, Plus, ShoppingCart } from "lucide-react";
+import {  Minus, Plus, ShoppingCart } from "lucide-react";
 
 
 
 
 
+import { orderApi, useGenerateSmsForTakeawayMutation, useGetAllCustomersQuery,
+   useTakeawayAddOrdersAndGenerateInvoicesMutation } from "../../redux/api/Staff/orderApi";
 
-
-import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
-import { orderApi, useGetAllCustomersQuery, useTakeawayAddOrdersAndGenerateInvoicesMutation } from "../../redux/api/Staff/orderApi";
-import AddCustomerModal from "../../components/Modal/AddCustomerModal";
 import { useMemo } from "react";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 import { kitchenStaffApi } from "../../redux/api/KitchenStaff/kitchenStaffApi";
-
+import {useGetAllCategoriesQuery} from "../../redux/api/itemApi"
 
 
 
@@ -63,11 +61,11 @@ export default function OrdersTakeAway() {
   const categoryRefs = useRef([]); // store refs for category dropdowns
   const itemRefs = useRef([]);     // store refs for item dropdowns
   const [showSummary, setShowSummary] = useState(false);
-  const [ordertakeawayModalOpen, setOrdertakeawayModalOpen] = useState(false);
-  const { data: categories } = useGetAllCategoriesQuery()
+  // const [ordertakeawayModalOpen, setOrdertakeawayModalOpen] = useState(false);
+   const { data: categories } = useGetAllCategoriesQuery()
  const {user}=useSelector((state) => state.user);
   //const existingCategories=categories?.map((category) => category.Item_Category);
-  const existingCategories = [...new Set(categories?.map(c => c.Item_Category))];
+   const existingCategories = [...new Set(categories?.map(c => c.Item_Category))];
   const[searchTerm,setSearchTerm]=useState('');
   const newCategories = ["All", ...existingCategories];
 
@@ -93,29 +91,67 @@ export default function OrdersTakeAway() {
   //     "btl": "Bottle",
 
   // }
+  const{ data: customers}=useGetAllCustomersQuery();
+    console.log(customers,"customers");
+     const [customerSearch, setCustomerSearch] = useState("");
+  
+     const[customerDropdownOpen,setCustomerDropdownOpen]=useState(false);
+        // const[customerModal,setShowCustomerModal]=useState(false);
+          //const[addParty, { isLoading }] = useAddPartyMutation();
+       const [isExistingCustomer, setIsExistingCustomer] = useState(false);
+  
+  
+          
+
+  
+  
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+  console.log(isExistingCustomer,"isExistingCustomer");
+  
+
   const dispatch = useDispatch();
-    const [takeawayAddOrdersAndGenerateInvoices,
-        {isLoading:istakeawayAddOrdersAndGenerateInvoicesLoading}] = useTakeawayAddOrdersAndGenerateInvoicesMutation();
-  const [activeCategory, setActiveCategory] = useState('All');
+    const [takeawayAddOrdersAndGenerateInvoices
+    ] = useTakeawayAddOrdersAndGenerateInvoicesMutation();
+
+    const [generateSmsForTakeaway, { isLoading:isGenerateSmsLoading }] = 
+    useGenerateSmsForTakeawayMutation();
+    const [activeCategory, setActiveCategory] = useState('All');
 const lastCategoryRef = useRef(activeCategory);
   const { data: tables, isLoading } = useGetAllTablesQuery({});
   const { data: menuItems, isMenuItemsLoading } = useGetAllFoodItemsQuery({});
   const items = menuItems?.foodItems
   console.log(tables, isLoading, "tables", menuItems, isMenuItemsLoading);
   // const[customerModal,setShowCustomerModal]=useState(false);
-  const{ data: customers}=useGetAllCustomersQuery();
-  
+
+  const lastUpdatedItemRef = useRef(null);
+
   //  const [customerSearch, setCustomerSearch] = useState("");
-const [customerModal, setCustomerModal] = useState({
-  open: false,
-  mode: "add", // add | edit
-});
+// const [customerModal, setCustomerModal] = useState({
+//   open: false,
+//   mode: "add", // add | edit
+// });
   //  const[customerDropdownOpen,setCustomerDropdownOpen]=useState(false);
   const [rows, setRows] = useState([
     {
       CategoryOpen: false, categorySearch: "", preview: null
     }
   ]);
+useEffect(() => {
+  const handleClickOutside = (e) => {
+    if (
+      dropdownRef.current &&
+      !dropdownRef.current.contains(e.target) &&
+      inputRef.current &&
+      !inputRef.current.contains(e.target)
+    ) {
+      setCustomerDropdownOpen(false);
+    }
+  };
+
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -152,6 +188,9 @@ const [customerModal, setCustomerModal] = useState({
     handleSubmit,
     setValue,
     watch,
+    register,
+    reset,
+   
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -179,11 +218,9 @@ const [customerModal, setCustomerModal] = useState({
   const formValues = watch();
  
   //const totalPaid = watch("Total_Paid"); // watch Total_Paid
-  const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
-const customerName = watch("Customer_Name");
-const customerPhone = watch("Customer_Phone");
+  // const num = (v) => (v === undefined || v === null || v === "" ? 0 : Number(v));
 
-const hasCustomer = Boolean(customerPhone); // phone is safest
+// const hasCustomer = Boolean(customerPhone); // phone is safest
 
 
 
@@ -196,32 +233,171 @@ const hasCustomer = Boolean(customerPhone); // phone is safest
   //   ? items
   //   : items?.filter(item => item?.Item_Category === activeCategory);
 
+// const filteredItems = useMemo(() => {
+//   if (!items) return [];
+
+//   const categoryChanged = lastCategoryRef.current !== activeCategory;
+
+//   const result = items.filter((item) => {
+//     const matchesCategory =
+//       activeCategory === "All" ||
+//       item.Item_Category === activeCategory;
+
+//     // 🔥 Ignore search when category JUST changed
+//     const matchesSearch =
+//       categoryChanged
+//         ? true
+//         : !searchTerm.trim() ||
+//           item.Item_Name.toLowerCase().includes(searchTerm.toLowerCase());
+
+//     return matchesCategory && matchesSearch;
+//   });
+
+//   // update ref AFTER filtering
+//   lastCategoryRef.current = activeCategory;
+
+//   return result;
+// }, [items, activeCategory, searchTerm]);
+const updateCart = (itemId, delta, _index, itemName, itemPrice) => {
+  const price = Number(itemPrice);
+  if (!price || price <= 0) return;
+
+  // 🔥 MARK RECENT ONLY WHEN ADDING
+  if (delta > 0) {
+    lastUpdatedItemRef.current = itemId;
+  }
+
+  setCart((prev) => {
+    const currentQty = Number(prev[itemId] || 0);
+    const newQty = currentQty + delta;
+    let rowIndex = itemRowMap.current[itemId];
+
+    /* ---------------- REMOVE ITEM ---------------- */
+    if (newQty <= 0) {
+      if (rowIndex !== undefined) {
+        remove(rowIndex);
+
+        // rebuild mapping
+        const newMap = {};
+        watch("items")?.filter(Boolean).forEach((it, idx) => {
+          newMap[it.id] = idx;
+        });
+        itemRowMap.current = newMap;
+      }
+
+      const updated = { ...prev };
+      delete updated[itemId];
+
+      setTimeout(updateTotals, 0);
+      return updated;
+    }
+
+    /* ---------------- ADD / UPDATE ---------------- */
+    if (rowIndex === undefined) {
+      rowIndex = fields.length;
+      itemRowMap.current[itemId] = rowIndex;
+
+      append({
+        id: itemId,
+        Item_Name: itemName,
+        Item_Price: price,
+        Item_Quantity: newQty,
+        Amount: (price * newQty).toFixed(2),
+      });
+    } else {
+      setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+      setValue(
+        `items.${rowIndex}.Amount`,
+        (price * newQty).toFixed(2)
+      );
+    }
+
+    setTimeout(updateTotals, 0);
+    return { ...prev, [itemId]: newQty };
+  });
+};
+
+// const filteredItems = useMemo(() => {
+//   if (!items) return [];
+
+//   const term = searchTerm.trim().toLowerCase();
+
+//   const list = !term
+//     ? items
+//     : items.filter(item =>
+//         item.Item_Name?.toLowerCase().includes(term)
+//       );
+
+//   return [...list].sort((a, b) => {
+//     const aId = a.id;     // ✅ FIX
+//     const bId = b.id;
+
+//     const aInCart = cart[aId] ? 1 : 0;
+//     const bInCart = cart[bId] ? 1 : 0;
+
+//     // 🔥 MOST RECENT ITEM ON TOP
+//     if (aId === lastUpdatedItemRef.current) return -1;
+//     if (bId === lastUpdatedItemRef.current) return 1;
+
+//     // 🔥 CART ITEMS ABOVE OTHERS
+//     if (aInCart !== bInCart) return bInCart - aInCart;
+
+//     return 0;
+//   });
+// }, [items, searchTerm, cart]);
+
 const filteredItems = useMemo(() => {
   if (!items) return [];
 
+  const term = searchTerm.trim().toLowerCase();
   const categoryChanged = lastCategoryRef.current !== activeCategory;
 
-  const result = items.filter((item) => {
+  const filtered = items.filter((item) => {
     const matchesCategory =
       activeCategory === "All" ||
       item.Item_Category === activeCategory;
 
     // 🔥 Ignore search when category JUST changed
-    const matchesSearch =
-      categoryChanged
-        ? true
-        : !searchTerm.trim() ||
-          item.Item_Name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = categoryChanged
+      ? true
+      : !term || item.Item_Name?.toLowerCase().includes(term);
 
     return matchesCategory && matchesSearch;
   });
 
-  // update ref AFTER filtering
+  // update category ref AFTER filtering
   lastCategoryRef.current = activeCategory;
 
-  return result;
-}, [items, activeCategory, searchTerm]);
-  
+  return [...filtered].sort((a, b) => {
+    const aId = a.id;
+    const bId = b.id;
+
+    const aInCart = cart[aId] ? 1 : 0;
+    const bInCart = cart[bId] ? 1 : 0;
+
+    // 🔥 MOST RECENT ITEM ALWAYS ON TOP
+    if (aId === lastUpdatedItemRef.current) return -1;
+    if (bId === lastUpdatedItemRef.current) return 1;
+
+    // 🔥 CART ITEMS ABOVE NON-CART ITEMS
+    if (aInCart !== bInCart) return bInCart - aInCart;
+
+    return 0;
+  });
+}, [items, activeCategory, searchTerm, cart]);
+
+console.log(filteredItems,"filteredItems");
+// const filteredItems = useMemo(() => {
+//   if (!items) return [];
+
+//   const term = searchTerm.trim().toLowerCase();
+
+//   if (!term) return items; // 🔥 show all when search empty
+
+//   return items.filter(item =>
+//     item.Item_Name?.toLowerCase().includes(term)
+//   );
+// }, [items, searchTerm]);
 
   const itemRowMap = useRef({});
   // const updateTotals = () => {
@@ -267,171 +443,1823 @@ const filteredItems = useMemo(() => {
 
     setValue("Amount", subTotal.toFixed(2));
   };
-  const updateCart = (itemId, delta, index, itemName, itemAmount) => {
-  const amount = parseFloat(itemAmount || 0);
+//   const updateCart = (itemId, delta, index, itemName, itemAmount) => {
+//   const amount = parseFloat(itemAmount || 0);
 
-  setCart((prev) => {
-    const currentQty = Number(prev[itemId] || 0);
-    const newQty = currentQty + delta;
+//   setCart((prev) => {
+//     const currentQty = Number(prev[itemId] || 0);
+//     const newQty = currentQty + delta;
 
-    let rowIndex = itemRowMap.current[itemId];
+//     let rowIndex = itemRowMap.current[itemId];
 
-    // ❌ IF QTY BECOMES 0 → REMOVE ITEM COMPLETELY
-    if (newQty <= 0) {
-      if (rowIndex !== undefined) {
-        remove(rowIndex);                // 🔥 remove from RHF
-        delete itemRowMap.current[itemId]; // 🔥 remove mapping
-      }
+//     // ❌ IF QTY BECOMES 0 → REMOVE ITEM COMPLETELY
+//     if (newQty <= 0) {
+//       if (rowIndex !== undefined) {
+//         remove(rowIndex);                // 🔥 remove from RHF
+//         delete itemRowMap.current[itemId]; // 🔥 remove mapping
+//       }
 
-      const updatedCart = { ...prev };
-      delete updatedCart[itemId];        // 🔥 remove from cart
+//       const updatedCart = { ...prev };
+//       delete updatedCart[itemId];        // 🔥 remove from cart
 
-      setTimeout(updateTotals, 0);
-      return updatedCart;
-    }
+//       setTimeout(updateTotals, 0);
+//       return updatedCart;
+//     }
 
-    // ➤ If row does NOT exist yet → create one
-    if (rowIndex === undefined) {
-      rowIndex = fields.length;
-      itemRowMap.current[itemId] = rowIndex;
+//     // ➤ If row does NOT exist yet → create one
+//     if (rowIndex === undefined) {
+//       rowIndex = fields.length;
+//       itemRowMap.current[itemId] = rowIndex;
 
-      append({
-        Item_Name: itemName,
-        Item_Price: amount,
-        Item_Quantity: newQty,
-        Amount: (amount * newQty).toFixed(2),
-        id: itemId,
-      });
-    } else {
-      // ➤ Update existing row
-      setValue(`items.${rowIndex}.Item_Quantity`, newQty);
-      setValue(
-        `items.${rowIndex}.Amount`,
-        (amount * newQty).toFixed(2)
-      );
-    }
+//       append({
+//         Item_Name: itemName,
+//         Item_Price: amount,
+//         Item_Quantity: newQty,
+//         Amount: (amount * newQty).toFixed(2),
+//         id: itemId,
+//       });
+//     } else {
+//       // ➤ Update existing row
+//       setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+//       setValue(
+//         `items.${rowIndex}.Amount`,
+//         (amount * newQty).toFixed(2)
+//       );
+//     }
 
-    setTimeout(updateTotals, 0);
+//     setTimeout(updateTotals, 0);
 
-    return {
-      ...prev,
-      [itemId]: newQty,
-    };
-  });
-};
+//     return {
+//       ...prev,
+//       [itemId]: newQty,
+//     };
+//   });
+// };
+//previous
+// const updateCart = (itemId, delta, _index, itemName, itemPrice) => {
+//   const price = Number(itemPrice); // ✅ UNIT PRICE ONLY
+
+//   if (!price || price <= 0) {
+//     console.warn("Invalid price passed to updateCart:", itemId, itemPrice);
+//     return;
+//   }
+
+//   setCart((prev) => {
+//     const currentQty = Number(prev[itemId] || 0);
+//     const newQty = currentQty + delta;
+
+//     let rowIndex = itemRowMap.current[itemId];
+
+//     /* ---------------- REMOVE ITEM ---------------- */
+//     if (newQty <= 0) {
+//       if (rowIndex !== undefined) {
+//         remove(rowIndex);
+
+//         // 🔥 rebuild mapping safely
+//         const newMap = {};
+//         watch("items")
+//           ?.filter(Boolean)
+//           .forEach((it, idx) => {
+//             newMap[it.id] = idx;
+//           });
+//         itemRowMap.current = newMap;
+//       }
+
+//       const updatedCart = { ...prev };
+//       delete updatedCart[itemId];
+
+//       setTimeout(updateTotals, 0);
+//       return updatedCart;
+//     }
+
+//     /* ---------------- ADD / UPDATE ---------------- */
+//     if (rowIndex === undefined) {
+//       rowIndex = fields.length;
+//       itemRowMap.current[itemId] = rowIndex;
+
+//       append({
+//         id: itemId,
+//         Item_Name: itemName,      // ✅ name from param
+//         Item_Price: price,        // ✅ unit price stored once
+//         Item_Quantity: newQty,
+//         Amount: (price * newQty).toFixed(2),
+//       });
+//     } else {
+//       setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+//       setValue(
+//         `items.${rowIndex}.Amount`,
+//         (price * newQty).toFixed(2)
+//       );
+//     }
+
+//     setTimeout(updateTotals, 0);
+
+//     return {
+//       ...prev,
+//       [itemId]: newQty,
+//     };
+//   });
+// };
 
   const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
 
 const summaryItems=watch("items")||[]
-const onSubmit = async (data) => {
-  // const printWindow = window.open("", "_blank", "width=320,height=600");
 
-  // if (!printWindow) {
-  //   toast.error("Please allow pop-ups to print invoice");
-  //   return;
-  // }
-  console.log(data);
- if (!data.items || data.items.length === 0) {
-      toast.error("Please add at least one item before saving.");
-      return;
-    }
+
+
+// const handleConfirmBillAndGenerateInvoice = async () => {
+//   // const printWindow = window.open("", "_blank", "width=320,height=600");
+
+//   // if (!printWindow) {
+//   //   toast.error("Please allow pop-ups to print invoice");
+//   //   return;
+//   // }
+
+//   try {
+//     const payload = {
+//       userId: user?.User_Id,
+//       items: orderDetails?.items,
+//       Sub_Total: orderDetails?.Sub_Total,
+//       Final_Amount: invoiceDetails?.Final_Amount,
+//       Customer_Name: invoiceDetails?.Customer_Name,
+//       Customer_Phone: invoiceDetails?.Customer_Phone,
+//       Discount: invoiceDetails?.Discount,
+//       Discount_Type: invoiceDetails?.Discount_Type,
+//       Payment_Type: invoiceDetails?.Payment_Type,
+//     };
+
+//     const response=await confirmTakeawayBillAndInvoiceGenerated(payload).unwrap();
+//     console.log(response,"response");
+//     printInvoiceWindow();
+//     toast.success("Invoice Generated & Bill Paid!");
+//     dispatch(tableApi.util.invalidateTags(["Table"]));
+//     dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+//     dispatch(orderApi.util.invalidateTags(["Order"]));
+//     // renderInvoiceHTML(printWindow);
+    
+//     onClose();
+//     navigate("/staff/orders/all-orders");
+
+//   } catch (err) {
+//    console.error(err);
+//     toast.error("Failed to generate invoice");
+//   }
+// };
+
+
+//  const renderInvoiceHTML = (w) => {
+//   const getCurrentDate = () => new Date().toLocaleDateString("en-GB");
+//   const getCurrentTime = () =>
+//     new Date().toLocaleTimeString("en-US", {
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       hour12: true,
+//     });
+
+//   const total = calculateGrandTotal();
+
+// const html = `
+//     <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+//         <meta charset="UTF-8">
+//         <style>
+//           * {
+//             margin: 0;
+//             padding: 0;
+//             box-sizing: border-box;
+//           }
+          
+//           body { 
+//             font-family: 'Courier New', Courier, monospace;
+//             font-size: 11px;
+//             line-height: 1.3;
+//             color: #000;
+//             width: 2.5in;
+//             margin: 0 auto;
+//             padding: 0;
+//           }
+          
+//           .invoice {
+//             width: 2.5in;
+//             padding: 8px;
+//           }
+
+//           /* CENTER HEADER */
+//           .header-center { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+          
+//           .logo { 
+//             width: 60px; 
+//             height: auto; 
+//             margin-bottom: 4px;
+//             background-color: black;
+//           }
+          
+//           .brand { 
+//             font-size: 16px; 
+//             font-weight: bold; 
+//             text-transform: uppercase;
+//             letter-spacing: 1px;
+//             margin-bottom: 2px;
+//           }
+          
+//           .line { 
+//             border-top: 1px dashed #000; 
+//             margin: 6px 0;
+//           }
+          
+//           .line-solid {
+//             border-top: 1px solid #000;
+//             margin: 6px 0;
+//           }
+
+//           /* INFO SECTION */
+//           .info-row {
+//             display: flex;
+//             justify-content: space-between;
+//             margin: 2px 0;
+//             font-size: 10px;
+//           }
+          
+//           .info-label {
+//             font-weight: bold;
+//           }
+
+//           /* ITEMS TABLE */
+//           .items-header {
+//             display: flex;
+//             justify-content: space-between;
+//             font-weight: bold;
+//             border-bottom: 1px solid #000;
+//             padding: 4px 0;
+//             font-size: 10px;
+//           }
+          
+//           .item-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//             border-bottom: 1px dashed #ddd;
+//             font-size: 10px;
+//           }
+          
+//           .item-name {
+//             flex: 1;
+//             padding-right: 8px;
+//             word-wrap: break-word;
+//           }
+          
+//           .item-qty {
+//             width: 30px;
+//             text-align: center;
+//           }
+          
+//           .item-price {
+//             width: 50px;
+//             text-align: right;
+//           }
+          
+//           .item-amount {
+//             width: 55px;
+//             text-align: right;
+//             font-weight: bold;
+//           }
+
+//           /* SUMMARY */
+//           .summary {
+//             margin-top: 8px;
+//             font-size: 11px;
+//           }
+          
+//           .summary-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//           }
+          
+//           .summary-row.total {
+//             font-size: 13px;
+//             font-weight: bold;
+//             border-top: 1px solid #000;
+//             border-bottom: 2px solid #000;
+//             margin-top: 4px;
+//             padding: 5px 0;
+//           }
+
+//           /* FOOTER */
+//           .footer {
+//             text-align: center;
+//             margin-top: 10px;
+//             padding-top: 8px;
+//             border-top: 1px dashed #000;
+//             font-size: 10px;
+//           }
+          
+//           .footer-title {
+//             font-weight: bold;
+//             margin-bottom: 4px;
+//             font-size: 11px;
+//           }
+
+//           /* PRINT STYLES */
+//           @media print {
+//             body {
+//               width: 2.5in;
+//               margin: 0;
+//               padding: 0;
+//             }
+            
+//             .invoice {
+//               width: 2.5in;
+//               padding: 8px;
+//             }
+            
+//             @page {
+//               size: 2.5in auto;
+//               margin: 0;
+//             }
+            
+//             .no-print {
+//               display: none !important;
+//             }
+//           }
+//         </style>
+//       </head>
+//       <body>
+//         <div class="invoice">
+
+//           <!-- HEADER -->
+//           <div class="header-center">
+//             <img  src="${"http://localhost:5173"}/assets/images/restaurant-logo.png" 
+//              class="logo" alt="Logo" />
+//             <div class="brand">HELLO GUYS</div>
+//           </div>
+
+//           <!-- CUSTOMER INFO -->
+//           <div class="info-row">
+//             <span><span class="info-label">Customer:</span> ${invoiceDetails?.Customer_Name ?? "Walk-in"}</span>
+//           </div>
+//           ${invoiceDetails?.Customer_Phone ? `
+//           <div class="info-row">
+//             <span><span class="info-label">Phone:</span> ${invoiceDetails.Customer_Phone}</span>
+//           </div>
+//           ` : ''}
+          
+//           <div class="line"></div>
+
+//           <!-- DATE & TIME -->
+//           <div class="info-row">
+//             <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+//             <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+//           </div>
+//           <div class="info-row">
+//             <span><span class="info-label">Invoice:</span> ${invoiceNumberData?.nextInvoiceNumber ?? "-"}</span>
+//           </div>
+
+//           <div class="line-solid"></div>
+
+//           <!-- ITEMS HEADER -->
+//           <div class="items-header">
+//             <div style="width: 30px;">#</div>
+//             <div class="item-name">ITEM</div>
+//             <div class="item-qty">QTY</div>
+//             <div class="item-amount">AMOUNT</div>
+//           </div>
+
+//           <!-- ITEMS LIST -->
+//           ${
+//             (orderDetails?.items || []).map((it, i) => `
+//               <div class="item-row">
+//                 <div style="width: 30px;">${i + 1}</div>
+//                 <div class="item-name">${it.Item_Name ?? "-"}</div>
+//                 <div class="item-qty">${it.Item_Quantity ?? 1}</div>
+//                 <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
+//               </div>
+//             `).join("")
+//           }
+
+//           <div class="line-solid"></div>
+
+//           <!-- SUMMARY -->
+//           <div class="summary">
+//             <div class="summary-row">
+//               <span>Subtotal</span>
+//               <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
+//             </div>
+//             ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
+//             <div class="summary-row">
+//               <span>Service Charge</span>
+//               <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
+//             </div>
+//             ` : ''}
+//             ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
+//             <div class="summary-row">
+//               <span>Discount</span>
+//               <span>${
+//                 invoiceDetails.Discount_Type === "percentage"
+//                   ? `${invoiceDetails.Discount}%`
+//                   : `₹${invoiceDetails.Discount}`
+//               }</span>
+//             </div>
+//             ` : ''}
+//             <div class="summary-row total">
+//               <span>TOTAL</span>
+//               <span>₹${Number(total).toFixed(2)}</span>
+//             </div>
+//           </div>
+
+//           <!-- FOOTER -->
+//           <div class="footer">
+//             <div class="footer-title">THANK YOU!</div>
+//             <div>Please Visit Again</div>
+//           </div>
+
+//         </div>
+//       </body>
+//     </html>
+//   `;
+
+//   w.document.open();
+//   w.document.write(html);
+//   w.document.close();
+// };
+// console.log(invoiceDetails,"invoiceDetails");
+// const buildThermalPrintPayload = (response) => {
+//   return {
+//     Invoice_Number: response?.invoice?.Invoice_Number,
+//     Order_Type: "takeaway",
+
+//     Customer_Name: invoiceDetails?.Customer_Name || "Walk-in",
+//     Customer_Phone: invoiceDetails?.Customer_Phone || "",
+
+//     Payment_Type: invoiceDetails?.Payment_Type,
+//     Date: new Date().toLocaleDateString("en-GB"),
+//     Time: new Date().toLocaleTimeString("en-IN", {
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       hour12: true,
+//     }),
+
+//     Sub_Total: invoiceDetails?.Sub_Total,
+//     Discount: invoiceDetails?.Discount || 0,
+//     Discount_Type: invoiceDetails?.Discount_Type,
+//     Service_Charge: invoiceDetails?.Service_Charge || 0,
+//     Final_Amount: invoiceDetails?.Final_Amount,
+
+//     items: orderDetails?.items?.map((it) => ({
+//       Item_Name: it.Item_Name,
+//       Quantity: it.Item_Quantity,
+//       Price: it.Item_Price,
+//       Amount: it.Amount,
+//     })),
+//   };
+// };
+// const handleConfirmBillAndGenerateInvoice = async () => {
+//   try {
+//     const payload = {
+//       Customer_Name: invoiceDetails?.Customer_Name,
+//       Customer_Phone: invoiceDetails?.Customer_Phone,
+//       Discount: invoiceDetails?.Discount,
+//       Discount_Type: invoiceDetails?.Discount_Type ?? "amount",
+//       Service_Charge: invoiceDetails?.Service_Charge,
+//       Payment_Type: invoiceDetails?.Payment_Type,
+//       Final_Amount: invoiceDetails?.Final_Amount,
+//     };
+
+//     // 1️⃣ Generate Invoice
+//     const response = await confirmTakeawayBillAndInvoiceGenerated({
+//       takeawayOrderId,
+//       payload,
+//     }).unwrap();
+
+//     toast.success("Invoice Generated & Bill Paid!");
+
+//     // 2️⃣ Build thermal print payload
+//     const printPayload = buildThermalPrintPayload(response);
+
+//     // 3️⃣ PRINT (BACKEND)
+//     await printThermalInvoice(printPayload).unwrap();
+
+//     toast.success("Bill Printed Successfully!");
+
+//     // 4️⃣ Refresh UI
+//     dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+//     dispatch(orderApi.util.invalidateTags(["Order"]));
+
+//     onClose();
+//     navigate("/staff/orders/all-orders");
+
+//   } catch (error) {
+//     console.error("❌ Invoice / Print Error:", error);
+//     toast.error(error?.data?.message || "Invoice or Print failed");
+//   }
+// };
+
+// const handleConfirmBillAndGenerateInvoice = async () => {
+//   printInvoiceWindow(); // 👈 FIRST (user gesture)
+//   try {
+//     const payload = {
+//       Customer_Name: invoiceDetails?.Customer_Name,
+//       Customer_Phone: invoiceDetails?.Customer_Phone,
+//       Discount: invoiceDetails?.Discount,
+//       Discount_Type: invoiceDetails?.Discount_Type ?? "amount",
+//       Service_Charge: invoiceDetails.Service_Charge,
+//       Payment_Type: invoiceDetails?.Payment_Type,
+//       Final_Amount: invoiceDetails?.Final_Amount,
+//     };
+//     console.log(payload,"payload");
+
+//     // 🔥 API CALL
+//     const response = await confirmTakeawayBillAndInvoiceGenerated({
+//       takeawayOrderId,
+//       payload
+//     }).unwrap();
+
+//     toast.success("Invoice Generated & Bill Paid!");
+//     console.log(response,"response");
+//     // RESPONSE MUST INCLUDE invoice number
+//     //const newInvoiceNumber = response.invoiceNumber; 
+
+//     // 🔥 NOW PRINT THE INVOICE
+//     //printInvoiceWindow();
+
+//     // Refresh UI & close modal
+   
+//     dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+//     dispatch(orderApi.util.invalidateTags(["Order"]));
+    
+//   navigate("/staff/orders/all-orders");
+
+//   } catch (error) {
+//     console.error("❌ Error confirming bill and generating invoice:", error);
+//     toast.error(error?.data?.message || "Failed to generate invoice");
+//   }
+// };
+
+
+// const onSubmit = async (data) => {
+//   // const printWindow = window.open("", "_blank", "width=320,height=600");
+
+//   // if (!printWindow) {
+//   //   toast.error("Please allow pop-ups to print invoice");
+//   //   return;
+//   // }
+ 
+// };
+
+
+console.log(summaryItems,"summaryItems");
+const subTotal = Number(watch("Sub_Total") || 0);
+const discountType = watch("Discount_Type");
+const discountValue = Number(watch("Discount") || 0);
+
+// 1️⃣ Calculate discount amount
+let discountAmount = 0;
+
+if (discountType === "percentage") {
+  discountAmount = (subTotal * discountValue) / 100;
+} else {
+  discountAmount = discountValue;
+}
+
+// safety
+if (discountAmount > subTotal) discountAmount = subTotal;
+
+// round
+discountAmount = Number(discountAmount.toFixed(2));
+
+// 2️⃣ Calculate final amount
+const finalAmount = Number((subTotal - discountAmount).toFixed(2));
+
+// const discountType = watch("Discount_Type", "amount");
+
+  // console.log("updateCart", cart);
+  console.log("Current form values:", formValues);
+  console.log("Form errors:", errors);
+// const handleGenerateInvoice= async (data) => {
+//    console.log(data);
+//  if (!data.items || data.items.length === 0) {
+//       toast.error("Please add at least one item before saving.");
+//       return;
+//     }
 
 
    
-    // Remove empty rows
-    const cleanedItems = data.items.filter(
-      (it) => it.Item_Name && it.Item_Name.trim() !== ""
-    );
-    for (const item of cleanedItems) {
-  if (!item.Item_Quantity || Number(item.Item_Quantity) <= 0) {
-    toast.error(`Quantity for "${item.Item_Name}" must be greater than zero`);
+//     // Remove empty rows
+//     const cleanedItems = data.items.filter(
+//       (it) => it.Item_Name && it.Item_Name.trim() !== ""
+//     );
+//     for (const item of cleanedItems) {
+//   if (!item.Item_Quantity || Number(item.Item_Quantity) <= 0) {
+//     toast.error(`Quantity for "${item.Item_Name}" must be greater than zero`);
+//     return;
+//   }
+// }
+
+//     if (cleanedItems.length === 0) {
+//       toast.error("Please add at least one  item .");
+//       return;
+//     }
+//   try {
+//     const payload = {
+//       userId: user?.User_Id,
+
+//       items: data.items,
+//       Sub_Total: data.Sub_Total,
+//       // Final_Amount: data.Final_Amount,
+//       Customer_Name: data.Customer_Name,
+//       Customer_Phone: data.Customer_Phone,
+//       Discount: data.Discount,
+//       Discount_Type: data.Discount_Type,
+//       Payment_Type: data.Payment_Type,
+//       // Sub_Total: data.Sub_Total,
+//       Final_Amount: data.Amount,
+//       // items: orderDetails?.items,
+//       // Sub_Total: orderDetails?.Sub_Total,
+//       // Final_Amount: invoiceDetails?.Final_Amount,
+//       // Customer_Name: invoiceDetails?.Customer_Name,
+//       // Customer_Phone: invoiceDetails?.Customer_Phone,
+//       // Discount: invoiceDetails?.Discount,
+//       // Discount_Type: invoiceDetails?.Discount_Type,
+//       // Payment_Type: invoiceDetails?.Payment_Type,
+//     };
+//     console.log(payload);
+
+//     const response=await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
+//     // console.log(response,"response");
+// const { invoice, items } = response;
+
+// // ✅ PRINT FIRST (IMPORTANT)
+// printInvoiceWindow(invoice, { items });
+//     toast.success("Takeaway Add Order Successfully!");
+  
+//     dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+//     dispatch(orderApi.util.invalidateTags(["Order"]));
+//     // renderInvoiceHTML(printWindow);
+    
+
+//     // navigate("/staff/orders/all-orders");
+
+//   } catch (err) {
+//    console.error(err);
+     
+//          toast.error(err?.data?.message || "Failed to submit order.");
+//   }
+// }
+const resetOrderForm = () => {
+  remove();                 // 🔥 clears RHF field array
+  reset({
+    Customer_Name: "",
+    Customer_Phone: "",
+    Discount: "0",
+    Discount_Type: "percentage",
+    Payment_Type: "Cash",
+    Sub_Total: "0.00",
+    Amount: "0.00",
+    items: [],
+  });
+
+  setCart({});               // clear cart
+  itemRowMap.current = {};   // clear map
+  lastUpdatedItemRef.current = null;
+  setShowSummary(false);
+};
+const resetCustomerUI = () => {
+  setCustomerSearch("");        // 🔥 clears phone input
+  setIsExistingCustomer(false);
+  setCustomerDropdownOpen(false);
+};
+
+const handleGenerateInvoice = async (data) => {
+  if (!data.items || data.items.length === 0) {
+    toast.error("Please add at least one item before saving.");
     return;
   }
-}
 
-    if (cleanedItems.length === 0) {
-      toast.error("Please add at least one  item .");
+  const cleanedItems = data.items.filter(
+    (it) => it.Item_Name && it.Item_Name.trim() !== ""
+  );
+
+  for (const item of cleanedItems) {
+    if (!item.Item_Quantity || Number(item.Item_Quantity) <= 0) {
+      toast.error(`Quantity for "${item.Item_Name}" must be greater than zero`);
       return;
     }
+  }
+
   try {
     const payload = {
       userId: user?.User_Id,
-
-      items: data.items,
+      items: cleanedItems,
       Sub_Total: data.Sub_Total,
-      // Final_Amount: data.Final_Amount,
+      Final_Amount: data.Amount,
       Customer_Name: data.Customer_Name,
       Customer_Phone: data.Customer_Phone,
       Discount: data.Discount,
       Discount_Type: data.Discount_Type,
       Payment_Type: data.Payment_Type,
-      Sub_Total: data.Sub_Total,
-      Final_Amount: data.Amount,
-      // items: orderDetails?.items,
-      // Sub_Total: orderDetails?.Sub_Total,
-      // Final_Amount: invoiceDetails?.Final_Amount,
-      // Customer_Name: invoiceDetails?.Customer_Name,
-      // Customer_Phone: invoiceDetails?.Customer_Phone,
-      // Discount: invoiceDetails?.Discount,
-      // Discount_Type: invoiceDetails?.Discount_Type,
-      // Payment_Type: invoiceDetails?.Payment_Type,
     };
-    console.log(payload);
 
-    const response=await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
-    console.log(response,"response");
+    const response = await takeawayAddOrdersAndGenerateInvoices(payload).unwrap();
 
-    toast.success("Invoice Generated & Bill Paid!");
-  
+    const { invoice, items } = response;
+
+    // ✅ PRINT
+    printInvoiceWindow(invoice, { items });
+
+    toast.success("Takeaway Order Added & Invoice Printed!");
+
+    // 🔥🔥 RESET EVERYTHING (IMPORTANT)
+       resetOrderForm();
+    resetCustomerUI();
+
+    // optional
+    setShowSummary(false);
+
     dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
     dispatch(orderApi.util.invalidateTags(["Order"]));
-    // renderInvoiceHTML(printWindow);
-    
 
-    navigate("/staff/orders/all-orders");
+    // ❌ NO NAVIGATE
+    // stay on same page with blank form
 
   } catch (err) {
-   console.error(err);
-     
-         toast.error(err?.data?.message || "Failed to submit order.");
+    console.error(err);
+    toast.error(err?.data?.message || "Failed to submit order.");
   }
 };
 
+const handleShareSMS = async (data) => {
+  try {
+    const payload = {
+            userId: user?.User_Id,
+      items: data?.items,
+      Sub_Total: data?.Sub_Total,
+      // Amount: data?.Sub_Total,
+      Final_Amount: data?.Amount,
+      Customer_Name: data.Customer_Name,
+      Customer_Phone: data.Customer_Phone,
+      Discount: data.Discount,
+      Discount_Type: data.Discount_Type,
+      Payment_Type: data.Payment_Type,
+      // Customer_Name: invoiceDetails?.Customer_Name,
+      // Customer_Phone: invoiceDetails?.Customer_Phone,
+      // Discount_Type: invoiceDetails?.Discount_Type,
+      // Discount: invoiceDetails?.Discount,
+      // Service_Charge: invoiceDetails?.Service_Charge,
+      // Payment_Type: invoiceDetails?.Payment_Type,
+      // Final_Amount: invoiceDetails?.Final_Amount,
+    };
+    console.log(payload,"payload");
 
-console.log(summaryItems,"summaryItems");
+     const response=await generateSmsForTakeaway({
+     
+      payload,
+    }).unwrap();
+
+    toast.success("📩 Bill sent via SMS successfully");
+    console.log(response,"response");
+    //    if (response?.success === true) {
+    //   toast.success("📩 Bill sent via SMS successfully");
+    // }
+           resetOrderForm();
+    resetCustomerUI();
+    dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+   
+  // navigate("/staff/orders/all-orders");
+  } catch (err) {
+    console.error(err);
+    toast.error(err?.data?.message || "Failed to send SMS");
+  }
+};
+const printInvoiceWindow = (invoiceDetails, data) => {
+  const getCurrentDate = () =>
+    new Date().toLocaleDateString("en-GB");
+
+  const getCurrentTime = () =>
+    new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+const total = invoiceDetails?.Final_Amount ?? 0;
+
+  // const total = calculateGrandTotal();
+
+// const html = `
+//     <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+//         <meta charset="UTF-8">
+//         <style>
+//           * {
+//             margin: 0;
+//             padding: 0;
+//             box-sizing: border-box;
+//           }
+          
+//           body { 
+//             font-family: 'Courier New', Courier, monospace;
+//             font-size: 11px;
+//             line-height: 1.3;
+//             color: #000;
+//               width: 2.00in;     
+//             margin: 0 auto;
+//             padding: 0;
+//           }
+          
+//           .invoice {
+//              width: 2.00in; 
+//             padding: 6px;
+//           }
+
+//           /* CENTER HEADER */
+//           .header-center { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+//              .header-middle { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+          
+//           .logo { 
+//             width: 60px; 
+//             height: auto; 
+//             margin-bottom: 4px;
+//             padding: 5px;
+//             background-color: black;
+//           }
+          
+//           .brand { 
+//             font-size: 16px; 
+//             font-weight: bold; 
+//             text-transform: uppercase;
+//             letter-spacing: 1px;
+//             margin-bottom: 2px;
+//           }
+//               .thermal-strong {
+//       font-size: 11px;
+//       font-weight: 700;
+//       letter-spacing: 0.3px;
+//     }
+//           .thermal-label {
+//       font-weight: 700;
+//     }
+          
+//           .line { 
+//             border-top: 1px dashed #000; 
+//             margin: 6px 0;
+//           }
+          
+//           .line-solid {
+//             border-top: 1px solid #000;
+//             margin: 6px 0;
+//           }
+
+//           /* INFO SECTION */
+//           .info-row {
+//             display: flex;
+//             justify-content: space-between;
+//             margin: 2px 0;
+//             font-size: 10px;
+//             width: 2.10in;
+//           }
+          
+//           .info-label {
+//             font-weight: bold;
+//           }
+
+//           /* ITEMS TABLE */
+//           .items-header {
+//             display: flex;
+//             justify-content: space-between;
+//             font-weight: bold;
+//             border-bottom: 1px solid #000;
+//             padding: 4px 0;
+//             font-size: 10px;
+//           }
+          
+//           .item-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//             border-bottom: 1px dashed #ddd;
+//             font-size: 10px;
+//           }
+          
+//           .item-name {
+//             flex: 1;
+//             padding-right: 8px;
+//             word-wrap: break-word;
+//           }
+          
+//           .item-qty {
+//             width: 30px;
+//             text-align: center;
+//           }
+          
+//           .item-price {
+//             width: 50px;
+//             text-align: right;
+//           }
+          
+//           .item-amount {
+//             width: 55px;
+//             text-align: right;
+//             font-weight: bold;
+//           }
+
+//           /* SUMMARY */
+//           .summary {
+//             margin-top: 8px;
+//             font-size: 11px;
+//             width: 2.10in;
+//           }
+          
+//           .summary-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//           }
+          
+//           .summary-row.total {
+//             font-size: 13px;
+//             font-weight: bold;
+//             border-top: 1px solid #000;
+//             border-bottom: 2px solid #000;
+//             margin-top: 4px;
+//             padding: 5px 0;
+//           }
+
+//           /* FOOTER */
+//           .footer {
+//             text-align: center;
+//             margin-top: 10px;
+//             padding-top: 8px;
+//             border-top: 1px dashed #000;
+//             font-size: 10px;
+//           }
+          
+//           .footer-title {
+//             font-weight: bold;
+//             margin-bottom: 4px;
+//             font-size: 11px;
+//           }
+
+//           /* PRINT STYLES */
+//           @media print {
+//   body {
+//     width: 2.00in;        /* ✅ 58mm */
+//     margin: 0;
+//     padding: 0;
+//     -webkit-print-color-adjust: exact;
+//     print-color-adjust: exact;
+//   }
+
+//   .invoice {
+//     width: 2.00in;        /* ✅ 58mm */
+//     padding: 6px;
+//   }
+
+//   @page {
+//     size: 58mm auto;      /* 🔥 TELL PRINTER EXACT SIZE */
+//     margin: 0;
+//   }
+
+//   .no-print {
+//     display: none !important;
+//   }
+// }
+
+       
+//         </style>
+//       </head>
+//       <body>
+//         <div class="invoice">
+
+//           <!-- HEADER -->
+//           <div class="header-center">
+        
+//         <div class="brand">HELLO GUYS</div>
+//           <div style="font-size:10px; margin-top:4px; text-align:center;">
+//     Phone: +91 99031 06989
+//   </div>
+
+//   <div style="font-size:10px; text-align:center;">
+//     Mail: sparkhelloguys@gmail.com
+//   </div>
+
+//   <div style="font-size:9px; text-align:center; margin-top:2px;">
+//     Address: 021D, Ho-Chi-Minh Sarani, Shakuntala Park, Behala,<br/>
+//     Kolkata 700061, West Bengal
+//   </div>
+//    <div style="font-size:10px; text-align:center;">
+//     Website: www.helloguys.co.in
+//   </div>
+//       </div>
+
+//           <!-- CUSTOMER INFO -->
+//            ${invoiceDetails?.Customer_Name ? `
+//   <div class="info-row">
+//     <div><span class="thermal-label">Customer:</span> ${invoiceDetails.Customer_Name}</div>
+//   </div>` : ``}
+
+//   ${invoiceDetails?.Customer_Phone ? `
+//   <div class="info-row">
+//     <div><span class="thermal-label">Phone:</span> ${invoiceDetails.Customer_Phone}</div>
+//   </div>` : ``}
+          
+//           <div class="line"></div>
+//             <div class="header-middle">
+//             <h3>TAKEAWAY </h3>
+//             </div>
+//           <!-- DATE & TIME -->
+//           <div class="info-row">
+//             <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+//             <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+//           </div>
+//           <div class="info-row">
+//             <span><span class="info-label">Invoice:</span>${invoiceDetails?.Invoice_Number ?? "-"}
+// </span>
+//           </div>
+
+//           <div class="line-solid"></div>
+
+//           <!-- ITEMS HEADER -->
+//           <div class="items-header">
+//             <div style="width: 30px;">#</div>
+//             <div class="item-name">ITEM</div>
+//             <div class="item-qty">QTY</div>
+//             <div class="item-amount">AMOUNT</div>
+//           </div>
+
+//           <!-- ITEMS LIST -->
+//           ${
+//             (data?.items || []).map((it, i) => `
+//               <div class="item-row">
+//                 <div style="width: 30px;">${i + 1}</div>
+//                 <div class="item-name">${it.Item_Name ?? "-"}</div>
+//                 <div class="item-qty">${it.Item_Quantity ?? 1}</div>
+//                 <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
+//               </div>
+//             `).join("")
+//           }
+
+//           <div class="line-solid"></div>
+
+//           <!-- SUMMARY -->
+//           <div class="summary">
+//             <div class="summary-row">
+//               <span>Subtotal</span>
+//               <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
+//             </div>
+//             ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
+//             <div class="summary-row">
+//               <span>Service Charge</span>
+//               <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
+//             </div>
+//             ` : ''}
+//             ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
+//             <div class="summary-row">
+//               <span>Discount</span>
+//               <span>${
+//                 invoiceDetails.Discount_Type === "percentage"
+//                   ? `${invoiceDetails.Discount}%`
+//                   : `₹${invoiceDetails.Discount}`
+//               }</span>
+//             </div>
+//             ` : ''}
+//             <div class="summary-row total">
+//               <span>TOTAL</span>
+//               <span>₹${Number(total).toFixed(2)}</span>
+//             </div>
+//           </div>
+
+//           <!-- FOOTER -->
+//           <div class="footer">
+//             <div class="footer-title">THANK YOU!</div>
+//             <div>Please Visit Again</div>
+//           </div>
+
+//         </div>
+//       </body>
+//     </html>
+//   `;
+// const html = `
+//     <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+//         <meta charset="UTF-8">
+//         <style>
+//           * {
+//             margin: 0;
+//             padding: 0;
+//             box-sizing: border-box;
+//           }
+          
+//           body { 
+//             font-family: 'Courier New', Courier, monospace;
+//             font-size: 11px;
+//             line-height: 1.3;
+//             color: #000;
+//             font-weight: 600;
+//             width: 58mm;     
+//             margin: 0 auto;
+//             padding: 0;
+//             -webkit-print-color-adjust: exact;
+//             print-color-adjust: exact;
+//           }
+          
+//           .invoice {
+//             width: 100%; 
+//             max-width: 54mm;
+//             margin: 0 auto;
+//             padding: 2mm;
+//           }
+
+//           /* CENTER HEADER */
+//           .header-center { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+          
+//           .header-middle { 
+//             text-align: center; 
+//             margin-bottom: 8px;
+//             border-bottom: 1px dashed #000;
+//             padding-bottom: 8px;
+//           }
+          
+//           .logo { 
+//             width: 60px; 
+//             height: auto; 
+//             margin-bottom: 4px;
+//             padding: 5px;
+//             background-color: black;
+//           }
+          
+//           .brand { 
+//             font-size: 16px; 
+//             font-weight: bold; 
+//             text-transform: uppercase;
+//             letter-spacing: 1px;
+//             margin-bottom: 2px;
+//             color: #000;
+//           }
+          
+//           .thermal-strong {
+//             font-size: 11px;
+//             font-weight: 700;
+//             letter-spacing: 0.3px;
+//             color: #000;
+//           }
+          
+//           .thermal-label {
+//             font-weight: 700;
+//             color: #000;
+//           }
+          
+//           .line { 
+//             border-top: 1px dashed #000; 
+//             margin: 6px 0;
+//           }
+          
+//           .line-solid {
+//             border-top: 1px solid #000;
+//             margin: 6px 0;
+//           }
+
+//           /* INFO SECTION */
+//           .info-row {
+//             display: flex;
+//             justify-content: space-between;
+//             margin: 2px 0;
+//             font-size: 10px;
+//             width: 100%;
+//             font-weight: 700;
+//             color: #000;
+//           }
+          
+//           .info-label {
+//             font-weight: bold;
+//             color: #000;
+//           }
+
+//           /* ITEMS TABLE */
+//           .items-header {
+//             display: flex;
+//             justify-content: space-between;
+//             font-weight: bold;
+//             border-bottom: 1px solid #000;
+//             padding: 4px 0;
+//             font-size: 10px;
+//             color: #000;
+//             width: 100%;
+//           }
+          
+//           .item-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//             border-bottom: 1px dashed #ddd;
+//             font-size: 10px;
+//             font-weight: 700;
+//             color: #000;
+//             width: 100%;
+//           }
+          
+//           .item-name {
+//             flex: 1;
+//             padding-right: 8px;
+//             word-wrap: break-word;
+//             font-weight: 700;
+//             color: #000;
+//           }
+          
+//           .item-qty {
+//             width: 30px;
+//             text-align: center;
+//             font-weight: 700;
+//             color: #000;
+//           }
+          
+//           .item-price {
+//             width: 50px;
+//             text-align: right;
+//             font-weight: 700;
+//             color: #000;
+//           }
+          
+//           .item-amount {
+//             width: 55px;
+//             text-align: right;
+//             font-weight: bold;
+//             color: #000;
+//           }
+
+//           /* SUMMARY */
+//           .summary {
+//             margin-top: 8px;
+//             font-size: 11px;
+//             width: 100%;
+//             font-weight: 700;
+//             color: #000;
+//           }
+          
+//           .summary-row {
+//             display: flex;
+//             justify-content: space-between;
+//             padding: 3px 0;
+//             font-weight: 700;
+//             color: #000;
+//             width: 100%;
+//           }
+          
+//           .summary-row.total {
+//             font-size: 13px;
+//             font-weight: bold;
+//             border-top: 1px solid #000;
+//             border-bottom: 2px solid #000;
+//             margin-top: 4px;
+//             padding: 5px 0;
+//             color: #000;
+//           }
+
+//           /* FOOTER */
+//           .footer {
+//             text-align: center;
+//             margin-top: 10px;
+//             padding-top: 8px;
+//             border-top: 1px dashed #000;
+//             font-size: 10px;
+//             font-weight: 700;
+//             color: #000;
+//           }
+          
+//           .footer-title {
+//             font-weight: bold;
+//             margin-bottom: 4px;
+//             font-size: 11px;
+//             color: #000;
+//           }
+
+//           /* PRINT STYLES */
+//           @media print {
+//             body {
+//               width: 58mm;
+//               margin: 0;
+//               padding: 0;
+//               -webkit-print-color-adjust: exact;
+//               print-color-adjust: exact;
+//             }
+
+//             .invoice {
+//               width: 100%;
+//               max-width: 54mm;
+//               margin: 0 auto;
+//               padding: 2mm;
+//             }
+
+//             @page {
+//               size: 58mm auto;
+//               margin: 0;
+//             }
+
+//             .no-print {
+//               display: none !important;
+//             }
+//           }
+//         </style>
+//       </head>
+//       <body>
+//         <div class="invoice">
+
+//           <!-- HEADER -->
+//           <div class="header-center">
+        
+//             <div class="brand">HELLO GUYS</div>
+//             <div style="font-size:10px; margin-top:4px; text-align:center; font-weight:700; color:#000;">
+//               Phone: +91 99031 06989
+//             </div>
+
+//             <div style="font-size:10px; text-align:center; font-weight:700; color:#000;">
+//               Mail: sparkhelloguys@gmail.com
+//             </div>
+
+//             <div style="font-size:9px; text-align:center; margin-top:2px; font-weight:700; color:#000;">
+//               Address: 021D, Ho-Chi-Minh Sarani, Shakuntala Park, Behala,<br/>
+//               Kolkata 700061, West Bengal
+//             </div>
+//             <div style="font-size:10px; text-align:center; font-weight:700; color:#000;">
+//               Website: www.helloguys.co.in
+//             </div>
+//           </div>
+
+         
+//           ${invoiceDetails?.Customer_Name ? `
+//           <div class="info-row">
+//             <div><span class="thermal-label">Customer:</span> ${invoiceDetails.Customer_Name}</div>
+//           </div>` : ``}
+
+//           ${invoiceDetails?.Customer_Phone ? `
+//           <div class="info-row">
+//             <div><span class="thermal-label">Phone:</span> ${invoiceDetails.Customer_Phone}</div>
+//           </div>` : ``}
+          
+//           <div class="line"></div>
+//           <div class="header-middle">
+//             <h3 style="font-weight:bold; color:#000;">TAKEAWAY</h3>
+//           </div>
+          
+        
+//           <div class="info-row">
+//             <span><span class="info-label">Date:</span> ${getCurrentDate()}</span>
+//             <span><span class="info-label">Time:</span> ${getCurrentTime()}</span>
+//           </div>
+//           <div class="info-row">
+//             <span><span class="info-label">Invoice:</span> ${invoiceDetails?.Invoice_Number ?? "-"}</span>
+//           </div>
+
+//           <div class="line-solid"></div>
+
+          
+//           <div class="items-header">
+//             <div style="width: 30px;">No.</div>
+//             <div class="item-name">ITEM</div>
+//             <div class="item-qty">QTY</div>
+//             <div class="item-amount">AMOUNT</div>
+//           </div>
+
+      
+//           ${
+//             (data?.items || []).map((it, i) => `
+//               <div class="item-row">
+//                 <div style="width: 30px;">${i + 1}</div>
+//                 <div class="item-name">${it.Item_Name ?? "-"}</div>
+//                 <div class="item-qty">${it.Item_Quantity ?? 1}</div>
+//                 <div class="item-amount">₹${Number(it.Amount ?? 0).toFixed(2)}</div>
+//               </div>
+//             `).join("")
+//           }
+
+//           <div class="line-solid"></div>
+
+        
+//           <div class="summary">
+//             <div class="summary-row">
+//               <span>Subtotal</span>
+//               <span>₹${Number(invoiceDetails?.Sub_Total ?? 0).toFixed(2)}</span>
+//             </div>
+//             ${Number(invoiceDetails?.Service_Charge ?? 0) > 0 ? `
+//             <div class="summary-row">
+//               <span>Service Charge</span>
+//               <span>₹${Number(invoiceDetails.Service_Charge).toFixed(2)}</span>
+//             </div>
+//             ` : ''}
+//             ${invoiceDetails?.Discount && Number(invoiceDetails.Discount) > 0 ? `
+//             <div class="summary-row">
+//               <span>Discount</span>
+//               <span>${
+//                 invoiceDetails.Discount_Type === "percentage"
+//                   ? `${invoiceDetails.Discount}%`
+//                   : `₹${invoiceDetails.Discount}`
+//               }</span>
+//             </div>
+//             ` : ''}
+//             <div class="summary-row total">
+//               <span>TOTAL</span>
+//               <span>₹${Number(total).toFixed(2)}</span>
+//             </div>
+//           </div>
+
+//           <!-- FOOTER -->
+//           <div class="footer">
+//             <div class="footer-title">THANK YOU!</div>
+//             <div>Please Visit Again</div>
+//           </div>
+
+//         </div>
+//       </body>
+//     </html>
+//   `;
+const html=`<!DOCTYPE html>
+<html>
+<head>
+  <title>Invoice - ${invoiceDetails?.Invoice_Number ?? ""}</title>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      line-height: 1.3;
+      font-weight: 700;
+      color: #000;
+      width: 58mm;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* 🔥 SAFE PRINTABLE WIDTH */
+    .invoice {
+      width: 48mm;
+      margin: 0 auto;
+      padding: 2mm;
+    }
+       .invoice-kitchen {
+      width: 48mm;
+      margin: 0 auto;
+      padding: 2mm;
+      margin-top: 10px;
+    }
 
 
-  // console.log("updateCart", cart);
-  console.log("Current form values:", formValues);
-  console.log("Form errors:", errors);
+    .header-center,
+    .header-middle {
+      text-align: center;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed #000;
+      padding-bottom: 6px;
+    }
+
+    .brand {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .line {
+      border-top: 1px dashed #000;
+      margin: 5px 0;
+    }
+
+    .line-solid {
+      border-top: 1px solid #000;
+      margin: 5px 0;
+    }
+
+   .info-row.date-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  font-weight: 700;
+  width: 100%;
+}
+
+.info-row.date-time span {
+  white-space: nowrap;   /* 🔥 prevents wrapping */
+}
+
+    .info-label {
+      font-weight: 800;
+    }
+
+    /* ITEMS */
+    .items-header,
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      width: 100%;
+    }
+
+    .items-header {
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+      font-weight: 800;
+    }
+
+    .item-row {
+      border-bottom: 1px dashed #ccc;
+      padding: 2px 0;
+    }
+
+    .col-no {
+      width: 5mm;
+    }
+
+    .item-name {
+      flex: 1;
+      padding-right: 2mm;
+      word-break: break-word;
+    }
+
+    .item-qty {
+      width: 6mm;
+      text-align: center;
+    }
+
+    .item-amount {
+      width: 10mm;
+      text-align: right;
+    }
+
+    /* SUMMARY */
+    .summary {
+      margin-top: 6px;
+      font-size: 11px;
+      width: 100%;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 2px 0;
+    }
+
+    .summary-row.total {
+      font-size: 13px;
+      font-weight: 900;
+      border-top: 1px solid #000;
+      border-bottom: 2px solid #000;
+      padding: 4px 0;
+      margin-top: 4px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px dashed #000;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    @media print {
+      @page {
+        size: 58mm auto;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="invoice">
+
+    <div class="header-center">
+      <div class="brand" style="font-weight:900;">HELLO GUYS</div>
+      <div>Ph: +91 9903106989</div>
+ 
+      <div style="font-size:9px">
+        Address:Shakuntala Park, Kolkata 700061
+      </div>
+     
+    </div>
+
+    ${invoiceDetails?.Customer_Name ? `
+    <div class="info-row">
+      <span class="info-label">Customer:</span>
+      <span>${invoiceDetails.Customer_Name}</span>
+    </div>` : ``}
+
+    ${invoiceDetails?.Customer_Phone ? `
+    <div class="info-row">
+      <span class="info-label">Phone:</span>
+      <span>${invoiceDetails.Customer_Phone}</span>
+    </div>` : ``}
+
+    <div class="line"></div>
+
+    <div class="header-middle"><b>TAKEAWAY</b></div>
+
+ <div class="info-row date-time">
+  <span><b>Date:</b> ${getCurrentDate()}</span>
+  <span><b>Time:</b> ${getCurrentTime()}</span>
+</div>
 
 
+    <div class="info-row">
+      <span><b>Invoice:</b> ${invoiceDetails?.Invoice_Number ?? "-"}</span>
+    </div>
+
+    <div class="line-solid"></div>
+
+    <div class="items-header">
+      <div class="col-no">No</div>
+      <div class="item-name">ITEM</div>
+      <div class="item-qty">QTY</div>
+      <div class="item-amount">AMT</div>
+    </div>
+
+    ${(data?.items || []).map((it, i) => `
+      <div class="item-row">
+        <div class="col-no">${i + 1}</div>
+        <div class="item-name">${it.Item_Name}</div>
+        <div class="item-qty">${it.Item_Quantity}</div>
+        <div class="item-amount">₹${Number(it.Amount).toFixed(2)}</div>
+      </div>
+    `).join("")}
+
+    <div class="line-solid"></div>
+
+    <div class="summary">
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span>₹${Number(invoiceDetails?.Sub_Total).toFixed(2)}</span>
+      </div>
+
+      ${invoiceDetails?.Discount ? `
+      <div class="summary-row">
+        <span>Discount</span>
+        <span>
+          ${invoiceDetails.Discount_Type === "percentage"
+            ? invoiceDetails.Discount + "%"
+            : "₹" + invoiceDetails.Discount}
+        </span>
+      </div>` : ``}
+
+      <div class="summary-row total">
+        <span>TOTAL</span>
+        <span>₹${Number(total).toFixed(2)}</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <b>THANK YOU!</b><br>
+      Please Visit Again
+    </div>
+  </div> <!-- end of .invoice -->
+
+  <!-- ================= KITCHEN COPY ================= -->
+  <div class="line"></div>
+  <div class="invoice-kitchen">
+
+    <div class="header-center">
+      <div class="brand">KITCHEN COPY</div>
+      <div style="font-size:10px">
+        Invoice: ${invoiceDetails?.Invoice_Number ?? "-"}
+      </div>
+    </div>
+
+    <div class="info-row date-time">
+      <span><b>Date:</b> ${getCurrentDate()}</span>
+      <span><b>Time:</b> ${getCurrentTime()}</span>
+    </div>
+
+    <div class="line-solid"></div>
+
+    <div class="items-header">
+      <div class="col-no">No</div>
+      <div class="item-name">ITEM</div>
+      <div class="item-qty">QTY</div>
+    </div>
+
+    ${(data?.items || []).map((it, i) => `
+      <div class="item-row">
+        <div class="col-no">${i + 1}</div>
+        <div class="item-name">${it.Item_Name}</div>
+        <div class="item-qty">${it.Item_Quantity}</div>
+      </div>
+    `).join("")}
+
+   
+
+  </div>
+
+  </div>
+</body>
+</html>
+`
+ 
+// 🔥 CREATE HIDDEN IFRAME
+const iframe = document.createElement("iframe");
+iframe.style.position = "fixed";
+iframe.style.right = "0";
+iframe.style.bottom = "0";
+iframe.style.width = "0";
+iframe.style.height = "0";
+iframe.style.border = "0";
+
+document.body.appendChild(iframe);
+
+const doc = iframe.contentWindow.document;
+doc.open();
+doc.write(html);
+doc.close();
+
+// ✅ THIS WAS MISSING
+iframe.onload = () => {
+  iframe.contentWindow.focus();
+  iframe.contentWindow.print();
+};
+
+// 🧹 CLEANUP AFTER PRINT
+setTimeout(() => {
+  document.body.removeChild(iframe);
+}, 1000);
+  // const w = window.open("", "_blank", "width=320,height=600");
+// const w = window.open("", "_blank");
+//   if (!w) {
+//     alert("Please allow pop-ups to print the invoice.");
+//     return;
+//   }
+
+//   w.document.write(html);
+//   w.document.write(`
+//   <button onclick="window.print()" 
+//     style="position:fixed;top:10px;right:10px;padding:8px 12px;
+//            background:#ff0000;color:white;border:none;border-radius:4px;
+//            font-size:14px;cursor:pointer;z-index:9999;">
+//       Print
+//   </button>
+// `);
+//   w.document.close();
+
+};
+useEffect(() => {
+  setValue("Amount", finalAmount.toFixed(2));
+}, [finalAmount, setValue]);
+// const customerName = watch("Customer_Name");
+// const customerPhone = watch("Customer_Phone");
+    const watchedCustomerName = watch("Customer_Name");
   return (
     <>
 
 
       <div className="sb2-2-2">
-        <ul>
+       <ul>
           <li>
             {/* <NavLink to="/">
                                  <i className="fa fa-home mr-2" aria-hidden="true"></i>
                                  Dashboard
                              </NavLink> */}
-            <NavLink style={{ display: "flex", flexDirection: "row" }}
+            {/* <NavLink style={{ display: "flex", flexDirection: "row" }}
               to="/home"
 
             >
               <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
-              {/* <i className="fa fa-home mr-2" aria-hidden="true"></i> */}
+          
               Dashboard
-            </NavLink>
+            </NavLink> */}
           </li>
 
-        </ul>
+        </ul> 
       </div>
 
       {/* Main Content */}
-      <div className="sb2-2-3" >
+      <div style={{marginTop:"40px"}} className="sb2-2-3" >
         <div className="row" style={{ margin: "0px" }}>
           <div className="col-md-12">
             <div style={{ padding: "20px", marginBottom: "20px" }}
@@ -440,7 +2268,8 @@ console.log(summaryItems,"summaryItems");
               <div className="inn-title w-full px-2 py-3">
 
                 <div className="flex
-                                  flex-col mt-10 sm:flex-row justify-between items-start sm:items-center
+                                  flex-col mt-10 sm:flex-row justify-between 
+                                  items-start sm:items-center
                                   w-full sm:mt-0">
 
                   {/* LEFT HEADER */}
@@ -477,77 +2306,147 @@ console.log(summaryItems,"summaryItems");
                     </button>
                   </div>
                      </div>
-            
+            {/* <input type="hidden" {...register("Customer_Phone", { required: true })} />
+<input type="hidden" {...register("Customer_Name")} />
+<input type="hidden" {...register("Customer_Address")} />
+<input type="hidden" {...register("Customer_Date")} /> */}
+
                                 <div style={{  backgroundColor: "#f1f1f19d" }}  
                                 className="
   grid
-  grid-rows-2 grid-cols-1
+  grid-rows-1 grid-cols-1
   md:grid-rows-1 md:grid-cols-3
-  p-2 mt-0 gap-6 w-full heading-wrapper
+  p-2 mt-2 gap-6 w-full heading-wrapper
 ">
-                                    <div 
-                                      className="w-full flex flex-col   mt-2 gap-2  "
-                                                            >
-                                                            {/* <span className="whitespace-nowrap active ">
-                                                              Customer
-                                                              <span className="text-red-500">*</span>
-                                                            </span> */}
-                                                            
-                                 
+                                   
+  <div style={{marginTop:"0px"}}
+   className="row flex gap-2">
+  
+<div style={{marginTop:"0px"}} className="input-field col s6 relative">
+  <span className="active">
+    Customer Phone 
+  </span>
 
-                                                             <div className="relative sm:w-full">
-                                                              {/* LABEL AREA */}
-                                                             {!hasCustomer ? (
-                                                              <span className="text-sm font-medium text-gray-700">
-                                                                Customer
-                                                              </span>
-                                                            ) : (
-                                                              <div className="flex items-center gap-2 text-sm text-gray-700 w-full">
-                                                                <i className="fa fa-user-circle text-gray-400" />
-                                                                <span className="font-semibold ">
-                                                                  Customer Name:
-                                                                  <span>{customerName ??""}</span>
-                                                                </span>
-                                                                <span className="font-semibold">
-                                                                  <span className="font-semibold">Phone:</span>
-                                                                  {customerPhone}
-                                                                </span>
-                                                              </div>
-                                                            )}
-                                                            
-                                                            
-                                                              {/* ACTION */}
-                                                           
-                                                            
-                                                              {!hasCustomer && (
-                                                              <span
-                                                                onClick={() => setCustomerModal({ open: true, mode: "add" })}
-                                                                className="block py-2 text-[#ff0000] font-medium cursor-pointer hover:bg-gray-100"
-                                                              >
-                                                                + Add Customer
-                                                              </span>
-                                                            )}
-                                                            
-                                                            </div>
-                                                            
-                                                            {customerModal.open && (
-                                                              <AddCustomerModal
-                                                                mode="add"          // 🔒 force add-only
-                                                                initialData={null}  // 🔒 no edit data
-                                                                onClose={() => setCustomerModal({ open: false, mode: "add" })}
-                                                                onSave={(customer) => {
-                                                                  setValue("Customer_Name", customer.Customer_Name || null, {
-                                                                    shouldValidate: true,
-                                                                  });
-                                                                  setValue("Customer_Phone", customer.Customer_Phone, {
-                                                                    shouldValidate: true,
-                                                                  });
-                                                                }}
-                                                              />
-                                                            )}
-                                                            
-                                                          </div>
-                                                           <div className="sm:visible"></div>
+  <input
+    ref={inputRef}
+    type="number"
+    id="Customer_Phone"
+    placeholder="Search by phone"
+    value={customerSearch}
+    onChange={(e) => {
+      let val = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+
+      setCustomerSearch(val);
+
+      setValue("Customer_Phone", val, { shouldValidate: true });
+
+      // typing ≠ existing selection
+      setIsExistingCustomer(false);
+      setCustomerDropdownOpen(true);
+    }}
+    onFocus={() => setCustomerDropdownOpen(true)}
+    className="w-full outline-none border-b-2 text-gray-900"
+  />
+
+
+  {customerDropdownOpen && (
+    
+    <div
+     ref={dropdownRef}
+      className="
+        absolute z-50 mt-1 w-full
+        bg-white border border-gray-300 rounded-md shadow-lg
+        max-h-48 overflow-y-auto
+      "
+    >
+      {customers
+        ?.filter(
+          (c) =>
+            c.Customer_Phone.includes(customerSearch) ||
+            c.Customer_Name?.toLowerCase().includes(customerSearch.toLowerCase())
+        )
+        .map((c, i) => (
+          <div
+            key={i}
+            onClick={() => {
+              setCustomerSearch(c.Customer_Phone);
+
+              setValue("Customer_Phone", c.Customer_Phone, {
+                shouldValidate: true,
+              });
+
+              setValue(
+                "Customer_Name",
+                c.Customer_Name || null,
+                { shouldValidate: true }
+              );
+              setValue("Customer_Address", c.Customer_Address, {
+                shouldValidate: true,
+              });
+              setValue("Customer_Date", c.Special_Date, {
+                shouldValidate: true,
+              });
+           
+
+              setIsExistingCustomer(true);
+              setCustomerDropdownOpen(false);
+            }}
+            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+          >
+            <span className="font-medium">
+              {c.Customer_Name ?? ""}
+            </span>{" "}
+            <span className="text-gray-500">
+              ({c.Customer_Phone})
+            </span>
+          </div>
+        ))}
+
+      {customers?.length === 0 && (
+        <p className="px-3 py-2 text-gray-500">No customers found</p>
+      )}
+    </div>
+  )}
+
+  {errors?.Customer_Phone && (
+    <p className="text-red-500 text-xs mt-1">
+      Phone number is required
+    </p>
+  )}
+</div>
+
+<div style={{marginTop:"0px"}} className="input-field col s6 ">
+  <span className="active">Customer Name</span>
+
+  <input
+    type="text"
+    id="Customer_Name"
+    placeholder="Customer Name"
+       value={watchedCustomerName || ""} 
+       readOnly={isExistingCustomer} 
+    className="w-full outline-none border-b-2 text-gray-900"
+    onChange={(e) => {
+      setValue("Customer_Name", e.target.value || null, {
+        shouldValidate: true,
+      });
+    }}
+  />
+
+  {errors?.Customer_Name && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.Customer_Name.message}
+    </p>
+  )}
+</div>
+
+
+  
+  
+                  </div>
+                <div className="invisible sm:visible"></div>
+
+
+                 {/* <div className="sm:visible"></div> */}
         <div className="w-full ">
       <input
         type="text"
@@ -561,8 +2460,8 @@ console.log(summaryItems,"summaryItems");
              
               </div>
               <div style={{ padding: "0", backgroundColor: "#f1f1f19d" }} className="tab-inn">
-                <form onSubmit={handleSubmit(onSubmit)}>
-
+                {/* <form onSubmit={handleSubmit(onSubmit)}> */}
+                     <form >
 
 
 
@@ -767,14 +2666,94 @@ console.log(summaryItems,"summaryItems");
   "
                       >
 
-                        <div className="flex justify-center items-center gap-12 w-full">
+                        <div className="grid grid-cols-1 sm:grid-cols-7 items-center gap-2">
                           {/* <div className="grid grid-cols-3"> */}
+                          {/* <div></div> */}
 
+                                                  
+                        
+                          {/* SAVE & PAY BILL */}
 
-                          {/* SAVE & HOLD */}
+<div className="flex items-center gap-3 sm:col-span-2 ">
+  {/* Label */}
+  <span className="text-sm font-medium whitespace-nowrap">
+    Discount
+  </span>
+
+  {/* Input */}
+  <input
+    type="text"
+    placeholder={discountType === "percentage" ? "0 %" : "0.00"}
+    className="w-24 border-b-2 outline-none text-gray-900 text-sm"
+    {...register("Discount")}
+    onChange={(e) => {
+      let val = e.target.value.replace(/[^0-9.]/g, "");
+
+      // allow only one dot
+      const parts = val.split(".");
+      if (parts.length > 2) {
+        val = parts[0] + "." + parts.slice(1).join("");
+      }
+
+      // limit decimals
+      if (val.includes(".")) {
+        const [int, dec] = val.split(".");
+        val = int + "." + dec.slice(0, 2);
+      }
+
+      // percentage cap
+      if (discountType === "percentage" && Number(val) > 100) {
+        val = "100";
+      }
+
+      setValue("Discount", val, { shouldValidate: true });
+    }}
+  />
+
+  {/* Type */}
+  <select
+    className="w-24 border rounded-md px-1 py-1 text-sm"
+    {...register("Discount_Type")}
+    defaultValue="percentage"
+    onChange={(e) => {
+      setValue("Discount_Type", e.target.value);
+      setValue("Discount", "0.00");
+    }}
+  >
+    <option value="amount">Amt</option>
+    <option value="percentage">%</option>
+  </select>
+</div>
+
+<div 
+    className="flex items-center gap-3 sm:col-span-2 ">
+                      <span className="text-sm font-medium whitespace-nowrap">Payment Type</span>
+                      {/* <span className="text-red-500 font-bold text-lg">&nbsp;*</span> */}
+                      <select                         
+                      id="Payment Mode"
+                      {...register("Payment_Type")}
+                      
+                      // onChange={(e)=>setInvoiceDetails({...invoiceDetails,
+                      //   Payment_Type: e.target.value
+                      // })}
+
+                        // value={invoiceDetails?.Payment_Type}
+                        className="w-full border border-gray-300 text-gray-900 bg-white rounded-md p-2"
+                      >
+                        
                           
-                                                    {/* SAVE & HOLD */}
-                                                    <button
+                          <option value="Cash">Cash</option>
+                          
+                          <option value="Online">Online</option>
+                           <option value="Online">Upi</option>
+                         
+       
+                      </select>
+  
+                 
+                    </div>
+
+  <button
                                                       type="button"
                                                       onClick={() => setShowSummary(true)}   // open bottom sheet
                                                       // disabled={formValues.errorCount > 0 || isAddingOrder}
@@ -784,7 +2763,7 @@ console.log(summaryItems,"summaryItems");
                                                             text-white font-bold  rounded shadow sm:py-3 px-6"
                                                       style={{ backgroundColor: "black" }}
                                                     >
-                                                      Save & Hold
+                                                      View
                                                       {/* {isAddingOrder ? "Saving..." : "Save & Hold"} */}
                           
                                                       <span className="relative">
@@ -798,42 +2777,30 @@ console.log(summaryItems,"summaryItems");
                                                         )}
                                                       </span>
                                                     </button>
-                          <button
+                           <button
                             type="button"
-                            onClick={() => setShowSummary(true)}   // open bottom sheet
+                              onClick={handleSubmit(handleGenerateInvoice)}
+                            className="relative w-full py-2 px-4 md:w-auto 
+                                                      flex items-center justify-center gap-3 
+                                                      sm:whitespace-nowrap
+                                                            text-white font-bold  rounded shadow sm:py-3 px-6"
+                            style={{ backgroundColor: "#ff0000" }}
+                          >
+                       Print Bill
+                          </button>
 
+                              <button
+                            type="button"
+                            onClick={handleSubmit(handleShareSMS)}
                             className="relative w-full py-2 px-4 md:w-auto 
                                                       flex items-center justify-center gap-3 
                                                       
                                                             text-white font-bold  rounded shadow sm:py-3 px-6"
                             style={{ backgroundColor: "#ff0000" }}
                           >
-                            Save & Pay Bill
-
-
-                            {/* <span className="relative">
-                              <ShoppingCart size={22} />
-                              {totalItems > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-red-500 text-white 
-                                                                             text-[10px] font-bold w-4 h-4 flex items-center justify-center 
-                                                                             rounded-full shadow">
-                                  {totalItems}
-                                </span>
-                              )}
-                            </span> */}
+                          {isGenerateSmsLoading ? "Sharing..." : "Share"}
                           </button>
-
-                          {/* <div></div> */}
-                          {/* SAVE & PAY BILL */}
-
-                          {/* <button
-                            type="button"
-                            className="w-full md:w-auto text-white font-bold py-3 px-6 rounded shadow"
-                            style={{ backgroundColor: "#ff0000" }}
-                          >
-                            Save & Pay Bill
-                          </button> */}
-
+<div className="w-1/2"></div>
                         </div>
                       </div>
 
@@ -849,7 +2816,7 @@ console.log(summaryItems,"summaryItems");
                       )}
 
                       {/* BOTTOM SHEET */}
-                      <div
+                      {/* <div
                         className={`
     fixed left-0 bottom-0 w-full 
     bg-white shadow-2xl rounded-t-2xl z-50
@@ -858,12 +2825,12 @@ console.log(summaryItems,"summaryItems");
   // `}
                       //                       style={{ maxHeight: "vh" }}
                       >
-                        {/* HANDLE BAR */}
+                        
                         <div className="w-full flex justify-center py-2">
                           <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
                         </div>
 
-                        {/* HEADER */}
+                     
                         <div className="px-4 pb-3 border-b">
                           <div className="flex justify-between items-center">
                             <div className="flex justify-center items-center mx-auto">
@@ -877,7 +2844,6 @@ console.log(summaryItems,"summaryItems");
                           </div>
                         </div>
 
-                        {/* SUMMARY CONTENT */}
                         {/* <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
                           {itemsValues && itemsValues?.map((item, index) => (
                             <div key={index} className="border-b pb-2 mb-2">
@@ -891,7 +2857,7 @@ console.log(summaryItems,"summaryItems");
                               </div>
                             </div>
                           ))}
-                        </div> */}
+                        </div> 
                         <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
                           {summaryItems?.map((item, index) => (
                             <div key={index} className="border-b pb-2 mb-2">
@@ -907,24 +2873,110 @@ console.log(summaryItems,"summaryItems");
                           ))}
                         </div>
 
-                        {/* TOTAL FOOTER */}
+                      
                         <div className="px-4 py-3 border-t">
                           <div className="flex justify-between text-lg font-bold text-gray-900">
                             <span>Total</span>
                             <span>₹{watch("Amount")}</span>
                           </div>
                           <div className="flex justify-center mt-4">
-                            <button type="submit"
+                            {/* <button type="submit"
                             style={{ backgroundColor: "#ff0000" }}
                               // onClick={() => setOrdertakeawayModalOpen(true)}
                               className="w-16 h-10 flex items-center justify-center bg-[#ff0000] 
           rounded-md text-white shadow hover:bg-[#3a8c98] ">
                               OK
-                            </button>
+                            </button> 
 
                           </div>
                         </div>
-                      </div>
+                      </div> */}
+<div
+  className={`
+    fixed left-0 bottom-0 w-full 
+    bg-white shadow-2xl rounded-t-2xl z-50
+    transform transition-transform duration-300 p-4
+    ${showSummary ? "translate-y-0" : "translate-y-full"}
+  `}
+>
+  {/* HANDLE BAR */}
+  <div className="w-full flex justify-center py-2">
+    <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+  </div>
+
+  {/* HEADER */}
+  <div className="px-4 pb-3 border-b">
+    <div className="flex justify-between items-center">
+      <div className="flex justify-center items-center mx-auto">
+        <h2 className="text-lg font-bold text-gray-700">Bill Summary</h2>
+      </div>
+      <div className="flex justify-enditems-center gap-2">
+        <button
+          type="button"
+          style={{ backgroundColor: "transparent", fontSize: "30px" }}
+          className="text-gray-500 text-2xl font-bold"
+          onClick={() => setShowSummary(false)}
+        >
+          ✖
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {/* SUMMARY ITEMS */}
+  <div className="px-4 py-3 overflow-y-auto" style={{ maxHeight: "55vh" }}>
+    {summaryItems?.map((item, index) => (
+      <div key={index} className="border-b pb-2 mb-2">
+        <div className="flex justify-between">
+          <span className="font-semibold">{item?.Item_Name}</span>
+          <span>x {item?.Item_Quantity}</span>
+        </div>
+        <div className="flex justify-between text-sm text-gray-500">
+          <span>Amount</span>
+          <span>₹{Number(item?.Amount).toFixed(2)}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* TOTAL FOOTER */}
+  <div className="px-4 py-3 border-t space-y-2">
+
+    {/* SUB TOTAL */}
+    <div className="flex justify-between text-sm text-gray-700">
+      <span>Sub Total</span>
+      <span>₹{subTotal.toFixed(2)}</span>
+    </div>
+
+    {/* DISCOUNT */}
+    {discountValue > 0 && (
+      <div className="flex justify-between text-sm text-gray-700">
+        <span>
+          Discount{" "}
+          <span className="text-gray-500">
+            (
+            {discountType === "percentage"
+              ? `${discountValue}%`
+              : `₹${discountValue}`}
+            )
+          </span>
+        </span>
+        <span className="text-red-600">
+          − ₹{discountAmount.toFixed(2)}
+        </span>
+      </div>
+    )}
+
+    {/* FINAL TOTAL */}
+    <div className="border-t pt-2">
+      <div className="flex justify-between text-lg font-bold text-gray-900">
+        <span>Total</span>
+        <span>₹{finalAmount.toFixed(2)}</span>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 
                     </div>
@@ -935,7 +2987,7 @@ console.log(summaryItems,"summaryItems");
                 {/* {ordertakeawayModalOpen &&
                   <OrderTakeawayModal
                     onClose={() => setOrdertakeawayModalOpen(false)}
-                    orderDetails={formValues}
+                    data={formValues}
                     setOpen={setOrdertakeawayModalOpen}
                   />} */}
 
@@ -1343,3 +3395,66 @@ console.log(summaryItems,"summaryItems");
                                                             {errors?.Customer_Name && (
                                                               <p className="text-red-500 text-xs mt-1">{errors?.Customer_Name?.message}</p>
                                                             )} */}
+
+
+                                                             {/* <div 
+                                      className="w-full flex flex-col   mt-2 gap-2  "
+                                                            >
+                                                            {/* <span className="whitespace-nowrap active ">
+                                                              Customer
+                                                              <span className="text-red-500">*</span>
+                                                            </span>
+                                                            
+                                 
+
+                                                             <div className="relative sm:w-full">
+                                                          
+                                                             {!hasCustomer ? (
+                                                              <span className="text-sm font-medium text-gray-700">
+                                                                Customer
+                                                              </span>
+                                                            ) : (
+                                                              <div className="flex items-center gap-2 text-sm text-gray-700 w-full">
+                                                                <i className="fa fa-user-circle text-gray-400" />
+                                                                <span className="font-semibold ">
+                                                                  Customer Name:
+                                                                  <span>{customerName ??""}</span>
+                                                                </span>
+                                                                <span className="font-semibold">
+                                                                  <span className="font-semibold">Phone:</span>
+                                                                  {customerPhone}
+                                                                </span>
+                                                              </div>
+                                                            )}
+                                                            
+                                                          
+                                                           
+                                                            
+                                                              {!hasCustomer && (
+                                                              <span
+                                                                onClick={() => setCustomerModal({ open: true, mode: "add" })}
+                                                                className="block py-2 text-[#ff0000] font-medium cursor-pointer hover:bg-gray-100"
+                                                              >
+                                                                + Add Customer
+                                                              </span>
+                                                            )}
+                                                            
+                                                            </div>
+                                                            
+                                                            {customerModal.open && (
+                                                              <AddCustomerModal
+                                                                mode="add"          // 🔒 force add-only
+                                                                initialData={null}  // 🔒 no edit data
+                                                                onClose={() => setCustomerModal({ open: false, mode: "add" })}
+                                                                onSave={(customer) => {
+                                                                  setValue("Customer_Name", customer.Customer_Name || null, {
+                                                                    shouldValidate: true,
+                                                                  });
+                                                                  setValue("Customer_Phone", customer.Customer_Phone, {
+                                                                    shouldValidate: true,
+                                                                  });
+                                                                }}
+                                                              />
+                                                            )}
+                                                            
+                                                          </div> */}

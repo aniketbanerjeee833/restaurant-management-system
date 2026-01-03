@@ -916,8 +916,8 @@ console.log(userAgent);
       secure: isProduction,
       sameSite: "Lax",
       path: "/",
-      maxAge: 24 * 60 * 60 * 1000,
-        ...(isProduction && { domain: ".ancoinnovation.com" }),
+      maxAge: 24 * 60 * 60 * 1000
+       
     });
 
 let categories = [];
@@ -1000,8 +1000,7 @@ const logoutUser = async (req, res,next) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "None" : "Lax",
-      path: "/",
-      ...(isProduction && { domain: ".ancoinnovation.com" }),
+      path: "/"
     });
 
     return res.status(200).json({ success: true, message: "Logout successful" });

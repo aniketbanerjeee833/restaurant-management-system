@@ -4,7 +4,10 @@ const router = express.Router();
 
 import { eachItemHistory, getAllSalesAndPurchasesYearWise,
      getCategoriesWiseItemCount, getItemsSoldCount, 
-     getItemsSoldEachDay, 
+     
+     getItemsSoldDateRangeReport, 
+     
+     getItemsSoldEachDayReport, 
      getPartyWiseItemsSoldAndPurchased, getPartyWiseSalesAndPurchases,
       getTotalSalesPurchasesReceivablesPayablesProfit  } 
       from "../controllers/dashboardController.js"
@@ -17,5 +20,7 @@ router.get("/each-item-history",userAuth,eachItemHistory);
 router.get("/each-item-sold-count",userAuth,getItemsSoldCount);
 router.get("/each-party-items-sold-purchased",userAuth,getPartyWiseItemsSoldAndPurchased);
 
-router.get("/items-sold-each-day",userAuth,getItemsSoldEachDay);
+router.get("/items-sold-each-day",userAuth,getItemsSoldEachDayReport);
+
+router.get("/items-sold-date-range-report",userAuth,getItemsSoldDateRangeReport)
 export default router;

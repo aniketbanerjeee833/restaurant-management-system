@@ -21,11 +21,12 @@ import { LayoutDashboard, Minus, Plus, ShoppingCart } from "lucide-react";
 
 
 
-import { useAddOrderMutation } from "../../redux/api/Staff/orderApi";
-import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
+import { useAddOrderMutation, useGetAllCustomersQuery } from "../../redux/api/Staff/orderApi";
+
 import { io } from "socket.io-client";
-import AddCustomerModal from "../../components/Modal/AddCustomerModal";
+
 import { useMemo } from "react";
+import { useGetAllCategoriesQuery } from "../../redux/api/itemApi";
 
 
 
@@ -58,9 +59,25 @@ export default function Orders() {
     "IGST28": 28,
     "IGST40": 40,
   };
+  const{ data: customers}=useGetAllCustomersQuery();
+    console.log(customers,"customers");
+     const [customerSearch, setCustomerSearch] = useState("");
+  
+     const[customerDropdownOpen,setCustomerDropdownOpen]=useState(false);
+        // const[customerModal,setShowCustomerModal]=useState(false);
+          //const[addParty, { isLoading }] = useAddPartyMutation();
+       const [isExistingCustomer, setIsExistingCustomer] = useState(false);
+  
+  
+          
 
-  const categoryRefs = useRef([]); // store refs for category dropdowns
-  const itemRefs = useRef([]);     // store refs for item dropdowns
+  
+  
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+  console.log(isExistingCustomer,"isExistingCustomer");
+  // const categoryRefs = useRef([]); // store refs for category dropdowns
+  // const itemRefs = useRef([]);     // store refs for item dropdowns
 
 
   const navigate = useNavigate();
@@ -79,10 +96,10 @@ export default function Orders() {
 
   const [selectedTables, setSelectedTables] = useState([]);
   const [addOrder] = useAddOrderMutation();
-const [customerModal, setCustomerModal] = useState({
-  open: false,
-  mode: "add", // add | edit
-});
+// const [customerModal, setCustomerModal] = useState({
+//   open: false,
+//   mode: "add", // add | edit
+// });
 // const[showCustomerModal,setShowCustomerModal]=useState(false);
 
 //   // const[customerModal,setShowCustomerModal]=useState(false);
@@ -98,24 +115,33 @@ const [customerModal, setCustomerModal] = useState({
   //   "btl": "Bottle",
 
   // }
-    const [activeCategory, setActiveCategory] = useState('All');
-  const lastCategoryRef = useRef(activeCategory);
+   const { data: categories } = useGetAllCategoriesQuery()
+  
+    //const existingCategories=categories?.map((category) => category.Item_Category);
+     const existingCategories = [...new Set(categories?.map(c => c.Item_Category))];
+   
+    const newCategories = ["All", ...existingCategories];
+  
+    const lastUpdatedItemRef = useRef(null);
 
+    const [activeCategory, setActiveCategory] = useState('All');
+const lastCategoryRef = useRef(activeCategory);
   const { data: tables, isLoading } = useGetAllTablesQuery({});
   const { data: menuItems, isMenuItemsLoading } = useGetAllFoodItemsQuery({});
   const items = menuItems?.foodItems
   console.log(tables, isLoading, "tables", items, isMenuItemsLoading);
-  const { data: categories,  } = useGetAllCategoriesQuery()
-  console.log(categories, "categories");
+  // const { data: categories,  } = useGetAllCategoriesQuery()
+  // console.log(categories, "categories");
   //onst existingCategories=categories?.map((category) => category.Item_Category);
-  const existingCategories = [...new Set(categories?.map(c => c.Item_Category))];
+  // const existingCategories = [...new Set(categories?.map(c => c.Item_Category))];
   const[searchTerm,setSearchTerm]=useState('');
-  const newCategories = ["All", ...existingCategories];
+  // const newCategories = ["All", ...existingCategories];
   const [rows, setRows] = useState([
     {
       CategoryOpen: false, categorySearch: "", preview: null
     }
   ]);
+
 useEffect(() => {
   const handleAvailabilityChange = (data) => {
     console.log("📢 Food status changed:", data);
@@ -131,34 +157,49 @@ useEffect(() => {
   };
 }, []);
 
+  // useEffect(() => {
+  //   const handleClickOutside = (event) => {
+  //     setRows((prev) =>
+  //       prev.map((row, idx) => {
+  //         const catRef = categoryRefs.current[idx];
+  //         const itemRef = itemRefs.current[idx];
+
+  //         const clickedInsideCategory =
+  //           catRef && catRef.contains(event.target);
+  //         const clickedInsideItem =
+  //           itemRef && itemRef.contains(event.target);
+
+  //         // if clicked outside both → close
+  //         if (!clickedInsideCategory && !clickedInsideItem) {
+  //           return { ...row, CategoryOpen: false, itemOpen: false };
+  //         }
+
+  //         return row;
+  //       })
+  //     );
+  //   };
+
+  //   document.addEventListener("mousedown", handleClickOutside);
+  //   return () => {
+  //     document.removeEventListener("mousedown", handleClickOutside);
+  //   };
+  // }, []);
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      setRows((prev) =>
-        prev.map((row, idx) => {
-          const catRef = categoryRefs.current[idx];
-          const itemRef = itemRefs.current[idx];
-
-          const clickedInsideCategory =
-            catRef && catRef.contains(event.target);
-          const clickedInsideItem =
-            itemRef && itemRef.contains(event.target);
-
-          // if clicked outside both → close
-          if (!clickedInsideCategory && !clickedInsideItem) {
-            return { ...row, CategoryOpen: false, itemOpen: false };
-          }
-
-          return row;
-        })
-      );
+    const handleClickOutside = (e) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target)
+      ) {
+        setCustomerDropdownOpen(false);
+      }
     };
-
+  
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
+  
 
   const {
    
@@ -235,33 +276,32 @@ useEffect(() => {
   //   ? items
   //   : items?.filter(item => item?.Item_Category === activeCategory);
 
-const filteredItems = useMemo(() => {
-  if (!items) return [];
+// const filteredItems = useMemo(() => {
+//   if (!items) return [];
 
-  const categoryChanged = lastCategoryRef.current !== activeCategory;
+//   const categoryChanged = lastCategoryRef.current !== activeCategory;
 
-  const result = items.filter((item) => {
-    const matchesCategory =
-      activeCategory === "All" ||
-      item.Item_Category === activeCategory;
+//   const result = items.filter((item) => {
+//     const matchesCategory =
+//       activeCategory === "All" ||
+//       item.Item_Category === activeCategory;
 
-    // 🔥 Ignore search when category JUST changed
-    const matchesSearch =
-      categoryChanged
-        ? true
-        : !searchTerm.trim() ||
-          item.Item_Name.toLowerCase().includes(searchTerm.toLowerCase());
+//     // 🔥 Ignore search when category JUST changed
+//     const matchesSearch =
+//       categoryChanged
+//         ? true
+//         : !searchTerm.trim() ||
+//           item.Item_Name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesCategory && matchesSearch;
-  });
+//     return matchesCategory && matchesSearch;
+//   });
 
-  // update ref AFTER filtering
-  lastCategoryRef.current = activeCategory;
+//   // update ref AFTER filtering
+//   lastCategoryRef.current = activeCategory;
 
-  return result;
-}, [items, activeCategory, searchTerm]);
+//   return result;
+// }, [items, activeCategory, searchTerm]);
 
-  console.log(filteredItems, "filteredItems")
   
   const itemRowMap = useRef({});
   const updateTotals = () => {
@@ -287,62 +327,254 @@ const filteredItems = useMemo(() => {
   };
 
  
-const updateCart = (itemId, delta, index, itemName, itemAmount) => {
-  const amount = parseFloat(itemAmount || 0);
+// const updateCart = (itemId, delta, index, itemName, itemAmount) => {
+//   const amount = parseFloat(itemAmount || 0);
+
+//   setCart((prev) => {
+//     const currentQty = Number(prev[itemId] || 0);
+//     const newQty = currentQty + delta;
+
+//     let rowIndex = itemRowMap.current[itemId];
+
+//     // ❌ IF QTY BECOMES 0 → REMOVE ITEM COMPLETELY
+//     if (newQty <= 0) {
+//       if (rowIndex !== undefined) {
+//         remove(rowIndex);                // 🔥 remove from RHF
+//         delete itemRowMap.current[itemId]; // 🔥 remove mapping
+//       }
+
+//       const updatedCart = { ...prev };
+//       delete updatedCart[itemId];        // 🔥 remove from cart
+
+//       setTimeout(updateTotals, 0);
+//       return updatedCart;
+//     }
+
+//     // ➤ If row does NOT exist yet → create one
+//     if (rowIndex === undefined) {
+//       rowIndex = fields.length;
+//       itemRowMap.current[itemId] = rowIndex;
+
+//       append({
+//         Item_Name: itemName,
+//         Item_Price: amount,
+//         Item_Quantity: newQty,
+//         Amount: (amount * newQty).toFixed(2),
+//         id: itemId,
+//       });
+//     } else {
+//       // ➤ Update existing row
+//       setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+//       setValue(
+//         `items.${rowIndex}.Amount`,
+//         (amount * newQty).toFixed(2)
+//       );
+//     }
+
+//     setTimeout(updateTotals, 0);
+
+//     return {
+//       ...prev,
+//       [itemId]: newQty,
+//     };
+//   });
+// };
+
+// const updateCart = (itemId, delta, _index, itemName, itemPrice) => {
+//   const price = Number(itemPrice); // ✅ UNIT PRICE ONLY
+
+//   if (!price || price <= 0) {
+//     console.warn("Invalid price passed to updateCart:", itemId, itemPrice);
+//     return;
+//   }
+
+//   setCart((prev) => {
+//     const currentQty = Number(prev[itemId] || 0);
+//     const newQty = currentQty + delta;
+
+//     let rowIndex = itemRowMap.current[itemId];
+
+//     /* ---------------- REMOVE ITEM ---------------- */
+//     if (newQty <= 0) {
+//       if (rowIndex !== undefined) {
+//         remove(rowIndex);
+
+//         // 🔥 rebuild mapping safely
+//         const newMap = {};
+//         watch("items")
+//           ?.filter(Boolean)
+//           .forEach((it, idx) => {
+//             newMap[it.id] = idx;
+//           });
+//         itemRowMap.current = newMap;
+//       }
+
+//       const updatedCart = { ...prev };
+//       delete updatedCart[itemId];
+
+//       setTimeout(updateTotals, 0);
+//       return updatedCart;
+//     }
+
+//     /* ---------------- ADD / UPDATE ---------------- */
+//     if (rowIndex === undefined) {
+//       rowIndex = fields.length;
+//       itemRowMap.current[itemId] = rowIndex;
+
+//       append({
+//         id: itemId,
+//         Item_Name: itemName,      // ✅ name from param
+//         Item_Price: price,        // ✅ unit price stored once
+//         Item_Quantity: newQty,
+//         Amount: (price * newQty).toFixed(2),
+//       });
+//     } else {
+//       setValue(`items.${rowIndex}.Item_Quantity`, newQty);
+//       setValue(
+//         `items.${rowIndex}.Amount`,
+//         (price * newQty).toFixed(2)
+//       );
+//     }
+
+//     setTimeout(updateTotals, 0);
+
+//     return {
+//       ...prev,
+//       [itemId]: newQty,
+//     };
+//   });
+// };
+
+const updateCart = (itemId, delta, _index, itemName, itemPrice) => {
+  const price = Number(itemPrice);
+  if (!price || price <= 0) return;
+
+  // 🔥 MARK RECENT ONLY WHEN ADDING
+  if (delta > 0) {
+    lastUpdatedItemRef.current = itemId;
+  }
 
   setCart((prev) => {
     const currentQty = Number(prev[itemId] || 0);
     const newQty = currentQty + delta;
-
     let rowIndex = itemRowMap.current[itemId];
 
-    // ❌ IF QTY BECOMES 0 → REMOVE ITEM COMPLETELY
+    /* ---------------- REMOVE ITEM ---------------- */
     if (newQty <= 0) {
       if (rowIndex !== undefined) {
-        remove(rowIndex);                // 🔥 remove from RHF
-        delete itemRowMap.current[itemId]; // 🔥 remove mapping
+        remove(rowIndex);
+
+        // rebuild mapping
+        const newMap = {};
+        watch("items")?.filter(Boolean).forEach((it, idx) => {
+          newMap[it.id] = idx;
+        });
+        itemRowMap.current = newMap;
       }
 
-      const updatedCart = { ...prev };
-      delete updatedCart[itemId];        // 🔥 remove from cart
+      const updated = { ...prev };
+      delete updated[itemId];
 
       setTimeout(updateTotals, 0);
-      return updatedCart;
+      return updated;
     }
 
-    // ➤ If row does NOT exist yet → create one
+    /* ---------------- ADD / UPDATE ---------------- */
     if (rowIndex === undefined) {
       rowIndex = fields.length;
       itemRowMap.current[itemId] = rowIndex;
 
       append({
-        Item_Name: itemName,
-        Item_Price: amount,
-        Item_Quantity: newQty,
-        Amount: (amount * newQty).toFixed(2),
         id: itemId,
+        Item_Name: itemName,
+        Item_Price: price,
+        Item_Quantity: newQty,
+        Amount: (price * newQty).toFixed(2),
       });
     } else {
-      // ➤ Update existing row
       setValue(`items.${rowIndex}.Item_Quantity`, newQty);
       setValue(
         `items.${rowIndex}.Amount`,
-        (amount * newQty).toFixed(2)
+        (price * newQty).toFixed(2)
       );
     }
 
     setTimeout(updateTotals, 0);
-
-    return {
-      ...prev,
-      [itemId]: newQty,
-    };
+    return { ...prev, [itemId]: newQty };
   });
 };
 
+// const filteredItems = useMemo(() => {
+//   if (!items) return [];
+
+//   const term = searchTerm.trim().toLowerCase();
+
+//   const list = !term
+//     ? items
+//     : items.filter(item =>
+//         item.Item_Name?.toLowerCase().includes(term)
+//       );
+
+//   return [...list].sort((a, b) => {
+//     const aId = a.id;     // ✅ FIX
+//     const bId = b.id;
+
+//     const aInCart = cart[aId] ? 1 : 0;
+//     const bInCart = cart[bId] ? 1 : 0;
+
+//     // 🔥 MOST RECENT ITEM ON TOP
+//     if (aId === lastUpdatedItemRef.current) return -1;
+//     if (bId === lastUpdatedItemRef.current) return 1;
+
+//     // 🔥 CART ITEMS ABOVE OTHERS
+//     if (aInCart !== bInCart) return bInCart - aInCart;
+
+//     return 0;
+//   });
+// }, [items, searchTerm, cart]);
+const filteredItems = useMemo(() => {
+  if (!items) return [];
+
+  const term = searchTerm.trim().toLowerCase();
+  const categoryChanged = lastCategoryRef.current !== activeCategory;
+
+  const filtered = items.filter((item) => {
+    const matchesCategory =
+      activeCategory === "All" ||
+      item.Item_Category === activeCategory;
+
+    // 🔥 Ignore search when category JUST changed
+    const matchesSearch = categoryChanged
+      ? true
+      : !term || item.Item_Name?.toLowerCase().includes(term);
+
+    return matchesCategory && matchesSearch;
+  });
+
+  // update category ref AFTER filtering
+  lastCategoryRef.current = activeCategory;
+
+  return [...filtered].sort((a, b) => {
+    const aId = a.id;
+    const bId = b.id;
+
+    const aInCart = cart[aId] ? 1 : 0;
+    const bInCart = cart[bId] ? 1 : 0;
+
+    // 🔥 MOST RECENT ITEM ALWAYS ON TOP
+    if (aId === lastUpdatedItemRef.current) return -1;
+    if (bId === lastUpdatedItemRef.current) return 1;
+
+    // 🔥 CART ITEMS ABOVE NON-CART ITEMS
+    if (aInCart !== bInCart) return bInCart - aInCart;
+
+    return 0;
+  });
+}, [items, activeCategory, searchTerm, cart]);
 
   const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
  
+  console.log(filteredItems, "filteredItems")
 
   const onSubmit = async (data) => {
     console.log("Form Data:", data);
@@ -442,10 +674,10 @@ const updateCart = (itemId, delta, index, itemName, itemAmount) => {
 
 const summaryItems=watch("items")||[]
 
-const customerName = watch("Customer_Name");
-const customerPhone = watch("Customer_Phone");
-
-const hasCustomer = Boolean(customerPhone); // phone is safest
+// const customerName = watch("Customer_Name");
+// const customerPhone = watch("Customer_Phone");
+    const watchedCustomerName = watch("Customer_Name");
+//const hasCustomer = Boolean(customerPhone); // phone is safest
 
 
 
@@ -485,7 +717,7 @@ console.log(summaryItems,"summaryItems");
       <div className="sb2-2-3" >
         <div className="row" style={{ margin: "0px" }}>
           <div className="col-md-12">
-            <div style={{ padding: "20px",marginBottom:"20px" }}
+            <div style={{ padding: "20px",marginBottom:"20px",height:"100%" }}
               className="box-inn-sp">
 
               <div className="inn-title w-full px-2 py-3">
@@ -534,7 +766,7 @@ console.log(summaryItems,"summaryItems");
                   </div>
 
                 </div>
-
+{/* 
                   <div style={{  backgroundColor: "#f1f1f19d" }} 
                     className="w-full flex flex-col p-2  mt-2 gap-2 heading-wrapper "
                                           >
@@ -558,9 +790,9 @@ console.log(summaryItems,"summaryItems");
 
 
                   </div>
-                   */}
+                   
  <div className="relative sm:w-full">
-  {/* LABEL AREA */}
+
  {!hasCustomer ? (
   <span className="text-sm font-medium text-gray-700">
     Customer
@@ -580,7 +812,6 @@ console.log(summaryItems,"summaryItems");
 )}
 
 
-  {/* ACTION */}
   {/* {!hasCustomer ? (
  
     <span
@@ -602,7 +833,7 @@ console.log(summaryItems,"summaryItems");
     >
       ✏️ Edit Customer
     </span>
-  )} */}
+  )} 
 
   {!hasCustomer && (
   <span
@@ -653,15 +884,165 @@ console.log(summaryItems,"summaryItems");
       });
     }}
   />
-)} */}
+)} 
 
 
                   
-                                          {/* RHF Error */}
+                                         
                                           {/* {errors?.Customer_Name && (
                                             <p className="text-red-500 text-xs mt-1">{errors?.Customer_Name?.message}</p>
-                                          )} */}
-                                        </div>
+                                          )} 
+                                        </div> */}
+                                        
+            
+                                <div style={{  backgroundColor: "#f1f1f19d" }}  
+                                className="
+
+  p-2  heading-wrapper
+">
+                                   
+  <div style={{marginTop:"0px"}}
+   className="  gap-2 flex flex-col w-full
+  p-2  gap-6 sm:w-full sm:flex-row">
+  
+<div style={{marginTop:"0px"}} className="input-field relative">
+  <span className="active">
+    Customer Phone 
+  </span>
+
+  <input
+    ref={inputRef}
+    type="number"
+    id="Customer_Phone"
+    placeholder="Search by phone"
+    value={customerSearch}
+    onChange={(e) => {
+      let val = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+
+      setCustomerSearch(val);
+
+      setValue("Customer_Phone", val, { shouldValidate: true });
+
+      // typing ≠ existing selection
+      setIsExistingCustomer(false);
+      setCustomerDropdownOpen(true);
+    }}
+    onFocus={() => setCustomerDropdownOpen(true)}
+    className="w-full outline-none border-b-2 text-gray-900"
+  />
+
+
+  {customerDropdownOpen && (
+    
+    <div
+     ref={dropdownRef}
+      className="
+        absolute z-50 mt-1 w-full
+        bg-white border border-gray-300 rounded-md shadow-lg
+        max-h-48 overflow-y-auto
+      "
+    >
+      {customers
+        ?.filter(
+          (c) =>
+            c.Customer_Phone.includes(customerSearch) ||
+            c.Customer_Name?.toLowerCase().includes(customerSearch.toLowerCase())
+        )
+        .map((c, i) => (
+          <div
+            key={i}
+            onClick={() => {
+              setCustomerSearch(c.Customer_Phone);
+
+              setValue("Customer_Phone", c.Customer_Phone, {
+                shouldValidate: true,
+              });
+
+              setValue(
+                "Customer_Name",
+                c.Customer_Name || null,
+                { shouldValidate: true }
+              );
+              setValue("Customer_Address", c.Customer_Address, {
+                shouldValidate: true,
+              });
+              setValue("Customer_Date", c.Special_Date, {
+                shouldValidate: true,
+              });
+           
+
+              setIsExistingCustomer(true);
+              setCustomerDropdownOpen(false);
+            }}
+            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+          >
+            <span className="font-medium">
+              {c.Customer_Name ?? ""}
+            </span>{" "}
+            <span className="text-gray-500">
+              ({c.Customer_Phone})
+            </span>
+          </div>
+        ))}
+
+      {customers?.length === 0 && (
+        <p className="px-3 py-2 text-gray-500">No customers found</p>
+      )}
+    </div>
+  )}
+
+  {errors?.Customer_Phone && (
+    <p className="text-red-500 text-xs mt-1">
+      Phone number is required
+    </p>
+  )}
+</div>
+
+<div style={{marginTop:"0px"}} className="input-field  ">
+  <span className="active">Customer Name</span>
+
+  <input
+    type="text"
+    id="Customer_Name"
+    placeholder="Customer Name"
+       value={watchedCustomerName || ""} 
+       readOnly={isExistingCustomer} 
+    className="w-full outline-none border-b-2 text-gray-900"
+    onChange={(e) => {
+      setValue("Customer_Name", e.target.value || null, {
+        shouldValidate: true,
+      });
+    }}
+  />
+
+  {errors?.Customer_Name && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.Customer_Name.message}
+    </p>
+  )}
+</div>
+
+
+  
+  
+                  </div>
+             
+
+
+                 {/* <div className="sm:visible"></div> */}
+        {/* <div className="w-full ">
+      <input
+        type="text"
+        placeholder="Search ..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full"
+      />
+    </div> */}
+     
+
+                                                          </div>
+             
               </div>
               <div style={{ padding: "0", backgroundColor: "#f1f1f19d" }} className="tab-inn">
                 <form onSubmit={handleSubmit(onSubmit)}>

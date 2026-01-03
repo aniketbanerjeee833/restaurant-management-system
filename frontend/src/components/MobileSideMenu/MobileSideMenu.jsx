@@ -384,7 +384,7 @@ if (
               
               {/* <i className="fa fa-bar-chart" aria-hidden="true"></i> Dashboard */}
                  <span className="flex items-center gap-2">  <ListOrdered  size={20}/> 
-                Add Order
+              Dine-In
                  </span>
             </NavLink>}
 
@@ -416,7 +416,12 @@ if (
                 All Orders
                  </span>
             </NavLink>}
-
+ {userMe?.user?.role === "staff" && renderMenu("Reports", <ClipboardMinus  size={20} />, [
+           
+            { to: "/report/product-wise-report", text: "Product Report" },
+           
+          
+          ])}
            {userMe?.user?.role === "admin" && <NavLink
               to="/reports"
               className={({ isActive }) => (isActive ? "menu-active" : "")}

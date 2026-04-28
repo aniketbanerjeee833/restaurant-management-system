@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS daily_food_stock (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    Item_Id VARCHAR(255) NOT NULL,
+    Stock_Date DATE NOT NULL,
+
+
+    Opening_Quantity INT NOT NULL,
+    Added_Quantity INT DEFAULT 0,
+    Sold_Quantity INT DEFAULT 0,
+    Closing_Quantity INT NOT NULL,
+
+    Updated_By VARCHAR(255) NOT NULL,
+    Updated_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+  
+);

@@ -1,0 +1,93 @@
+import { z } from "zod";
+
+export const singleFoodItemSchema = z.object({
+  Item_Name: z
+    .string()
+    .min(2, "Item Name must be at least 2 characters")
+    .max(255),
+
+Item_Image: z
+  .any()
+  .optional()
+  .refine(
+    (file) => {
+      if (!file) return true; // ✔ allow empty
+      return file instanceof File;
+    },
+    { message: "Invalid file upload" }
+  )
+  .refine(
+    (file) => {
+      if (!file) return true; // ✔ allow empty
+      return ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type);
+    },
+    { message: "Only JPG, PNG, WEBP images allowed" }
+  )
+  .refine(
+    (file) => {
+      if (!file) return true; // ✔ allow empty
+      return file.size <= 5 * 1024 * 1024;
+    },
+    { message: "Image must be less than 5MB" }
+  ),
+
+
+  Item_Category: z.string().min(1, "Select a category"),
+DineIn_Item_Price: z
+      .string()
+      .optional()
+      .refine(
+        (v) => v === undefined || v === "" || !isNaN(parseFloat(v)),
+        "Enter valid dine-in price"
+      )
+      .transform((v) => (v === "" || v === undefined ? undefined : Number(v)))
+      .refine((v) => v === undefined || v >= 0, {
+        message: "Price must be positive",
+      }),
+
+    Takeaway_Item_Price: z
+      .string()
+      .optional()
+      .refine(
+        (v) => v === undefined || v === "" || !isNaN(parseFloat(v)),
+        "Enter valid takeaway price"
+      )
+      .transform((v) => (v === "" || v === undefined ? undefined : Number(v)))
+      .refine((v) => v === undefined || v >= 0, {
+        message: "Price must be positive",
+      }),
+//   DineIn_Item_Price: z
+//     .string()
+//     .refine((v) => !isNaN(parseFloat(v)), "Enter valid price")
+//     .transform((v) => parseFloat(v))
+//     .refine((n) => n >= 0, "Price must be positive"),
+// Takeaway_Item_Price: z
+//     .string()
+//     .refine((v) => !isNaN(parseFloat(v)), "Enter valid price")
+//     .transform((v) => parseFloat(v))
+//     .refine((n) => n >= 0, "Price must be positive"),
+
+      Tax_Type: z.string().optional().default("None"),
+
+  // 🆕 Auto-calculated numeric Tax Amount
+  Tax_Amount: z
+    .string()
+    .optional()
+    .refine((v) => !isNaN(parseFloat(v)), "Invalid tax amount")
+    .transform((v) => parseFloat(v))
+    .refine((n) => n >= 0, "Tax amount must be positive"),
+
+  Amount: z
+    .string()
+    .optional()
+    .refine((v) => !isNaN(parseFloat(v)), "Invalid amount")
+    .transform((v) => parseFloat(v))
+    .refine((n) => n >= 0, "Amount must be positive")
+
+});
+
+
+// ⬅ MULTI-ROW SCHEMA
+export const foodFormSchema = z.object({
+  items: z.array(singleFoodItemSchema).min(1, "Add at least one item"),
+});

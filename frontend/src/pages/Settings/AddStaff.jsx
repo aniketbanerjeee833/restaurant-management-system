@@ -1,0 +1,400 @@
+
+
+import  { useEffect, useState } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom';
+import { userApi, useRegisterUserMutation } from '../../redux/api/userApi';
+import { toast } from 'react-toastify';
+
+import { useForm } from 'react-hook-form';
+
+import { useDispatch, useSelector } from 'react-redux';
+import { useRef } from 'react';
+import { useAvailableCategoriesForKitchenStaffsQuery } from '../../redux/api/staffApi';
+import { kitchenStaffApi } from '../../redux/api/KitchenStaff/kitchenStaffApi';
+
+
+
+
+
+
+export default function AddStaff() {
+   //const{userId,staffId} = useSelector((state) => state.user)
+   const[showPassword, setShowPassword] = useState("");
+   const [categorySearch, setCategorySearch] = useState("");
+const [categoryOpen, setCategoryOpen] = useState(false);
+
+const dispatch=useDispatch();
+     const categoryRef = useRef(); 
+
+   const[registerUser]=useRegisterUserMutation();
+  const navigate=useNavigate();
+    const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    
+    formState: { errors },
+  } =  useForm({
+  defaultValues: {
+    role: "",
+    categories: [],
+  },
+});
+  // const { data: categories } = useGetAllCategoriesQuery()
+  const { data: availableCategories } = useAvailableCategoriesForKitchenStaffsQuery()
+  const categories=availableCategories?.remainingCategories??[]
+  console.log(categories, "categories");
+const formValues = watch();
+
+const selectedCategories = watch("categories") || [];
+const selectedRole = watch("role");
+
+const {user}=useSelector((state) => state.user);
+console.log(user);
+
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryRef.current && !categoryRef.current.contains(event.target)) {
+        setCategoryOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+const onSubmit = async (data) => {
+  console.log("Raw Form Data (from RHF):", data);
+
+  // const formData = new FormData();
+  //  Object.keys(data).forEach((key) => {
+  //   formData.append(key, data[key]);
+  // });
+
+  // append file if exists
+
+  const payload={...data};
+  
+
+  // ✅ Log FormData contents (you won't see anything with console.log(formData))
+
+try {
+  const res = await registerUser({body:payload,User_Id:user.User_Id}).unwrap();
+  console.log("Response from backend:", res);
+  toast.success(res.message || "New employee added successfully!");
+  dispatch(userApi.util.invalidateTags(["User"]));
+  dispatch(kitchenStaffApi.util.invalidateTags(["Kitchen-Staff"]));
+  dispatch(kitchenStaffApi.util.invalidateTags(["Staff"]));
+  navigate(`/staff/all-staffs`); // ✅ use backend userId
+} catch (error) {
+  // ✅ show backend error message if available
+  const errorMessage =
+    error?.data?.message || error?.message || "Failed to add new employee";
+
+  toast.error(errorMessage);
+  console.error("Submission failed", error);
+}
+
+
+};
+
+  console.log("Current form values:", formValues);
+  console.log("Form errors:", errors);
+
+  const renderInput = (id, type = 'text', label, colClass = 'col s6') => (
+
+  <div className={`input-field  ${colClass}`} style={{marginTop:"0px"}}>
+    <div className="relative ">
+        {/* Show error below the input field */}
+          <span className="active">{label}</span>
+                 
+      {errors[id] && (
+        <p className="text-red-500 text-xs mt-1">{errors[id]?.message}</p>
+      )}
+    
+       {
+      type=== "password" && label === "Password" ? (
+        <input style={{border:"none !important ",outline:"none !important"}}
+          id={id}
+          type={showPassword ? 'text' : 'password'}
+          {...register(id)} // <-- react-hook-form binding
+          //placeholder={focusStates[id] ? '' : label}
+       
+          className={`w-full outline-none border  text-gray-900 bg-white rounded-md p-2 `}
+        />
+      ):
+      (
+        <input style={{border:"none !important ",outline:"none !important"}}
+          id={id}
+          type={type}
+          {...register(id)} // <-- react-hook-form binding
+         // placeholder={focusStates[id] ? '' : label}
+      
+             onInput={(e) => {
+          if (id === "phone") {
+            e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+          }
+          if(id==="pincode"){
+            e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+          }
+        }}
+          className={`w-full  outline-none border  text-gray-900 bg-white rounded-md p-2`}
+        />
+      )}  
+
+      
+       
+        
+   
+{/* 
+      {( watch(id)) && (
+        <label
+          htmlFor={id}
+          className="absolute left-0 -top-5 text-sm text-[#26a69a] transition-all"
+        >
+          {label}
+        </label>
+      )} */}
+      { (label==="Password" ) &&(
+           <span
+              className="absolute right-0 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </span>
+      )}
+    
+
+    
+    </div>
+  </div>
+);
+
+
+
+
+
+  return (
+     
+            
+    <>
+      {/* <div className="sb2-2-2">
+        <ul>
+           <li >
+                    <NavLink style={{display:"flex" ,flexDirection:"row"}}
+                      to="/home"
+          
+                    >
+                      <LayoutDashboard size={20} style={{ marginRight: '8px' }} />
+                 
+                      Dashboard
+                    </NavLink>
+                  </li>
+       
+        </ul>
+      </div> */}
+            {/* <div className="sb2-2-3">
+        <div className="row">
+          <div className="col-md-12">
+            <div className="box-inn-sp"> */}
+
+    
+            <div className="flex flex-col bg-white">
+              <div className="inn-title">
+                <h4>Add New Staff</h4>
+                <p>Enter the staff details below.</p>
+              </div>
+              <div className="tab-inn">
+               <form  className=" gap-6" onSubmit={handleSubmit(onSubmit)}>
+
+                  <div className="row flex gap-4">
+                     {renderInput('name', 'text', ' Name')}
+                    {renderInput('email', 'text', 'Email')}
+                      {renderInput('phone', 'text', 'Phone Number')}
+                   
+                  </div>
+
+                  <div className="row flex gap-4">
+                  
+                    {renderInput('username', 'text', 'Username')}
+                        {renderInput('password', 'password', 'Password')}
+                      {renderInput('city', 'text', 'City')}
+                  </div>
+
+                
+
+                                        <div className=" flex flex-row gap-4 ">
+                                             {renderInput('address', 'text', 'Address')}
+                                         
+                                              {renderInput('pincode', 'text', 'Pincode')}
+               
+                                        </div>
+    <div style={{width:"100%"}}
+    className="grid grid-cols-[0.2fr_1fr] w-full ml-2 mb-2 gap-4">
+
+  {/* ================= ROLE ================= */}
+  <div className="flex flex-col items-start ">
+     <span className="active">
+        Role <span className="text-red-500">*</span>
+      </span>
+
+    <select
+  
+      {...register("role", { required: "Role is required" })}
+      className="w-full outline-none border text-gray-900 bg-white rounded-md p-2"
+      onChange={(e) => {
+        const value = e.target.value;
+        setValue("role", value);
+
+        // Reset categories if role changes
+        if (value !== "kitchen-staff") {
+          setValue("categories", []);
+          setCategorySearch("");
+          setCategoryOpen(false);
+        }
+      }}
+    >
+        <option value="" disabled>
+    Select Role
+  </option>
+      <option value="staff">Staff</option>
+      <option value="kitchen-staff">Kitchen Staff</option>
+      <option value="waiter">Waiter</option>
+    </select>
+  </div>
+
+  {errors?.role && (
+    <p className="text-red-500 text-xs">{errors.role.message}</p>
+  )}
+
+  {/* ================= CATEGORIES ================= */}
+  {selectedRole === "kitchen-staff" && (
+    <div ref={categoryRef} className="relative">
+
+      <span className="active">
+        Assign Categories <span className="text-red-500">*</span>
+      </span>
+
+      {/* INPUT + CHIPS */}
+      <div
+        className="flex flex-wrap items-center gap-2 border  p-2 cursor-text"
+        onClick={() => setCategoryOpen(true)}
+      >
+        {/* Selected Categories */}
+        {selectedCategories?.map((cat, idx) => (
+          <span
+            key={idx}
+            className="bg-[#ff0000] text-white px-2 py-1  flex items-center gap-1 text-sm"
+          >
+            {cat}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setValue(
+                  "categories",
+                  selectedCategories.filter((c) => c !== cat),
+                  { shouldValidate: true }
+                );
+              }}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+
+        <input
+        style={{marginBottom:"0px",border:"none"}}
+          type="text"
+          value={categorySearch}
+          onChange={(e) => {
+            setCategorySearch(e.target.value);
+            setCategoryOpen(true);
+          }}
+          placeholder="Search category"
+          className="flex-1 outline-none"
+          
+        />
+      </div>
+
+      {/* DROPDOWN */}
+      {categoryOpen && (
+        <div className="absolute z-20 mt-1 
+        w-full bg-white border rounded shadow max-h-48 overflow-y-auto" style={{maxHeight:"140px"}}>
+
+          {categories
+            ?.filter(
+              (cat) =>
+                cat.Item_Category
+                  .toLowerCase()
+                  .includes(categorySearch.toLowerCase()) &&
+                !selectedCategories.includes(cat.Item_Category)
+            )
+            .map((cat, idx) => (
+              <div
+                key={idx}
+                onClick={() => {
+                  setValue(
+                    "categories",
+                    [...selectedCategories, cat.Item_Category],
+                    { shouldValidate: true }
+                  );
+                  setCategorySearch("");
+                  setCategoryOpen(false);
+                }}
+                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+              >
+                {cat.Item_Category}
+              </div>
+            ))}
+
+          {categories?.length === 0 && (
+            <p className="px-3 py-2 text-gray-500">No categories found</p>
+          )}
+        </div>
+      )}
+
+      {/* ERROR */}
+      {errors?.categories && (
+        <p className="text-red-500 text-xs mt-1">
+          At least one category is required
+        </p>
+      )}
+    </div>
+  )}
+
+
+
+</div>
+
+
+
+                                               
+                                        
+                                             <div className="flex justify-end ">
+                    
+                       <button
+                        style={{ backgroundColor: "#ff0000" }}
+                        type="submit"
+                        className="text-white font-bold py-2 px-4 rounded"
+                        
+                      >
+                        Add Staff
+                      </button>
+                    
+                  </div>   
+
+                  
+
+                
+                </form>
+              </div>
+            </div>
+        
+    </>
+    
+  );
+}
